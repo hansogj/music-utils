@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "include": [ 
+        "ci/**/*" ,
+        "src/**/*",
+        "lib.d.ts",
+        "array.defined",
+        "array.onEmpty/typings.d.ts",
+        "array.flatmap/typings.d.ts"
+    ],
+    "exclude": [
+
+    ]
+}

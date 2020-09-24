@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="1" failures="0" time="4.923">
+  <testsuite name="tag" errors="0" failures="0" skipped="0" timestamp="2020-09-20T07:27:46" time="4.806" tests="1">
+    <testcase classname="tag should be defined" name="tag should be defined" time="0.005">
+    </testcase>
+  </testsuite>
+</testsuites>
