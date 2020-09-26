@@ -19,5 +19,11 @@ module.exports = {
     },
   },
   setupFiles: ['./jest.setup-file.ts'],
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/src/utils/__mocks__/mockutils.ts'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>/src/utils/__mocks__/mockutils.ts',
+    '<rootDir>/*/__mocks__/*',
+    '<rootDir>/build/*',
+    '<rootDir>/build.ci/*',
+  ],
 };
