@@ -1,5 +1,4 @@
 import prompts, { Answers } from 'prompts';
-import { isJSDocNamepathType } from 'typescript';
 
 import { Release } from '../types';
 import { info, json } from './color.log';
@@ -27,19 +26,23 @@ const verify = async (release: Partial<Release>): Promise<Partial<Release>> => {
 
 const userDefinedRelease = async (release: Partial<Release>): Promise<Partial<Release>> => {
   info('Type new record data. Leave blanc to keep data');
+
+  const questions: Release = {
+    artist: '',
+    album: '',
+    year: '',
+    disknumber: '1',
+    noOfDiscs: '1',
+  };
   const response: Answers<string> = await prompts(
-    Object.entries(release).map(([name, value]) => ({
+    Object.entries({ ...questions, ...release }).map(([name, value]) => ({
       name,
       message: `${name.toUpperCase()}: ${value}`,
       type: 'text', //= > (['artist', 'album'].includes(q) ? 'text' : 'number'),
     }))
   );
 
-  return Object.keys(release).reduce((res, key: string) => {
-    // @ts-ignore
-    res[key] = response[key] || release[key];
-    return res;
-  }, {} as Partial<Release>);
+  return { ...release, ...response };
 };
 
 const udrAlbum = (release: Partial<Release>): Promise<Partial<Release>> =>

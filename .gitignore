@@ -66,3 +66,4 @@ lib-esm
 _bundles
 test
 test-data
+build.ci
