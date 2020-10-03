@@ -1,6 +1,8 @@
-import { FILETYPE } from '../types';
+import './polyfills';
+
+import { FILETYPE, Release } from '../types';
 import { MockUtil } from './__mocks__/mockutils';
-import { getAlbumArtistInfoFromPath, getFileType, getPwd } from './path';
+import { getAlbumArtistInfoFromPath, getFileType, getPwd, parseAlbumSplit, parseDiscNumber } from './path';
 
 jest.mock('./execute');
 const mocks = MockUtil(jest).requireMocks('./execute');
@@ -38,7 +40,25 @@ describe('path', () => {
     ['/artis/album', ['artis', 'album']],
     ['/lib/artis/album', ['artis', 'album']],
   ])('getAlbumArtistInfoFromPath(%s)', (currentPath: string, epected: string[]) => {
-    it(`should return ${JSON.stringify({ epected })})`, () =>
-      expect(getAlbumArtistInfoFromPath(currentPath)).toEqual(epected));
+    it(`should return ${JSON.stringify({ epected })})`, () => {
+      return expect(getAlbumArtistInfoFromPath(currentPath)).toEqual(epected);
+    });
+  });
+
+  describe.each([
+    ['album', { album: 'Album' }],
+    [' album   of the Year   ', { album: 'Album Of The Year' }],
+    [`'74 album`, { album: `'74 Album` }],
+    [`1974 album`, { album: `Album`, year: '1974' }],
+    [` 1974 album`, { album: `Album`, year: '1974' }],
+    [`album (disc 1)`, { album: `Album`, discnumber: '1' }],
+    [`album (disc21 )`, { album: `Album`, discnumber: '21' }],
+    [`album ( disc  21 ) `, { album: `Album`, discnumber: '21' }],
+    [
+      `1974 album of the year ( disc  21 ) [1980 - 1981]   `,
+      { album: `Album Of The Year [1980 - 1981]`, discnumber: '21', year: '1974' },
+    ],
+  ])('parseAlbumSplit(%s)', (albumSplit: string, epected: Partial<Release>) => {
+    it(`should return ${JSON.stringify({ epected })})`, () => expect(parseAlbumSplit(albumSplit)).toEqual(epected));
   });
 });

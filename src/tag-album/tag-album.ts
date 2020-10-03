@@ -2,6 +2,7 @@ import '../utils/polyfills';
 
 import path from 'path';
 
+import { FILETYPE, MuiscFileTypes } from '../types';
 import log, { error, info } from '../utils/color.log';
 import { getAlbumArtistInfoFromPath, getDirName, getFileType, readDir } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
@@ -17,27 +18,31 @@ Promise.all(readDir(dirName)
 })
  */
 
-export const tagAlbum = (dNam: string) => {
-  const dirName = getDirName();
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const tagAlbum = (dirName: string): Promise<any> => {
   const [artist, album] = getAlbumArtistInfoFromPath(dirName);
 
-  albumPrompt({ album, artist })
+  const fileList = readDir(dirName).map((file) => path.join(dirName, file));
+
+  return albumPrompt({ album, artist })
     .then((response) => info(`user answered ${response}`))
-    .then((response) => {
-      console.log(response);
-      return readDir(dirName)
-        .filter((_, i) => i < 2)
-        .map((file) => path.join(dirName, file))
-        .map((filePath) =>
-          tagFile(filePath, {
-            artist,
-            album,
-            fileType: 'flac',
-            trackName: filePath,
-          })
-        );
-    })
+    .then(() => Promise.all(fileList.map(getFileType)))
+    .then((fileTypes: FILETYPE[]) =>
+      Promise.all(
+        fileTypes
+          .map((fileType, i) =>
+            MuiscFileTypes.includes(fileType)
+              ? tagFile(fileList[i], {
+                  artist,
+                  album,
+                  fileType,
+                  trackName: 'trackname',
+                })
+              : undefined
+          )
+          .defined()
+      )
+    )
 
     .catch(error);
 };

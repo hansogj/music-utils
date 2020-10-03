@@ -1,4 +1,4 @@
-import { album as testalbum } from '../__mocks__/record.mock';
+import { release as testalbum } from '../../src/utils/__mocks__/record.mock';
 import { info, json } from '../../src/utils/color.log';
 import { albumPrompt } from '../../src/utils/prompt';
 
