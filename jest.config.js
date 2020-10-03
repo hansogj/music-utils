@@ -25,5 +25,6 @@ module.exports = {
     '<rootDir>/*/__mocks__/*',
     '<rootDir>/build/*',
     '<rootDir>/build.ci/*',
+    '/build.ci/',
   ],
 };

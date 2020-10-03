@@ -13,7 +13,7 @@
         "tsc": "tsc",
         "tsc:ci": "tsc --project ./tsconfig.ci.json",
         "pretest": "run-s clear sync_test_data tsc",
-        "ci": "run-s pretest __tag-flac __tag-mp3",
+        "ci:tagAlbum": "run-s  clear tsc:ci  && node build.ci/ci/tag-album/index.js",
         "ci:prompt": "run-s  clear tsc:ci  && node build.ci/ci/prompt/index.js",
         "jest": "npx jest --runInBand --detectOpenHandles --colors --verbose --reporters=default",
         "jest:ci": "npx jest --ci --runInBand --silent --colors --coverage",

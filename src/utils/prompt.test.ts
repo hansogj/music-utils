@@ -17,7 +17,7 @@ describe('prompt', () => {
     ...{
       album: 'MDK',
       year: '1973',
-      disknumber: '1',
+      discnumber: '1',
       noOfDiscs: '1',
     },
   };

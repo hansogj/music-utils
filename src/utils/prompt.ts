@@ -31,7 +31,7 @@ const userDefinedRelease = async (release: Partial<Release>): Promise<Partial<Re
     artist: '',
     album: '',
     year: '',
-    disknumber: '1',
+    discnumber: '1',
     noOfDiscs: '1',
   };
   const response: Answers<string> = await prompts(
