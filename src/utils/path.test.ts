@@ -2,7 +2,7 @@ import './polyfills';
 
 import { FILETYPE, Release } from '../types';
 import { MockUtil } from './__mocks__/mockutils';
-import { getAlbumArtistInfoFromPath, getFileType, getPwd, parseAlbumSplit, parseDiscNumber } from './path';
+import { getAlbumArtistInfoFromPath, getFileType, getPwd, parseAlbumFolderName } from './path';
 
 jest.mock('./execute');
 const mocks = MockUtil(jest).requireMocks('./execute');
@@ -59,6 +59,7 @@ describe('path', () => {
       { album: `Album Of The Year [1980 - 1981]`, discnumber: '21', year: '1974' },
     ],
   ])('parseAlbumSplit(%s)', (albumSplit: string, epected: Partial<Release>) => {
-    it(`should return ${JSON.stringify({ epected })})`, () => expect(parseAlbumSplit(albumSplit)).toEqual(epected));
+    it(`should return ${JSON.stringify({ epected })})`, () =>
+      expect(parseAlbumFolderName(albumSplit)).toEqual(epected));
   });
 });

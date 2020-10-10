@@ -23,7 +23,7 @@ const parseDiscNumber = (album: string) => {
   return [num, [pre, ...rest].join(' ').split(' ').defined().join(' ')];
 };
 
-export const parseAlbumSplit = (album: string): Partial<Release> => {
+export const parseAlbumFolderName = (album: string): Pick<Release, 'album' | 'discnumber' | 'year'> => {
   const splitParts: string[] = album.split(' ').defined();
   const [year, ...albumNameSplits] = /\d{4}/.test(splitParts[0])
     ? [splitParts[0], ...splitParts.slice(1)]
