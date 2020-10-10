@@ -1,7 +1,7 @@
 import prompts, { Answers } from 'prompts';
 
 import { Release } from '../types';
-import { info, json } from './color.log';
+import { exit, info, json } from './color.log';
 
 const verify = async (release: Partial<Release>): Promise<Partial<Release>> => {
   json(release);
@@ -14,7 +14,7 @@ const verify = async (release: Partial<Release>): Promise<Partial<Release>> => {
   });
 
   if (response.value === undefined) {
-    process.exit(0);
+    exit();
   }
 
   if (/y/.test(response.value.toLowerCase())) {

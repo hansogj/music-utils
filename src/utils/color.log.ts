@@ -21,4 +21,9 @@ export const warning = (message: string) => logger(message, 'warning');
 export const success = (message: string) => logger(message, 'success');
 export const json = (message: Object) => logger(JSON.stringify(message, null, 4), 'info');
 
+export const exit = (message: string = 'Ending  music utils') => {
+  error(message);
+  process.exit(0);
+};
+
 export default logger;

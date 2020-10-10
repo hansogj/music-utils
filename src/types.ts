@@ -14,7 +14,7 @@ export interface Release extends Partial<OmittableTags> {
 
 export interface Track extends Partial<Release> {
   trackName: string;
-  trackNo: number;
+  trackNo: string;
 }
 
 export interface Tag extends Partial<Track> {
