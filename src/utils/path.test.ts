@@ -2,10 +2,11 @@ import './polyfills';
 
 import { FILETYPE, Release } from '../types';
 import { MockUtil } from './__mocks__/mockutils';
+import * as execute from './execute';
 import { getAlbumArtistInfoFromPath, getFileType, getPwd, parseAlbumFolderName } from './path';
 
 jest.mock('./execute');
-const mocks = MockUtil(jest).requireMocks('./execute');
+const mocks = MockUtil<typeof execute>(jest).requireMocks('./execute');
 
 describe('path', () => {
   beforeEach(() => jest.resetAllMocks());

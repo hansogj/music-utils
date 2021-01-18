@@ -4,10 +4,10 @@ export const execute = (cmd: string) =>
   new Promise((resolve, reject) => {
     try {
       exec(cmd, (err, stdout) => {
-        if (!err && !!stdout) {
+        if (!err) {
           resolve(stdout);
         } else {
-          reject(err);
+          reject(new Error(`Rejecting cmd becaus ${err} \n ${stdout}`));
         }
       });
     } catch (error) {

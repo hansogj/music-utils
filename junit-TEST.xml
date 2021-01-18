@@ -1,111 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="44" failures="1" time="149.627">
-  <testsuite name="tag test" errors="0" failures="1" skipped="1" timestamp="2020-10-10T19:41:24" time="146.97" tests="5">
-    <testcase classname="tag test tagFile execute is called" name="tag test tagFile execute is called" time="0.003">
+<testsuites name="jest tests" tests="31" failures="0" time="25.748">
+  <testsuite name="tag album" errors="0" failures="0" skipped="0" timestamp="2021-01-18T13:08:32" time="25.626" tests="31">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) is connected should call utils" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) is connected should call utils" time="0.011">
     </testcase>
-    <testcase classname="tag test tagFile TODO MORE TESTS" name="tag test tagFile TODO MORE TESTS" time="0">
-      <skipped/>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called readDir(/MyArtis/1973 MyAlbum)" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called readDir(/MyArtis/1973 MyAlbum)" time="0.005">
     </testcase>
-    <testcase classname="tag test extractTags getFileType is called" name="tag test extractTags getFileType is called" time="0.001">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called extractTags" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called extractTags" time="2.141">
     </testcase>
-    <testcase classname="tag test extractTags should result expected" name="tag test extractTags should result expected" time="0.002">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile 7 times" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile 7 times" time="0.004">
     </testcase>
-    <testcase classname="tag test getTrackTagsFromPath of /album/d1t1 track.flac  should result in {&quot;trackName&quot;:&quot;track&quot;,&quot;trackNo&quot;:&quot;01&quot;}" name="tag test getTrackTagsFromPath of /album/d1t1 track.flac  should result in {&quot;trackName&quot;:&quot;track&quot;,&quot;trackNo&quot;:&quot;01&quot;}" time="143.41">
-      <failure>TypeError: Cannot read property &apos;split&apos; of undefined
-    at /git/music-utils/src/utils/tag.ts:27:71
-    at Array.map (&lt;anonymous&gt;)
-    at mapToTags (/git/music-utils/src/utils/tag.ts:27:43)
-    at selector (/git/music-utils/src/utils/tag.ts:43:14)
-    at /git/music-utils/src/utils/tag.ts:50:52
-    at Array.flatMap (&lt;anonymous&gt;)
-    at Object.exports.getTrackTagsFromPath (/git/music-utils/src/utils/tag.ts:50:6)
-    at Object.&lt;anonymous&gt; (/git/music-utils/src/utils/tag.test.ts:65:14)
-    at Object.asyncJestTest (/git/music-utils/node_modules/jest-jasmine2/build/jasmineAsyncInstall.js:106:37)
-    at /git/music-utils/node_modules/jest-jasmine2/build/queueRunner.js:45:12</failure>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 0}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 0}" time="0.003">
     </testcase>
-  </testsuite>
-  <testsuite name="tag album" errors="0" failures="0" skipped="0" timestamp="2020-10-10T19:43:51" time="1.091" tests="11">
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) is connected should call utils" name="tag album tagAlbum(/MyArtis/MyAlbum) is connected should call utils" time="0.007">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 1}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 1}" time="0.003">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called readDir(/MyArtis/MyAlbum)" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called readDir(/MyArtis/MyAlbum)" time="0.008">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 2}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 2}" time="0.003">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called extractTags" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called extractTags" time="0.005">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 3}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 3}" time="0.002">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile 7 times" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile 7 times" time="0.002">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 4}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 4}" time="0.003">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 0, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;01 - Hortz Fur Dehn Stekehn West.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 0, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;01 - Hortz Fur Dehn Stekehn West.mp3&quot;}" time="0.004">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 5}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 5}" time="0.015">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 1, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;04 - Da Zeuhl Wortz Mekanik.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 1, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;04 - Da Zeuhl Wortz Mekanik.mp3&quot;}" time="0.002">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 6}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 6}" time="0.004">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 2, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;07 - Kreuhn Kohrmahn Iss De Hundin.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 2, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;07 - Kreuhn Kohrmahn Iss De Hundin.mp3&quot;}" time="0.002">
+    <testcase classname="tag album mergeMetaData of parameters files: undefined and promptResponse: undefined  should result in expected: []" name="tag album mergeMetaData of parameters files: undefined and promptResponse: undefined  should result in expected: []" time="0.028">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 3, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;02 - Ima Suri Dondai.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 3, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;02 - Ima Suri Dondai.mp3&quot;}" time="0.002">
+    <testcase classname="tag album mergeMetaData of parameters files: [ [length]: 0 ] and promptResponse: {}  should result in expected: []" name="tag album mergeMetaData of parameters files: [ [length]: 0 ] and promptResponse: {}  should result in expected: []" time="0.002">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 4, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;05 - Nebehr Gudahtt.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 4, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;05 - Nebehr Gudahtt.mp3&quot;}" time="0.001">
+    <testcase classname="tag album mergeMetaData of parameters files: [ { path: &apos;mypath&apos; }, [length]: 1 ] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="tag album mergeMetaData of parameters files: [ { path: &apos;mypath&apos; }, [length]: 1 ] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.002">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 5, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;03 - Kobaia Is De Hundin.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 5, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;03 - Kobaia Is De Hundin.mp3&quot;}" time="0.005">
+    <testcase classname="tag album mergeMetaData of parameters files: [ { path: &apos;mypath&apos;, fileType: &apos;flac&apos; }, [length]: 1 ] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="tag album mergeMetaData of parameters files: [ { path: &apos;mypath&apos;, fileType: &apos;flac&apos; }, [length]: 1 ] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.004">
     </testcase>
-    <testcase classname="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 6, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;06 - Mekanik Kommandoh.mp3&quot;}" name="tag album tagAlbum(/MyArtis/MyAlbum) with response from prompt has called tagFile with {&quot;index&quot;: 6, &quot;tag&quot;: [Object], &quot;track&quot;: &quot;06 - Mekanik Kommandoh.mp3&quot;}" time="0.003">
+    <testcase classname="tag album mergeMetaData of parameters files: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+  },
+  [length]: 1
+] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="tag album mergeMetaData of parameters files: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+  },
+  [length]: 1
+] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.002">
     </testcase>
-  </testsuite>
-  <testsuite name="path" errors="0" failures="0" skipped="0" timestamp="2020-10-10T19:43:52" time="0.742" tests="23">
-    <testcase classname="path getFileType(&quot;Rock and Roll.flac: audio/flac; charset=binary&quot;) should return flac" name="path getFileType(&quot;Rock and Roll.flac: audio/flac; charset=binary&quot;) should return flac" time="0.005">
+    <testcase classname="tag album mergeMetaData of parameters files: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+  },
+  [length]: 1
+] and promptResponse: { album: &apos;Override&apos;, artist: &apos;Override&apos; }  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Override&quot;,&quot;artist&quot;:&quot;Override&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="tag album mergeMetaData of parameters files: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+  },
+  [length]: 1
+] and promptResponse: { album: &apos;Override&apos;, artist: &apos;Override&apos; }  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Override&quot;,&quot;artist&quot;:&quot;Override&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.001">
     </testcase>
-    <testcase classname="path getFileType(&quot;Rock and Roll.mp3: audio/mpeg; charset=binary&quot;) should return mp3" name="path getFileType(&quot;Rock and Roll.mp3: audio/mpeg; charset=binary&quot;) should return mp3" time="0.001">
+    <testcase classname="tag album mergeMetaData of parameters files: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackName: &apos;TrackName&apos; }
+  },
+  [length]: 1
+] and promptResponse: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackName&quot;:&quot;TrackName&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="tag album mergeMetaData of parameters files: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackName: &apos;TrackName&apos; }
+  },
+  [length]: 1
+] and promptResponse: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackName&quot;:&quot;TrackName&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.002">
     </testcase>
-    <testcase classname="path getFileType(&quot;folder.jpg: image/jpeg; charset=binary&quot;) should return jpg" name="path getFileType(&quot;folder.jpg: image/jpeg; charset=binary&quot;) should return jpg" time="0.001">
+    <testcase classname="tag album mergeMetaData of parameters files: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;15&apos; } },
+  [length]: 1
+] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;15&quot;}}]" name="tag album mergeMetaData of parameters files: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;15&apos; } },
+  [length]: 1
+] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;15&quot;}}]" time="0.001">
     </testcase>
-    <testcase classname="path getFileType(&quot;whuut.png: jobbish; charset=binary&quot;) should return unknown" name="path getFileType(&quot;whuut.png: jobbish; charset=binary&quot;) should return unknown" time="0.002">
+    <testcase classname="tag album mergeMetaData of parameters files: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+  [length]: 2
+] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}},{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}}]" name="tag album mergeMetaData of parameters files: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+  [length]: 2
+] and promptResponse: {}  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}},{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}}]" time="0.001">
     </testcase>
-    <testcase classname="path when current pwd is  getPwd() return {&quot;epected&quot;:[]})" name="path when current pwd is  getPwd() return {&quot;epected&quot;:[]})" time="0.001">
+    <testcase classname="with track  undefined  should alter trackNo as sortable result in undefined" name="with track  undefined  should alter trackNo as sortable result in undefined" time="0.001">
     </testcase>
-    <testcase classname="path when current pwd is / getPwd() return {&quot;epected&quot;:[]})" name="path when current pwd is / getPwd() return {&quot;epected&quot;:[]})" time="0.001">
+    <testcase classname="with track  {}  should alter trackNo as sortable result in {}" name="with track  {}  should alter trackNo as sortable result in {}" time="0.001">
     </testcase>
-    <testcase classname="path when current pwd is /path getPwd() return {&quot;epected&quot;:[&quot;path&quot;]})" name="path when current pwd is /path getPwd() return {&quot;epected&quot;:[&quot;path&quot;]})" time="0.001">
+    <testcase classname="with track  { trackNo: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;1&quot;}" name="with track  { trackNo: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;1&quot;}" time="0.002">
     </testcase>
-    <testcase classname="path when current pwd is /my/path getPwd() return {&quot;epected&quot;:[&quot;my&quot;,&quot;path&quot;]})" name="path when current pwd is /my/path getPwd() return {&quot;epected&quot;:[&quot;my&quot;,&quot;path&quot;]})" time="0.001">
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" time="0.001">
     </testcase>
-    <testcase classname="path when current pwd is /home/my/path getPwd() return {&quot;epected&quot;:[&quot;home&quot;,&quot;my&quot;,&quot;path&quot;]})" name="path when current pwd is /home/my/path getPwd() return {&quot;epected&quot;:[&quot;home&quot;,&quot;my&quot;,&quot;path&quot;]})" time="0">
+    <testcase classname="with track  { trackNo: &apos;01&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" name="with track  { trackNo: &apos;01&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" time="0.001">
     </testcase>
-    <testcase classname="path getAlbumArtistInfoFromPath() should return {&quot;epected&quot;:[]})" name="path getAlbumArtistInfoFromPath() should return {&quot;epected&quot;:[]})" time="0.002">
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discnumber: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discnumber&quot;:&quot;1&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discnumber: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discnumber&quot;:&quot;1&quot;}" time="0.004">
     </testcase>
-    <testcase classname="path getAlbumArtistInfoFromPath(/) should return {&quot;epected&quot;:[]})" name="path getAlbumArtistInfoFromPath(/) should return {&quot;epected&quot;:[]})" time="0.001">
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discnumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discnumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discnumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discnumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" time="0.002">
     </testcase>
-    <testcase classname="path getAlbumArtistInfoFromPath(/album) should return {&quot;epected&quot;:[&quot;album&quot;]})" name="path getAlbumArtistInfoFromPath(/album) should return {&quot;epected&quot;:[&quot;album&quot;]})" time="0.001">
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discnumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discnumber&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discnumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discnumber&quot;:&quot;2&quot;}" time="0.001">
     </testcase>
-    <testcase classname="path getAlbumArtistInfoFromPath(/artis/album) should return {&quot;epected&quot;:[&quot;artis&quot;,&quot;album&quot;]})" name="path getAlbumArtistInfoFromPath(/artis/album) should return {&quot;epected&quot;:[&quot;artis&quot;,&quot;album&quot;]})" time="0.001">
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discnumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discnumber&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discnumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discnumber&quot;:&quot;2&quot;}" time="0.001">
     </testcase>
-    <testcase classname="path getAlbumArtistInfoFromPath(/lib/artis/album) should return {&quot;epected&quot;:[&quot;artis&quot;,&quot;album&quot;]})" name="path getAlbumArtistInfoFromPath(/lib/artis/album) should return {&quot;epected&quot;:[&quot;artis&quot;,&quot;album&quot;]})" time="0.002">
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discnumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discnumber&quot;:&quot;02&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discnumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discnumber&quot;:&quot;02&quot;}" time="0.002">
     </testcase>
-    <testcase classname="path parseAlbumSplit(album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;}})" name="path parseAlbumSplit(album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;}})" time="0.002">
-    </testcase>
-    <testcase classname="path parseAlbumSplit( album   of the Year   ) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album Of The Year&quot;}})" name="path parseAlbumSplit( album   of the Year   ) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album Of The Year&quot;}})" time="0.001">
-    </testcase>
-    <testcase classname="path parseAlbumSplit(&apos;74 album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;&apos;74 Album&quot;}})" name="path parseAlbumSplit(&apos;74 album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;&apos;74 Album&quot;}})" time="0.001">
-    </testcase>
-    <testcase classname="path parseAlbumSplit(1974 album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;}})" name="path parseAlbumSplit(1974 album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;}})" time="0.001">
-    </testcase>
-    <testcase classname="path parseAlbumSplit( 1974 album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;}})" name="path parseAlbumSplit( 1974 album) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;}})" time="0.002">
-    </testcase>
-    <testcase classname="path parseAlbumSplit(album (disc 1)) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;discnumber&quot;:&quot;1&quot;}})" name="path parseAlbumSplit(album (disc 1)) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;discnumber&quot;:&quot;1&quot;}})" time="0.002">
-    </testcase>
-    <testcase classname="path parseAlbumSplit(album (disc21 )) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;discnumber&quot;:&quot;21&quot;}})" name="path parseAlbumSplit(album (disc21 )) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;discnumber&quot;:&quot;21&quot;}})" time="0.002">
-    </testcase>
-    <testcase classname="path parseAlbumSplit(album ( disc  21 ) ) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;discnumber&quot;:&quot;21&quot;}})" name="path parseAlbumSplit(album ( disc  21 ) ) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;discnumber&quot;:&quot;21&quot;}})" time="0.001">
-    </testcase>
-    <testcase classname="path parseAlbumSplit(1974 album of the year ( disc  21 ) [1980 - 1981]   ) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album Of The Year [1980 - 1981]&quot;,&quot;discnumber&quot;:&quot;21&quot;,&quot;year&quot;:&quot;1974&quot;}})" name="path parseAlbumSplit(1974 album of the year ( disc  21 ) [1980 - 1981]   ) should return {&quot;epected&quot;:{&quot;album&quot;:&quot;Album Of The Year [1980 - 1981]&quot;,&quot;discnumber&quot;:&quot;21&quot;,&quot;year&quot;:&quot;1974&quot;}})" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="prompt" errors="0" failures="0" skipped="0" timestamp="2020-10-10T19:43:53" time="0.706" tests="5">
-    <testcase classname="prompt when user responds positive albumPrompt should pass back release object" name="prompt when user responds positive albumPrompt should pass back release object" time="0.006">
-    </testcase>
-    <testcase classname="prompt when user responds positive albumPrompt should pass back release object" name="prompt when user responds positive albumPrompt should pass back release object" time="0.002">
-    </testcase>
-    <testcase classname="prompt when user responds positive albumPrompt should pass back release object" name="prompt when user responds positive albumPrompt should pass back release object" time="0.002">
-    </testcase>
-    <testcase classname="prompt when user responds positive albumPrompt should pass back release object" name="prompt when user responds positive albumPrompt should pass back release object" time="0.002">
-    </testcase>
-    <testcase classname="prompt when user responds negative albumPrompt should pass back altered relase object" name="prompt when user responds negative albumPrompt should pass back altered relase object" time="0.004">
+    <testcase classname="with track  { trackNo: &apos;201&apos;, trackNoTotal: &apos;9&apos;, discnumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discnumber&quot;:&quot;02&quot;}" name="with track  { trackNo: &apos;201&apos;, trackNoTotal: &apos;9&apos;, discnumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discnumber&quot;:&quot;02&quot;}" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

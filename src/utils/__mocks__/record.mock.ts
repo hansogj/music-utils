@@ -1,4 +1,4 @@
-import { Release, Tag } from '../../types';
+import { Release, Track } from '../../types';
 
 export const release: Partial<Release> = {
   artist: 'Magma',
@@ -6,12 +6,18 @@ export const release: Partial<Release> = {
   year: '1973',
 };
 
-export const track: Partial<Tag> = {
+export const track: Partial<Track> = {
   ...release,
   ...{
     trackName: 'Tusen Takk',
     trackNo: '01',
   },
+};
+
+export const albumTrack: Partial<Track> = {
+  ...track,
+
+  ...{ discnumber: '02', noOfDiscs: '04', trackNoTotal: '12' },
 };
 
 export const mdkls = [

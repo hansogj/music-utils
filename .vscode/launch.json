@@ -6,15 +6,18 @@
     "configurations": [
       {
         "type": "node",
-        "name": "vscode-jest-tests",
         "request": "launch",
-        "args": [ "--runInBand" ],
-        "cwd": "${workspaceFolder}",
+        "name": "Jest single run all tests",
+        "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
+        "args": ["--verbose", 
+            "-c",
+            "./jest.config.js",
+            "-i", "--no-cache"],
         "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
-        "disableOptimisticBPs": true,
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+        "internalConsoleOptions": "neverOpen"
       }
     ]
   }
   
+
+

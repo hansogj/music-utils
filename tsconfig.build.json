@@ -1,8 +1,8 @@
 {
     "extends": "./tsconfig.json",
     "rootDir": "./",
-    "include": [ 
-        "ci/**/*" ,        
+    "include": [
+        "src/**/*",
         "lib.d.ts",
         "array.defined",
         "array.onEmpty/typings.d.ts",
@@ -12,8 +12,9 @@
         "node_modules",
         "**/__mocks__",
         "**/*.test.ts",
-     ],
+        "ci",
+    ],
     "compilerOptions": {
-        "outDir": "./build.ci",
+        "outDir": "./build",
     }
 }

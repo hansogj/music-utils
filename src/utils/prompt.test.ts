@@ -6,7 +6,7 @@ jest.mock('prompts', () => ({
 }));
 
 import { Release } from '../types';
-import { albumPrompt } from './prompt';
+import { albumPrompt, userDefinedPrompt } from './prompt';
 
 jest.mock('./color.log');
 
@@ -22,9 +22,8 @@ describe('prompt', () => {
     },
   };
 
-  beforeEach(() => {
-    jest.resetAllMocks();
-  });
+  beforeEach(() => jest.resetAllMocks());
+
   describe.each([['y'], ['Y'], ['yes'], ['YES']])('when user responds positive', (value: string) => {
     beforeEach(() => mockPrompt.mockResolvedValueOnce({ value }));
     it(`albumPrompt should pass back release object`, () =>
@@ -32,12 +31,28 @@ describe('prompt', () => {
   });
 
   describe('when user responds negative', () => {
-    beforeEach(() => {
+    let response: Partial<Release>;
+    beforeEach(async () => {
       mockPrompt.mockResolvedValueOnce({ value: 'n' });
       mockPrompt.mockResolvedValueOnce(alteredRelease);
       mockPrompt.mockResolvedValueOnce({ value: 'y' });
+      response = await albumPrompt(release);
     });
-    it(`albumPrompt should pass back altered relase object`, () =>
-      albumPrompt(release).then((res) => expect(res).toEqual(alteredRelease)));
+    it(`albumPrompt should pass back altered relase object`, () => expect(response).toEqual(alteredRelease));
+  });
+
+  describe('userDefaultPrompt', () => {
+    let response: Partial<Release>;
+    beforeEach(async () => {
+      mockPrompt.mockResolvedValueOnce({ artist: 'Altered Artist', album: '' });
+      response = await userDefinedPrompt({ artist: 'Artist', noOfDiscs: '2', album: 'Album' });
+    });
+
+    it('merges respons with passed release data', async () =>
+      expect(response).toStrictEqual({
+        artist: 'Altered Artist',
+        album: 'Album',
+        noOfDiscs: '2',
+      }));
   });
 });
