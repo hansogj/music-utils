@@ -1,15 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        outputName: 'junit-TEST.xml',
-      },
-    ],
-  ],
+  reporters: ['default', ['jest-junit', { outputName: 'junit-TEST.xml' }]],
   coverageThreshold: {
     global: {
       statements: 50,
@@ -18,13 +10,10 @@ module.exports = {
       lines: 0,
     },
   },
-  setupFiles: ['./jest.setup-file.ts'],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '<rootDir>/src/utils/__mocks__/mockutils.ts',
-    '<rootDir>/*/__mocks__/*',
-    '<rootDir>/build/*',
-    '<rootDir>/build.ci/*',
-    '/build.ci/',
-  ],
+  rootDir: './src',
+  setupFiles: ['../jest.setup-file.ts'],
+
+  // testPathIgnorePatterns: ['/node_modules/', '<rootDir>/src/utils/__mocks__/mockutils.ts', '<rootDir>/.* /__mocks__'],
+  // transformIgnorePatterns: ['../build/', '../build.ci/'],
+  // coveragePathIgnorePatterns: ['../build/', '../build.ci/'],
 };

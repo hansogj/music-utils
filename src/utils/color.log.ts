@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 import chalk from 'chalk';
 
 type Mode = 'success' | 'info' | 'error' | 'warning';
 
-const logger = (message: string, mode: Mode = 'success'): string => {
+const logger = (message: any, mode: Mode = 'success'): string => {
   const modes: Hash<Function> = {
     success: chalk.greenBright,
     warning: chalk.yellow,
@@ -11,14 +12,14 @@ const logger = (message: string, mode: Mode = 'success'): string => {
     error: chalk.redBright.bgBlack,
   };
 
-  console.log(modes[mode](message));
+  console.log(modes[mode](`${message}`));
   return message;
 };
 
-export const error = (message: string) => logger(message, 'error');
-export const info = (message: string) => logger(message, 'info');
-export const warning = (message: string) => logger(message, 'warning');
-export const success = (message: string) => logger(message, 'success');
+export const error = (message: any) => logger(message, 'error');
+export const info = (message: any) => logger(message, 'info');
+export const warning = (message: any) => logger(message, 'warning');
+export const success = (message: any) => logger(message, 'success');
 export const json = (message: Object) => logger(JSON.stringify(message, null, 4), 'info');
 
 export const exit = (message: string = 'Ending  music utils') => {

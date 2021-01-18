@@ -1,5 +1,5 @@
 import { Release } from '../types';
-import { exit } from '../utils/color.log';
+import { exit, info } from '../utils/color.log';
 /* ALBUM=$*
 ARTIST=$(basename "$PWD")
 mkdir -p "$ALBUM"
@@ -23,6 +23,6 @@ export const ripAlbum = () => {
     }
 
     const discNumAsString = discnumber ? `(disc ${[discnumber, noOfDiscs].defined().join('/')})` : '';
-    console.log(`mkdir : ./${artist}/${[year, album, discNumAsString].defined().join(' ')} `);
+    info(`mkdir : ./${artist}/${[year, album, discNumAsString].defined().join(' ')} `);
   });
 };

@@ -1,0 +1,5 @@
+{
+    "jestrunner.jestCommand": "npm run test --"
+  }
+  
+

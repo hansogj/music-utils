@@ -1,5 +1,5 @@
 import fs from 'fs';
-import path, { normalize } from 'path';
+import path from 'path';
 
 import { FILETYPE, Release } from '../types';
 import { execute } from './execute';
@@ -16,7 +16,8 @@ const capitalize = (s: string) => s.slice(0, 1).toLocaleUpperCase() + s.slice(1)
 
 const parseDiscNumber = (album: string) => {
   const diskNrRegExp2 = /(.*)\(\s*disc\s*(\d*)\s*\)(.*)/;
-  const [__, pre, num, ...rest] = diskNrRegExp2.test(album)
+
+  const [, pre, num, ...rest] = diskNrRegExp2.test(album)
     ? [album.match(diskNrRegExp2)].defined().flatMap((e: string) => e)
     : [undefined, album, undefined];
 
