@@ -1,5 +1,5 @@
 import * as tags from '../tag';
-import { File, Release, Track } from '../types';
+import { File, Track } from '../types';
 /* eslint-disable no-template-curly-in-string */
 import { MockUtil } from '../utils/__mocks__/mockutils';
 import { mdkls, release } from '../utils/__mocks__/record.mock';
@@ -7,7 +7,7 @@ import * as log from '../utils/color.log';
 import * as path from '../utils/path';
 import * as prompt from '../utils/prompt';
 // eslint-disable-next-line import/first
-import { mergeMetaData, sortable, tagAlbum } from './tag-album';
+import { tagAlbum } from './tag-album';
 
 type Mocks = typeof prompt & typeof log & typeof tags & typeof path;
 
@@ -100,8 +100,8 @@ describe('tag album', () => {
       );
     });
   });
-
-  describe('mergeMetaData', () => {
+});
+/* describe('mergeMetaData', () => {
     describe.each([
       [undefined, undefined, []],
       [[], {}, []],
@@ -160,8 +160,8 @@ describe('tag album', () => {
           expect(mergeMetaData(files, promptResponse)).toStrictEqual(mergedData));
       }
     );
-  });
-});
+  }); 
+
 
 describe.each([
   [undefined, undefined],
@@ -213,3 +213,4 @@ describe.each([
       }).track
     ).toStrictEqual(expected));
 });
+*/

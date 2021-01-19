@@ -1,5 +1,5 @@
 import { File, MetaFlac, Track } from '../types';
-import { error } from '../utils/color.log';
+import { error, info } from '../utils/color.log';
 import { execute } from '../utils/execute';
 
 const ARTIST = `ARTIST`;
@@ -82,6 +82,7 @@ const generateSetTagString = ({
     .join(' ');
 
 export const write = ({ path, track }: File) => {
+  info(`Tagging ${path}`);
   const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
     .map((action) => action(track))
     .map((tags) => ['metaflac', tags, `'${path}'`].join(' '))

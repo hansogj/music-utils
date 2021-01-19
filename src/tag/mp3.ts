@@ -1,4 +1,5 @@
 import { defined } from 'array.defined';
+import { info } from 'console';
 
 import { File, Track } from '../types';
 import { execute } from '../utils/execute';
@@ -91,5 +92,7 @@ const generateTagString = ({
     .defined()
     .join(' ');
 
-export const write = ({ path, track }: File) =>
-  execute(`id3v2 -2 ${generateTagString(track)} '${path}'`.replace(/\s+/, ' ').trim());
+export const write = ({ path, track }: File) => {
+  info(`Tagging ${path}`);
+  return execute(`id3v2 -2 ${generateTagString(track)} '${path}'`.replace(/\s+/, ' ').trim());
+};

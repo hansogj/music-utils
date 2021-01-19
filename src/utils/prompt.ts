@@ -69,7 +69,7 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
   };
 };
 
-const userDefinedRelease = (release: Partial<Release>): Promise<Partial<Release>> =>
+export const userDefinedRelease = (release: Partial<Release>): Promise<Partial<Release>> =>
   userDefinedPrompt(release)
     .then((udr) => verifyPrompt(udr))
     .catch(() => userDefinedRelease(release));
