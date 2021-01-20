@@ -5,13 +5,12 @@ import { mergeMetaData, sortable } from './merge-meta';
 type TestCase = { files: Array<File>; release: Partial<Release>; tracksFromFile: string[] };
 describe('mergeMetaData', () => {
   describe.each([
-    [{}, []],
+    [{} as TestCase, []],
 
     [
       { files: [{ path: 'mypath' } as File], release: {}, tracksFromFile: undefined },
       [{ path: 'mypath', fileType: undefined, track: { trackNoTotal: '1' } }],
     ],
-
     [
       { files: [{ path: 'mypath', fileType: 'flac' } as File], release: {}, tracksFromFile: undefined },
       [{ path: 'mypath', fileType: 'flac', track: { trackNoTotal: '1' } } as File],
@@ -55,10 +54,11 @@ describe('mergeMetaData', () => {
         } as File,
       ],
     ],
+
     [
       {
         files: [{ path: 'mypath', fileType: 'flac', track: { trackNoTotal: '15' } } as File],
-        reelase: {},
+        release: {},
         tracksFromFile: undefined,
       },
       [{ path: 'mypath', fileType: 'flac', track: { trackNoTotal: '15' } } as File],
@@ -87,7 +87,6 @@ describe('mergeMetaData', () => {
         { path: 'myPath', fileType: 'flac', track: { trackNoTotal: '2', trackName: 'Track 02' } } as File,
       ],
     ],
-
     [
       {
         files: [
@@ -109,13 +108,6 @@ describe('mergeMetaData', () => {
         expect(mergeMetaData(files, release, tracksFromFile)).toStrictEqual(mergedData));
     }
   );
-  /* 
-describe.each([
-  [undefined, undefined, undefined],
-])('of release %o and tracksFromFile: %o ', (release: Release[],  tracksFromFile: string[], expected: Array<File>) => {
-  it(`should result in expected`, () => expect(
-      mergeMetaData().toBe(expected));
-}); */
 });
 
 describe.each([

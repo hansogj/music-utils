@@ -7,10 +7,10 @@ export const execute = (cmd: string) =>
         if (!err) {
           resolve(stdout);
         } else {
-          reject(new Error(`Rejecting cmd becaus ${err} \n ${stdout}`));
+          reject(new Error(`Rejecting cmd because of ${err} \n ${stdout}`));
         }
       });
     } catch (error) {
-      reject(error);
+      reject(new Error(`Rejecting cmd because of ${error}`));
     }
   });

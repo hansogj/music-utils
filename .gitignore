@@ -115,3 +115,4 @@ _bundles
 test
 test-data
 build.ci
+junit-TEST.xml
