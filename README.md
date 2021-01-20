@@ -11,6 +11,6 @@ TODO
 * [v] test track med noDisc + noTrack
 * [v] add year as prefix to 
 * [v] get track name from list of tracks
-* [ ] cdrip
+* [v] cdrip
 * [ ] include coverPhoto-function as part of music-utils
 * [ ] get track name from list of tracks
