@@ -7,6 +7,7 @@ TODO
 * [v] fullfør omskriving av testfiler for hver av ovennevnte
 * [v] test mp3 for id3v1 og id3v2 - separat output (gjenstår id3v1)
 * [v] test track med noDisc + noTrack
-* [ ] add year as prefix to 
+* [v] add year as prefix to 
+* [v] get track name from list of tracks
 * [ ] include coverPhoto-function as part of music-utils
 * [ ] get track name from list of tracks

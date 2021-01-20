@@ -7,7 +7,7 @@ import * as log from '../utils/color.log';
 import * as path from '../utils/path';
 import * as prompt from '../utils/prompt';
 // eslint-disable-next-line import/first
-import { tagAlbum } from './tag-album';
+import { tagAlbum } from './album';
 
 type Mocks = typeof prompt & typeof log & typeof tags & typeof path;
 

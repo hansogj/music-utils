@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-console
-import { tagAlbum } from '../../src/tag-album';
+import { tagAlbum } from '../../src/album';
 import { getDirName } from '../../src/utils/path';
 
 const dirname = getDirName();

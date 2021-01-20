@@ -1,1 +1,1 @@
-export const DISC_NO_SPLIT = '::';
+export const DISC_NO_SPLIT = '∕'; //  '::';

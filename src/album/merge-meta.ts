@@ -39,20 +39,22 @@ export const sortable = (file: File): File => {
   };
 };
 
-export const mergeMetaData = (files: Array<File> = [], userInput: Partial<Release>): Array<File> =>
+export const mergeMetaData = (
+  files: Array<File> = [],
+  release: Partial<Release>,
+  tracksFromFile?: string[]
+): Array<File> =>
   files
     .filter((file) => defined(file.path))
-    .map(({ fileType, track, path }) => {
-      const trackNoTotal = totalNumberOfTracks(track, files);
-      return {
-        path,
-        fileType,
-        track: {
-          trackNoTotal,
-          ...track,
-          ...userInput,
-        },
-      };
-    })
+    .map(({ fileType, track, path }, index: number) => ({
+      path,
+      fileType,
+      track: {
+        ...track,
+        ...release,
+        ...(defined(tracksFromFile) && defined(tracksFromFile[index]) && { trackName: tracksFromFile[index] }),
+        trackNoTotal: totalNumberOfTracks(track, files),
+      },
+    }))
     .map(sortable)
     .defined();
