@@ -1,6 +1,8 @@
+Dependencies
+
 id3v2
 metaflac
-
+cdparanoia
 
 TODO
 * [v] fortsett splitting av tag til mp3, flac og from File 
@@ -9,4 +11,5 @@ TODO
 * [v] test track med noDisc + noTrack
 * [v] add year as prefix to 
 * [v] get track name from list of tracks
+* [ ] cdrip
 * [ ] include coverPhoto-function as part of music-utils

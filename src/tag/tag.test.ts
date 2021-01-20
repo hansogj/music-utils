@@ -6,7 +6,7 @@ import * as execute from '../utils/execute';
 import * as pathUtils from '../utils/path';
 import * as flac from './flac';
 import * as mp3 from './mp3';
-import { extractTags } from './tag';
+import { extractTags, tagFile } from './tag';
 
 jest.mock('../utils/execute').mock('../utils/path').mock('./mp3').mock('./flac');
 
@@ -84,29 +84,49 @@ describe('tag test', () => {
       });
     });
   });
-  /*
-  
-  describe('tagFile', () => {
-      describe('with undefined file', () => {
-          it('rejects', async () => {
-              expect.assertions(1);
-              await expect(tagFile(undefined)).rejects.toEqual(new Error('missing track info'));
-            });
-        });
-        describe.each([[undefined, undefined]])('%o ', (cond: File, expected: string) => {
-            beforeEach(async () => tagFile(cond));
-            it.skip(`execute is called`, () => expect(mocks.execute).toHaveBeenLastCalledWith(expected));
-        });
-        
-    describe('from defined file type', () => {
-        beforeEach(() => {
-        mocks.execute.mockReturnValue(Promise.resolve(''));
-        tagFile({ path: '/file/path', track, fileType: 'flac' });
-    });
-    it('execute is called', () => expect(mocks.execute).toHaveBeenCalledTimes(1));
-      it.skip('TODO MORE TESTS', () => expect(mocks.execute).toHaveBeenCalledTimes(1));
-    });
-});
 
-*/
+  describe('tagFile', () => {
+    let mp3Spy: jest.SpyInstance;
+    let flacSpy: jest.SpyInstance;
+    let thenSpy: jest.Mock;
+    let file: File;
+
+    beforeEach(() => {
+      flacSpy = jest.spyOn(flac, 'write').mockResolvedValueOnce(undefined);
+      mp3Spy = jest.spyOn(mp3, 'write').mockResolvedValueOnce(undefined);
+      thenSpy = jest.fn();
+    });
+
+    afterEach(() => jest.resetAllMocks());
+
+    describe('with filetype unknown', () => {
+      beforeEach(() => {
+        file = { fileType: 'unknown' } as File;
+      });
+      it('rejects', async () => {
+        expect.assertions(1);
+        return tagFile(file).catch((e) => expect(e.message).toContain('Unable to write tags to to undefined filetype'));
+      });
+    });
+
+    describe('with flac filetype', () => {
+      beforeEach(async () => {
+        file = { fileType: 'flac' } as File;
+        tagFile(file).then(thenSpy);
+      });
+      it('calls flac write', () => expect(flacSpy).toHaveBeenCalledTimes(1));
+      it('fire callback', () => expect(thenSpy).toHaveBeenCalledTimes(1));
+      it('mp3 write is never called', () => expect(mp3Spy).not.toHaveBeenCalled());
+    });
+
+    describe('with mp3 filetype', () => {
+      beforeEach(async () => {
+        file = { fileType: 'mp3' } as File;
+        tagFile(file).then(thenSpy);
+      });
+      it('calls mp3 write', () => expect(mp3Spy).toHaveBeenCalledTimes(1));
+      it('fire callback', () => expect(thenSpy).toHaveBeenCalledTimes(1));
+      it('flac write is never called', () => expect(flacSpy).not.toHaveBeenCalled());
+    });
+  });
 });
