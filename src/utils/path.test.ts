@@ -55,9 +55,9 @@ describe('path', () => {
     [`album (disc 1)`, { album: `Album`, discnumber: '1' }],
     [`album (disc21 )`, { album: `Album`, discnumber: '21' }],
     [`album ( disc  21 ) `, { album: `Album`, discnumber: '21' }],
-    [`album (disc21::22 )`, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
-    [`album ( disc  21 :: 22 ) `, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
-    [`album ( disc  21::22 ) `, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
+    [`album (disc21∕22 )`, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
+    [`album ( disc  21 ∕ 22 ) `, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
+    [`album ( disc  21∕22 ) `, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
     [
       `1974 album of the year ( disc  21 ) [1980 - 1981]   `,
       { album: `Album Of The Year [1980 - 1981]`, discnumber: '21', year: '1974' },
