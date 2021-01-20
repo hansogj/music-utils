@@ -129,8 +129,22 @@ describe.each([
   ],
 
   [
+    { trackNo: '10', trackNoTotal: '20', discnumber: '1' },
+    { trackNo: '10', trackNoTotal: '20', discnumber: '1' },
+  ],
+
+  [
     { trackNo: '1', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
     { trackNo: '101', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
+  ],
+  [
+    { trackNo: '10', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
+    { trackNo: '110', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
+  ],
+
+  [
+    { trackNo: '10', trackNoTotal: '20', discnumber: '2', noOfDiscs: '2' },
+    { trackNo: '210', trackNoTotal: '20', discnumber: '2', noOfDiscs: '2' },
   ],
 
   [

@@ -1,17 +1,14 @@
 // eslint-disable-next-line no-console
 import { tagAlbum } from '../album';
+import { getCommandLineArgs } from '../utils/cmd.options';
 import { error, exit, info, json } from '../utils/color.log';
 import { getDirName } from '../utils/path';
 import { syncTrackNames } from '../utils/sync-tag-path';
 
 const fs = require('fs');
 
-const commandLineArgs = require('command-line-args');
-
-const optionDefinitions = [{ name: 'fileName', alias: 'f', type: String }];
-const { fileName } = commandLineArgs(optionDefinitions);
-
 const dirname = getDirName();
+const { fileName } = getCommandLineArgs();
 let tracks;
 
 try {

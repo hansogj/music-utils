@@ -4,7 +4,7 @@ import { join } from 'path';
 
 import { extractTags, tagFile } from '../tag';
 import { File, MuiscFileTypes, Release, Track } from '../types';
-import { error } from '../utils/color.log';
+import { debugInfo, error } from '../utils/color.log';
 import { getAlbumArtistInfoFromPath, parseAlbumFolderName, readDir } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
 import { syncReleaseFolder } from '../utils/sync-tag-path';
@@ -24,8 +24,9 @@ export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<Re
       Promise.all(fileList.map(extractTags))
         .then((files: Array<File>) => files.filter((file) => MuiscFileTypes.includes(file.fileType)))
         .then((files: Array<File>) => mergeMetaData(files, release, tracksFromFile))
-        .then((files: File[]) => Promise.all(files.map(tagFile)))
-        .then((files: File[]) => ({
+        .then((files: Array<File>) => debugInfo(files))
+        .then((files: Array<File>) => Promise.all(files.map(tagFile)))
+        .then((files: Array<File>) => ({
           release: syncReleaseFolder(release as Release, dirName),
           files,
         }))

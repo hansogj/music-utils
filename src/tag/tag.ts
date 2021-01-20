@@ -1,15 +1,25 @@
+import { defined } from 'array.defined';
+
 import { File, FILETYPE, Track } from '../types';
 import { getFileType } from '../utils/path';
 import * as flac from './flac';
 import * as fromPath from './fromPath';
 import * as mp3 from './mp3';
 
+const validateAndfallbackToFileName = (track: Partial<Track>, path: string) =>
+  [track, track?.trackName, track?.trackNo].every((e) => defined(e))
+    ? Promise.resolve(track)
+    : fromPath.read(path).then((trackFromFileName) => ({
+        ...trackFromFileName,
+        ...track,
+      }));
+
 const readTrackTags = (path: string, fileType: FILETYPE = 'unknown'): Promise<File> =>
   // @ts-ignore
   [
     {
-      flac: () => flac.read(path),
-      mp3: () => mp3.read(path),
+      flac: () => flac.read(path).then((track) => validateAndfallbackToFileName(track, path)),
+      mp3: () => mp3.read(path).then((track) => validateAndfallbackToFileName(track, path)),
       unknown: () => fromPath.read(path),
       jpg: undefined,
     }[fileType],

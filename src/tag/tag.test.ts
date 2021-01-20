@@ -8,7 +8,7 @@ import * as flac from './flac';
 import * as mp3 from './mp3';
 import { extractTags, tagFile } from './tag';
 
-jest.mock('../utils/execute').mock('../utils/path').mock('./mp3').mock('./flac');
+jest.mock('../utils/execute').mock('../utils/cmd.options').mock('../utils/path').mock('./mp3').mock('./flac');
 
 const mocks = MockUtil<typeof execute & typeof pathUtils>(jest).requireMocks('../utils/execute', '../utils/path');
 
@@ -24,7 +24,7 @@ describe('tag test', () => {
   describe('getTrackTags', () => {
     let extraction: File;
     const path = '/Album/d1t1 track.wtf';
-
+    const track: Track = { trackName: 'track', noOfDiscs: '1', trackNo: '1' } as Track;
     describe('when no matcihng fileType', () => {
       beforeEach(async () => {
         //      mocks.execute.mockResolvedValue('TITLE=Rock and Roll');
@@ -43,11 +43,11 @@ describe('tag test', () => {
 
     const trackReads = [[undefined], [{}], [{ trackName: 'track', noOfDiscs: '1', trackNo: '1' }]] as Partial<Track>[];
     describe('when filetype is mp3', () => {
-      describe.each(trackReads)('and read track is %o ', (track: Partial<Track>) => {
+      describe.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
         beforeEach(async () => {
-          mp3Mock.read.mockResolvedValue({ track });
+          mp3Mock.read.mockResolvedValue({ tags });
           mocks.getFileType.mockResolvedValue('mp3');
-          mp3Mock.read.mockResolvedValue(track as Partial<Track>);
+          mp3Mock.read.mockResolvedValue(tags as Partial<Track>);
           extraction = await extractTags(path);
         });
 
@@ -64,11 +64,11 @@ describe('tag test', () => {
     });
 
     describe('when filetype is flac', () => {
-      describe.each(trackReads)('and read track is %o ', (track: Partial<Track>) => {
+      describe.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
         beforeEach(async () => {
-          flacMock.read.mockResolvedValue({ track });
+          flacMock.read.mockResolvedValue({ track: tags });
           mocks.getFileType.mockResolvedValue('flac');
-          flacMock.read.mockResolvedValue(track as Partial<Track>);
+          flacMock.read.mockResolvedValue(tags as Partial<Track>);
           extraction = await extractTags(path);
         });
 
