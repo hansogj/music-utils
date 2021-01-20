@@ -5,10 +5,9 @@ jest.mock('prompts', () => ({
   default: mockPrompt,
 }));
 
+jest.mock('./color.log');
 import { Release } from '../types';
 import { albumPrompt, userDefinedPrompt } from './prompt';
-
-jest.mock('./color.log');
 
 describe('prompt', () => {
   const release: Partial<Release> = { artist: 'Magma' };

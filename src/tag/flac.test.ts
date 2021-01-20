@@ -8,7 +8,7 @@ import * as pathUtils from '../utils/path';
 import { metaflac } from './__mocks__/flac.mocks';
 import * as flac from './flac';
 
-jest.mock('../utils/execute').mock('../utils/path');
+jest.mock('../utils/execute').mock('../utils/path').mock('../utils/cmd.options');
 
 const mocks = MockUtil<typeof execute & typeof pathUtils>(jest).requireMocks('../utils/execute', '../utils/path');
 const path = '/Album/d1t1 track.flac';

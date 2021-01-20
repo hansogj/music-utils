@@ -15,12 +15,13 @@ export const sortable = (file: File): File => {
 
   if (defined(track) && defined(track.trackNo)) {
     const [noOfDiscs, discNumber] = numOrOne(track?.noOfDiscs, track?.discnumber);
-    const preceedingZero = numOrOne(track?.trackNoTotal)
-      .filter((trackNoTotal) => discNumber > 1 || trackNoTotal >= 10)
-      .map(() => 0)
-      .shift();
     const trackNumber = numOrNull(track?.trackNo)
       .map((trNum) => (trNum > 100 ? parse(trNum % 100, 0) : trNum))
+      .shift();
+
+    const preceedingZero = numOrOne(track?.trackNoTotal)
+      .filter((trackNoTotal) => (discNumber > 1 || trackNoTotal >= 10) && trackNumber < 10)
+      .map(() => 0)
       .shift();
 
     track = {

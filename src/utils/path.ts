@@ -56,9 +56,8 @@ export const getAlbumArtistInfoFromPath = (current: string = __dirname) =>
 
 const isHidden = (fileName: string) => !/^\..*/.test(fileName);
 
-export function readDir(folder: string, filterHidden = true) {
-  return filterHidden ? fs.readdirSync(folder).filter(isHidden) : fs.readdirSync(folder);
-}
+export const readDir = (folder: string, filterHidden = true) =>
+  filterHidden ? fs.readdirSync(folder).filter(isHidden) : fs.readdirSync(folder);
 
 export const getDirName = () => process.cwd();
 
