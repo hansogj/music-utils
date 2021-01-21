@@ -78,7 +78,6 @@ export const getFileType = (filePath: string): Promise<FILETYPE> =>
     return 'unknown';
   });
 
-export const renameCurrentFolder = (src: string, target: string) =>
-  execute(`mv ../'${src}' ../'${target}'`).then(() => execute(`cd ../'${target}'`));
+export const renameCurrentFolder = (src: string, target: string) => execute(`mv ../'${src}' ../'${target}'`);
 
 export const renameFile = (src: string, target: string) => execute(`mv '${src}' '${target}'`);

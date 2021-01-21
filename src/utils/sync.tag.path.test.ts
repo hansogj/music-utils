@@ -20,9 +20,12 @@ describe('sync.tag.path', () => {
       [undefined, undefined, undefined],
       [{}, '', undefined],
       [{ album: 'Album' }, 'Album', undefined],
+      [{ album: 'My Album' }, 'My album', undefined],
       [{ album: 'Album', year: '2020' }, '2020 Album', undefined],
       [{ album: 'New Album', year: '2020' }, 'Album', { src: 'Album', target: '2020 New Album' }],
-      [{ album: 'Album', year: '2020', discnumber: '1' }, 'Album', { src: 'Album', target: '2020 Album (disc 1)' }],
+
+      [{ album: 'Album', year: '2020', discnumber: '1' }, 'Album', { src: 'Album', target: '2020 Album' }],
+
       [
         { album: 'Album', year: '2020', discnumber: '1', noOfDiscs: '2' },
         'Album',

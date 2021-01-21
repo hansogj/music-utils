@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { COVER_FILE_NAME, COVER_FILE_RESOLUTION } from '../constants';
 import { Release } from '../types';
 import { info } from '../utils/color.log';
 import { execute } from '../utils/execute';
@@ -12,6 +13,6 @@ export const sacad = (dirName: string): Promise<any> => {
 
   return albumPrompt({ album, artist } as Partial<Release>).then((release) => {
     info(`Downloading album cover for ${release.artist}  ${release.album}`);
-    return execute(`sacad "${release.artist}" "${release.album}" 600 "cover.jpg"`);
+    return execute(`sacad "${release.artist}" "${release.album}" ${COVER_FILE_RESOLUTION} "${COVER_FILE_NAME}"`);
   });
 };

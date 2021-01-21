@@ -4,12 +4,20 @@ import { DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';
 import { renameCurrentFolder, renameFile } from './path';
 
-export const syncReleaseFolder = (release: Release, dirName: string): Promise<Release> => {
+const toLowerCase = (s: string = '') =>
+  s
+    .split('')
+    .map((split) => split.toLowerCase())
+    .join('');
+
+export const syncReleaseFolder = (release: Release, dirName: string = ''): Promise<Release> => {
   const { discnumber, noOfDiscs, year, album } = release || ({} as Release);
-  const src = `${dirName}`.split('/').pop();
-  const disc = defined(discnumber) && `(disc ${[discnumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
+  const src = dirName.split('/').pop();
+  const disc =
+    [discnumber, noOfDiscs].every(defined) && `(disc ${[discnumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
   const target = [year, album, disc].defined().join(' ');
-  const shouldRename = defined(target) && target !== src;
+  const shouldRename = defined(src) && toLowerCase(target) !== toLowerCase(src);
+
   return shouldRename ? renameCurrentFolder(src, target).then(() => release) : Promise.resolve(release);
 };
 
