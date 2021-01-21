@@ -7,7 +7,7 @@ import { File, MuiscFileTypes, Release, Track } from '../types';
 import { debugInfo, error } from '../utils/color.log';
 import { getAlbumArtistInfoFromPath, parseAlbumFolderName, readDir } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
-import { syncReleaseFolder } from '../utils/sync-tag-path';
+import { syncReleaseFolder } from '../utils/sync.tag.path';
 import { mergeMetaData } from './merge-meta';
 
 export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}

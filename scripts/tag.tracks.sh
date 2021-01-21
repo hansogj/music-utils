@@ -7,5 +7,5 @@
 
 
 BASEDIR=$(dirname "$0")
-node $BASEDIR/../build/run/tag-tracks.js $@
+node $BASEDIR/../build/run/tag.tracks.js $@
 

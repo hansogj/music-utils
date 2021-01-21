@@ -4,7 +4,7 @@ import { DISC_NO_SPLIT } from '../constants';
 import { File, Release, Track } from '../types';
 import { MockUtil } from './__mocks__/mockutils';
 import * as pathUtils from './path';
-import { syncReleaseFolder, syncTrackNames } from './sync-tag-path';
+import { syncReleaseFolder, syncTrackNames } from './sync.tag.path';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const might = (cond: any) => (defined(cond) ? 'should' : `shouldn't`);
@@ -12,7 +12,7 @@ const might = (cond: any) => (defined(cond) ? 'should' : `shouldn't`);
 jest.mock('../utils/path');
 const mocks = MockUtil<typeof pathUtils>(jest).requireMocks('../utils/path');
 type CallParams = { src: string; target: string };
-describe('sync-tag-path', () => {
+describe('sync.tag.path', () => {
   afterEach(() => jest.resetAllMocks());
 
   describe('syncReleaseFolder', () => {

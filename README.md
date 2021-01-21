@@ -12,5 +12,5 @@ TODO
 * [v] add year as prefix to 
 * [v] get track name from list of tracks
 * [v] cdrip
+* [v] get track name from list of tracks
 * [ ] include coverPhoto-function as part of music-utils
-* [ ] get track name from list of tracks

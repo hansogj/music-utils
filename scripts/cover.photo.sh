@@ -2,10 +2,10 @@
 
 ################################################################################  
 #   Usage : 
-#   Musci/Artist/2020 Album>  tag-album.sh 
+#   Musci/Artist/2020 Album>  cover.photo.sh 
 ################################################################################ 
 
 
 BASEDIR=$(dirname "$0")
-node $BASEDIR/../build/run/tag-album.js 
+node $BASEDIR/../build/run/cover.photo.js 
 
