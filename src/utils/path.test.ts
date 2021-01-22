@@ -1,9 +1,9 @@
 import './polyfills';
 
-import { FILETYPE, Release } from '../types';
+import { FILETYPE } from '../types';
 import { MockUtil } from './__mocks__/mockutils';
 import * as execute from './execute';
-import { getAlbumArtistInfoFromPath, getFileType, getPwd, parseAlbumFolderName } from './path';
+import { getFileType, getPwd } from './path';
 
 jest.mock('./execute');
 const mocks = MockUtil<typeof execute>(jest).requireMocks('./execute');
@@ -32,38 +32,5 @@ describe('path', () => {
   ])('when current pwd is %s', (currentPath: string, epected: string[]) => {
     beforeEach(() => setMockReturnValue(currentPath));
     it(`getPwd() return ${JSON.stringify({ epected })})`, () => getPwd().then((res) => expect(res).toEqual(epected)));
-  });
-
-  describe.each([
-    ['', []],
-    ['/', []],
-    ['/album', ['album']],
-    ['/artis/album', ['artis', 'album']],
-    ['/lib/artis/album', ['artis', 'album']],
-  ])('getAlbumArtistInfoFromPath(%s)', (currentPath: string, epected: string[]) => {
-    it(`should return ${JSON.stringify({ epected })})`, () => {
-      return expect(getAlbumArtistInfoFromPath(currentPath)).toEqual(epected);
-    });
-  });
-
-  describe.each([
-    ['album', { album: 'Album' }],
-    [' album   of the Year   ', { album: 'Album Of The Year' }],
-    [`'74 album`, { album: `'74 Album` }],
-    [`1974 album`, { album: `Album`, year: '1974' }],
-    [` 1974 album`, { album: `Album`, year: '1974' }],
-    [`album (disc 1)`, { album: `Album`, discnumber: '1' }],
-    [`album (disc21 )`, { album: `Album`, discnumber: '21' }],
-    [`album ( disc  21 ) `, { album: `Album`, discnumber: '21' }],
-    [`album (disc21∕22 )`, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
-    [`album ( disc  21 ∕ 22 ) `, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
-    [`album ( disc  21∕22 ) `, { album: `Album`, discnumber: '21', noOfDiscs: '22' }],
-    [
-      `1974 album of the year ( disc  21 ) [1980 - 1981]   `,
-      { album: `Album Of The Year [1980 - 1981]`, discnumber: '21', year: '1974' },
-    ],
-  ])('parseAlbumSplit(%s)', (albumSplit: string, epected: Partial<Release>) => {
-    it(`should return ${JSON.stringify({ epected })})`, () =>
-      expect(parseAlbumFolderName(albumSplit)).toEqual(epected));
   });
 });

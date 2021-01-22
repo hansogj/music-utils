@@ -1,9 +1,8 @@
 #!/bin/bash
 
-
 ######################################## 
 #   Usage : 
-#   Musci/Artist> cdrip Album\ Name
+#   Music/Artist> cdrip Album\ Name
 ########################################
 ALBUM=$*
 ARTIST=$(basename "$PWD")

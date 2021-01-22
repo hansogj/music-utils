@@ -24,10 +24,10 @@ describe('sync.tag.path', () => {
       [{ album: 'Album', year: '2020' }, '2020 Album', undefined],
       [{ album: 'New Album', year: '2020' }, 'Album', { src: 'Album', target: '2020 New Album' }],
 
-      [{ album: 'Album', year: '2020', discnumber: '1' }, 'Album', { src: 'Album', target: '2020 Album' }],
+      [{ album: 'Album', year: '2020', discNumber: '1' }, 'Album', { src: 'Album', target: '2020 Album' }],
 
       [
-        { album: 'Album', year: '2020', discnumber: '1', noOfDiscs: '2' },
+        { album: 'Album', year: '2020', discNumber: '1', noOfDiscs: '2' },
         'Album',
         { src: 'Album', target: `2020 Album (disc 1${DISC_NO_SPLIT}2)` },
       ],

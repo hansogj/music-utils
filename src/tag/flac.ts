@@ -37,14 +37,14 @@ const generateRemoveTagString = ({
   trackName,
   trackNo,
   trackNoTotal,
-  discnumber,
+  discNumber,
   year,
 }: Partial<Track>) => {
   return [
     artist && ARTIST,
     artist && ALBUMARTIST,
-    discnumber && DISCID,
-    discnumber && DISCNUMBER,
+    discNumber && DISCID,
+    discNumber && DISCNUMBER,
     year && DATE,
     album && ALBUM,
     trackNo && TRACKNUMBER,
@@ -62,20 +62,20 @@ const generateSetTagString = ({
   trackName,
   trackNo,
   trackNoTotal,
-  discnumber,
+  discNumber,
   noOfDiscs,
   year,
 }: Partial<Track>) =>
   [
     artist && [ARTIST, `'${artist}'`].join('='),
     artist && [ALBUMARTIST, `'${artist}'`].join('='),
-    discnumber && [DISCNUMBER, `'${discnumber}'`].join('='),
+    discNumber && [DISCNUMBER, `'${discNumber}'`].join('='),
     year && [DATE, `'${year}'`].join('='),
     album && [ALBUM, `'${album}'`].join('='),
     trackNo && [TRACKNUMBER, `'${trackNo}'`].join('='),
     trackNoTotal && [TRACKTOTAL, `'${trackNoTotal}'`].join('='),
     trackName && [TITLE, `'${trackName}'`].join('='),
-    discnumber && `${DISCID}='${[discnumber, noOfDiscs].defined().join('/')}'`,
+    discNumber && `${DISCID}='${[discNumber, noOfDiscs].defined().join('/')}'`,
   ]
     .defined()
     .map((param) => ['--set-tag', param].join('='))

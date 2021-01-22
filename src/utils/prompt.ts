@@ -8,7 +8,7 @@ const questions: Release = {
   artist: '',
   album: '',
   year: undefined,
-  discnumber: '1',
+  discNumber: '1',
   noOfDiscs: '1',
 };
 

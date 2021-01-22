@@ -77,13 +77,13 @@ const generateTagString = ({
   trackName,
   trackNo,
   trackNoTotal,
-  discnumber,
+  discNumber,
   noOfDiscs,
   year,
 }: Partial<Track>) =>
   [
     artist && `--TPE1 '${artist}'`,
-    discnumber && `--TPOS '${[discnumber, noOfDiscs].defined().join('/')}'`,
+    discNumber && `--TPOS '${[discNumber, noOfDiscs].defined().join('/')}'`,
     year && `--TYER '${year}'`,
     album && `--TALB '${album}'`,
     trackNo && `--TRCK '${[trackNo, trackNoTotal].defined().join('/')}'`,

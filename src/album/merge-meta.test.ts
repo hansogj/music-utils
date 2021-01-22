@@ -124,45 +124,45 @@ describe.each([
   ],
 
   [
-    { trackNo: '1', trackNoTotal: '20', discnumber: '1' },
-    { trackNo: '01', trackNoTotal: '20', discnumber: '1' },
+    { trackNo: '1', trackNoTotal: '20', discNumber: '1' },
+    { trackNo: '01', trackNoTotal: '20', discNumber: '1' },
   ],
 
   [
-    { trackNo: '10', trackNoTotal: '20', discnumber: '1' },
-    { trackNo: '10', trackNoTotal: '20', discnumber: '1' },
+    { trackNo: '10', trackNoTotal: '20', discNumber: '1' },
+    { trackNo: '10', trackNoTotal: '20', discNumber: '1' },
   ],
 
   [
-    { trackNo: '1', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
-    { trackNo: '101', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
+    { trackNo: '1', trackNoTotal: '20', discNumber: '1', noOfDiscs: '2' },
+    { trackNo: '101', trackNoTotal: '20', discNumber: '1', noOfDiscs: '2' },
   ],
   [
-    { trackNo: '10', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
-    { trackNo: '110', trackNoTotal: '20', discnumber: '1', noOfDiscs: '2' },
-  ],
-
-  [
-    { trackNo: '10', trackNoTotal: '20', discnumber: '2', noOfDiscs: '2' },
-    { trackNo: '210', trackNoTotal: '20', discnumber: '2', noOfDiscs: '2' },
+    { trackNo: '10', trackNoTotal: '20', discNumber: '1', noOfDiscs: '2' },
+    { trackNo: '110', trackNoTotal: '20', discNumber: '1', noOfDiscs: '2' },
   ],
 
   [
-    { trackNo: '1', trackNoTotal: '20', discnumber: '2' },
-    { trackNo: '201', trackNoTotal: '20', discnumber: '2' },
-  ],
-  [
-    { trackNo: '1', trackNoTotal: '9', discnumber: '2' },
-    { trackNo: '201', trackNoTotal: '9', discnumber: '2' },
+    { trackNo: '10', trackNoTotal: '20', discNumber: '2', noOfDiscs: '2' },
+    { trackNo: '210', trackNoTotal: '20', discNumber: '2', noOfDiscs: '2' },
   ],
 
   [
-    { trackNo: '1', trackNoTotal: '9', discnumber: '02' },
-    { trackNo: '201', trackNoTotal: '9', discnumber: '02' },
+    { trackNo: '1', trackNoTotal: '20', discNumber: '2' },
+    { trackNo: '201', trackNoTotal: '20', discNumber: '2' },
   ],
   [
-    { trackNo: '201', trackNoTotal: '9', discnumber: '02' },
-    { trackNo: '201', trackNoTotal: '9', discnumber: '02' },
+    { trackNo: '1', trackNoTotal: '9', discNumber: '2' },
+    { trackNo: '201', trackNoTotal: '9', discNumber: '2' },
+  ],
+
+  [
+    { trackNo: '1', trackNoTotal: '9', discNumber: '02' },
+    { trackNo: '201', trackNoTotal: '9', discNumber: '02' },
+  ],
+  [
+    { trackNo: '201', trackNoTotal: '9', discNumber: '02' },
+    { trackNo: '201', trackNoTotal: '9', discNumber: '02' },
   ],
 ])('with track  %o ', (track: File['track'], expected: File['track']) => {
   it(`should alter trackNo as sortable result in ${JSON.stringify(expected)}`, () =>

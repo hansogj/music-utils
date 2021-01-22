@@ -2,7 +2,7 @@
 
 ################################################################################  
 #   Usage : 
-#   Musci/Artist/2020 Album>  tag-tracks.sh -f /path/to/tracks.txt 
+#   Music/Artist/2020 Album>  tag-tracks.sh -f /path/to/tracks.txt 
 ################################################################################ 
 
 

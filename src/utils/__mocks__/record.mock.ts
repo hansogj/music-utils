@@ -17,7 +17,7 @@ export const track: Partial<Track> = {
 export const albumTrack: Partial<Track> = {
   ...track,
 
-  ...{ discnumber: '02', noOfDiscs: '04', trackNoTotal: '12' },
+  ...{ discNumber: '02', noOfDiscs: '04', trackNoTotal: '12' },
 };
 
 export const mdkls = [

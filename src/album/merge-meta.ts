@@ -14,7 +14,7 @@ export const sortable = (file: File): File => {
   let track = file?.track;
 
   if (defined(track) && defined(track.trackNo)) {
-    const [noOfDiscs, discNumber] = numOrOne(track?.noOfDiscs, track?.discnumber);
+    const [noOfDiscs, discNumber] = numOrOne(track?.noOfDiscs, track?.discNumber);
     const trackNumber = numOrNull(track?.trackNo)
       .map((trNum) => (trNum > 100 ? parse(trNum % 100, 0) : trNum))
       .shift();

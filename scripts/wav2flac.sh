@@ -2,7 +2,7 @@
 
 ######################################## 
 #   Usage : 
-#   Musci/Artist/Album> wav2flac
+#   Music/Artist/Album> wav2flac
 ########################################
 
 for f in *.wav; do flac --keep-foreign-metadata  "$f" ; done

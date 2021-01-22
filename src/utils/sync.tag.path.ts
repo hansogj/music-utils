@@ -1,3 +1,5 @@
+import './polyfills';
+
 import { defined } from 'array.defined';
 
 import { DISC_NO_SPLIT } from '../constants';
@@ -11,10 +13,10 @@ const toLowerCase = (s: string = '') =>
     .join('');
 
 export const syncReleaseFolder = (release: Release, dirName: string = ''): Promise<Release> => {
-  const { discnumber, noOfDiscs, year, album } = release || ({} as Release);
+  const { discNumber, noOfDiscs, year, album } = release || ({} as Release);
   const src = dirName.split('/').pop();
   const disc =
-    [discnumber, noOfDiscs].every(defined) && `(disc ${[discnumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
+    [discNumber, noOfDiscs].every(defined) && `(disc ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
   const target = [year, album, disc].defined().join(' ');
   const shouldRename = defined(src) && toLowerCase(target) !== toLowerCase(src);
 
