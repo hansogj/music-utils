@@ -18,7 +18,7 @@ TODO
 
 # Installation
 
-'''
+```
 npn ci && npm run build
 
 ```
