@@ -10,11 +10,12 @@ const questions: Release = {
   year: undefined,
   discNumber: '1',
   noOfDiscs: '1',
+  aux: '',
 };
 
 const isNumberic = (name: string) =>
   Object.keys(questions)
-    .filter((_, i) => i > 1)
+    .filter((_, i) => [2, 3, 4].includes(i))
     .includes(name);
 
 const validate = (name: string, value: string) => {

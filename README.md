@@ -13,7 +13,8 @@ TODO
 * [v] get track name from list of tracks
 * [v] cdrip
 * [v] get track name from list of tracks
-* [ ] include coverPhoto-function as part of music-utils
+* [v] include coverPhoto-function as part of music-utils
+* [v] extract additional info from `YYYY Album [some additional info] (Disc 1)`
 
 
 # Installation

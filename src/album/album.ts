@@ -17,10 +17,15 @@ type ReleaseFiles = { release: Release; files: File[] };
 
 export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
   const [artist, albumSplit] = getAlbumArtistInfoFromPath(dirName);
-  const { year, discNumber, noOfDiscs, album } = parseAlbumFolderName(albumSplit);
+  const { noOfDiscs, discNumber, ...parasedAlbum } = parseAlbumFolderName(albumSplit);
   const fileList = readDir(dirName).map((file) => join(dirName, file));
-  const parsed: Release = { album, artist, year, discNumber: discNumber || '1', noOfDiscs: noOfDiscs || discNumber };
-  return albumPrompt(parsed)
+
+  return albumPrompt({
+    artist,
+    ...parasedAlbum,
+    discNumber: discNumber || '1',
+    noOfDiscs: noOfDiscs || discNumber,
+  })
     .then((release) =>
       Promise.all(fileList.map(extractTags))
         .then((files: Array<File>) => files.filter((file) => MuiscFileTypes.includes(file.fileType)))

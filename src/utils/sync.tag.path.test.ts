@@ -1,6 +1,6 @@
 import { defined } from 'array.defined';
 
-import { DISC_NO_SPLIT } from '../constants';
+import { DISC_LABLE, DISC_NO_SPLIT } from '../constants';
 import { File, Release, Track } from '../types';
 import { MockUtil } from './__mocks__/mockutils';
 import * as pathUtils from './path';
@@ -23,23 +23,32 @@ describe('sync.tag.path', () => {
       [{ album: 'My Album' }, 'My album', undefined],
       [{ album: 'Album', year: '2020' }, '2020 Album', undefined],
       [{ album: 'New Album', year: '2020' }, 'Album', { src: 'Album', target: '2020 New Album' }],
-
       [{ album: 'Album', year: '2020', discNumber: '1' }, 'Album', { src: 'Album', target: '2020 Album' }],
-
       [
         { album: 'Album', year: '2020', discNumber: '1', noOfDiscs: '2' },
         'Album',
-        { src: 'Album', target: `2020 Album (disc 1${DISC_NO_SPLIT}2)` },
+        { src: 'Album', target: `2020 Album (${DISC_LABLE} ${[1, 2].join(DISC_NO_SPLIT)})` },
       ],
       [
         { album: 'New Album', year: '2020' },
         '/store/Long Artist Name/Album',
         { src: 'Album', target: '2020 New Album' },
       ],
+
+      [
+        { album: 'New Album', year: '2020', aux: '1980 - 1981' },
+        '/store/Long Artist Name/Album',
+        { src: 'Album', target: '2020 New Album [1980 - 1981]' },
+      ],
+      [
+        { album: 'New Album', year: '2020', aux: '1980 - 1981', discNumber: '11', noOfDiscs: '12' },
+        '/store/Long Artist Name/Album',
+        { src: 'Album', target: `2020 New Album [1980 - 1981] (${DISC_LABLE} ${[11, 12].join(DISC_NO_SPLIT)})` },
+      ],
     ])('when release eq %o & dirName eq %s ', (release: Partial<Release>, dirName: string, expected: CallParams) => {
       beforeEach(() => mocks.renameCurrentFolder.mockResolvedValueOnce(release));
       beforeEach(async () => syncReleaseFolder(release as Release, dirName));
-      it(`${might(expected)} call renameCurrentFolder with params ${expected}`, () => {
+      it(`${might(expected)} call renameCurrentFolder with params ${JSON.stringify(expected)}`, () => {
         if (defined(expected)) {
           expect(mocks.renameCurrentFolder).toHaveBeenCalled();
           expect(mocks.renameCurrentFolder).toHaveBeenCalledWith(expected.src, expected.target);
@@ -81,7 +90,7 @@ describe('sync.tag.path', () => {
   ])('when files list is %o', (files: File[], expected: CallParams[]) => {
     beforeEach(() => mocks.renameFile.mockResolvedValue({}));
     beforeEach(async () => syncTrackNames(files));
-    it(`${might(expected)} call renameFile with params ${expected}`, () => {
+    it(`${might(expected)} call renameFile with params ${JSON.stringify(expected)}`, () => {
       if (defined(expected)) {
         expect(mocks.renameFile).toHaveBeenCalledTimes(expected.length);
         expected.map(({ src, target }: CallParams) => expect(mocks.renameFile).toHaveBeenCalledWith(src, target));

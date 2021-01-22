@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { getAlbumArtistInfoFromPath, parseAlbumFolderName } from '../album/parse.path';
 import { COVER_FILE_NAME, COVER_FILE_RESOLUTION } from '../constants';
 import { Release } from '../types';
 import { info } from '../utils/color.log';
 import { execute } from '../utils/execute';
-import { getAlbumArtistInfoFromPath, parseAlbumFolderName } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

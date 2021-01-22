@@ -1,13 +1,14 @@
 import { defined } from 'array.defined';
 
+export const singleSpace = (str: string = '') => str.split(/\s/).defined().join(' ');
+
 export type Parser = {
   matcher: RegExp;
-  // selector: (selecFrom: RegExpMatchArray) => Array<string>;
   select: number[];
 };
 
 const selectFrom = (match: RegExpMatchArray, matches: number[]) =>
-  match === null ? [] : matches.map((i) => match[i].split(/\s/).defined().join(' '));
+  match === null ? [] : matches.map((i) => singleSpace(match[i]));
 
 export const regExp = (...expressions: RegExp[]) => new RegExp(expressions.map((exp) => exp.source).join(''));
 export const applyMatch = (unparasedTrackName: string, matchers: Parser[]) =>

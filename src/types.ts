@@ -5,6 +5,7 @@ interface Disc {
   discNumber: string;
   noOfDiscs: string;
   year: string;
+  aux?: string;
 }
 
 export interface Release extends Partial<Disc> {

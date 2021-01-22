@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { DISC_LABLE, DISC_NO_SPLIT } from '../constants';
+import { DISC_NO_SPLIT } from '../constants';
 import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
 import parse from '../utils/parse.defined';
@@ -13,45 +13,65 @@ const discNrParser: Parser = {
   select: [1, 2, 3],
 };
 
-const discNrParserApplied = (album: string) => applyMatch(album, [discNrParser]);
+const auxParser: Parser = {
+  matcher: regExp(/(.*)\[(.*)\](.*)/),
+  select: [1, 2, 3],
+};
 
-const parseDiscNumber = (album: string = ''): Partial<Release> => {
-  return [album]
+const discNrParserApplied = (album: string) => applyMatch(album, [discNrParser]);
+const auxParserApplied = (album: string) => applyMatch(album, [auxParser]);
+
+const joinedRest = (albumTitle: string | string[], rest: string[], fallback: string) =>
+  []
+    .concat(albumTitle)
+    .concat(rest)
+    .defined()
+    .onEmpty((o: string[]) => o.push(fallback))
+    .join(' ');
+
+const splitDiscNumber = (parsedDiscNumber: string) =>
+  `${parsedDiscNumber}`
+    .split(DISC_NO_SPLIT)
+    .map((n: string) => parse(n, undefined))
+    .defined()
+    .map((e) => `${e}`);
+
+const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
+  return [parsedAlbum]
     .map(discNrParserApplied)
-    .map(([pre, discNumberWithTotal, ...rest]) => {
-      const remains = [pre]
-        .concat(rest)
-        .defined()
-        .onEmpty((o: string[]) => o.push(album))
-        .join(' ');
-      return { discNumberWithTotal, remains };
-    })
-    .map(({ discNumberWithTotal, remains }) => {
-      const [discNumber, noOfDiscs] = `${discNumberWithTotal}`
-        .split(DISC_NO_SPLIT)
-        .map((n: string) => parse(n, undefined))
-        .defined()
-        .map((e) => `${e}`);
-      return { discNumber, noOfDiscs, album: remains };
+    .map(([albumTitle, parsedDiscNumber, ...rest]) => ({
+      parsedDiscNumber,
+      album: joinedRest(albumTitle, rest, parsedAlbum),
+    }))
+    .map(({ parsedDiscNumber, album }) => {
+      const [albumTitle, aux, rest] = auxParserApplied(album);
+      const [discNumber, noOfDiscs] = splitDiscNumber(parsedDiscNumber);
+      return {
+        discNumber,
+        noOfDiscs,
+        aux,
+        album: joinedRest([albumTitle, album].defined().first(), rest, parsedAlbum),
+      };
     })
     .shift();
 };
 
 export const parseAlbumFolderName = (
   albumPath: string
-): Pick<Release, 'album' | 'discNumber' | 'year' | 'noOfDiscs'> => {
+): Pick<Release, 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
   const splitParts: string[] = albumPath.split(' ').defined();
   const [year, ...albumNameSplits] = /\d{4}/.test(splitParts[0])
     ? [splitParts[0], ...splitParts.slice(1)]
     : [undefined, ...splitParts];
 
-  const { discNumber, noOfDiscs, album } = parseDiscNumber(albumNameSplits.join(' '));
+  const { discNumber, noOfDiscs, album, aux } = parseDiscNumber(albumNameSplits.join(' '));
 
   return {
     album: album.split(' ').map(capitalize).join(' '),
     ...(discNumber && { discNumber }),
     ...(noOfDiscs && { noOfDiscs }),
     ...(year && { year }),
+    ...(aux && { aux }),
   };
 };
 

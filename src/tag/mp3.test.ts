@@ -29,7 +29,7 @@ describe('mp3', () => {
     });
 
     it('should call execute', () => expect(mocks.execute).toHaveBeenCalledTimes(1));
-    it('should call execute with params ', () => expect(mocks.execute).toHaveBeenCalledWith(`id3v2 -l '${path}'`));
+    it('should call execute with params ', () => expect(mocks.execute).toHaveBeenCalledWith(`id3v2 -l "${path}"`));
 
     describe('when track is type id3v1', () => {
       beforeEach(() => {
@@ -88,10 +88,10 @@ describe('mp3', () => {
   describe('write', () => {
     describe.each([
       [{}, ''],
-      [{ album: albumTrack.album }, `--TALB 'MDK'`],
-      [albumTrack, `--TPE1 'Magma' --TPOS '02/04' --TYER '1973' --TALB 'MDK' --TRCK '01/12' --TIT2 'Tusen Takk'`],
+      [{ album: albumTrack.album }, `--TALB "MDK"`],
+      [albumTrack, `--TPE1 "Magma" --TPOS "02/04" --TYER "1973" --TALB "MDK" --TRCK "01/12" --TIT2 "Tusen Takk"`],
     ])('with track data %o ', (track: Partial<Track>, expected: string) => {
-      const callParams = `id3v2 -2 ${expected} '/Album/d1t1 track.wtf'`;
+      const callParams = `id3v2 -2 ${expected} "/Album/d1t1 track.wtf"`;
       beforeEach(async () => {
         mocks.execute.mockResolvedValue('SUCCESS');
         await mp3.write({ path, fileType: 'mp3', track });

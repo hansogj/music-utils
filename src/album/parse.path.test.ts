@@ -23,15 +23,15 @@ describe('parse.path', () => {
     [`1974 album`, { album: `Album`, year: '1974' }],
     [` 1974 album`, { album: `Album`, year: '1974' }],
     [`album (${DISC_LABLE} 1)`, { album: `Album`, discNumber: '1' }],
-
     [`album (disc21 )`, { album: `Album`, discNumber: '21' }],
     [`album ( ${DISC_LABLE}  21 ) `, { album: `Album`, discNumber: '21' }],
     [`album (disc21∕22 )`, { album: `Album`, discNumber: '21', noOfDiscs: '22' }],
     [`album ( ${DISC_LABLE}  21 ∕ 22 ) `, { album: `Album`, discNumber: '21', noOfDiscs: '22' }],
     [`album ( ${DISC_LABLE}  21∕22 ) `, { album: `Album`, discNumber: '21', noOfDiscs: '22' }],
+    [`1974 album [1980 - 1981]   `, { album: `Album`, year: '1974', aux: '1980 - 1981' }],
     [
-      `1974 album of the year ( ${DISC_LABLE}  21 ) [1980 - 1981]   `,
-      { album: `Album Of The Year [1980 - 1981]`, discNumber: '21', year: '1974' },
+      `1974 album of the year ( ${DISC_LABLE}  21 ) [1980 -   1981]   `,
+      { album: `Album Of The Year`, discNumber: '21', year: '1974', aux: '1980 - 1981' },
     ],
   ])('parseAlbumSplit(%s)', (albumSplit: string, epected: Partial<Release>) => {
     it(`should return ${JSON.stringify({ epected })})`, () =>

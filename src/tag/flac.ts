@@ -1,6 +1,8 @@
 import { File, MetaFlac, Track } from '../types';
 import { error, info } from '../utils/color.log';
 import { execute } from '../utils/execute';
+import { replaceDangers } from '../utils/path';
+import { singleSpace } from './parser';
 
 const ARTIST = `ARTIST`;
 const ALBUMARTIST = `ALBUMARTIST`;
@@ -13,7 +15,7 @@ const TRACKTOTAL = 'TRACKTOTAL';
 const TITLE = 'TITLE';
 
 export const read = (path = ''): Promise<Partial<Track>> =>
-  execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER '${path}'`).then((output) => {
+  execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER "${path}"`).then((output) => {
     const reduced: MetaFlac = `${output}`
       .split(/\n/)
       .map((split: string) => split.trim())
@@ -21,7 +23,7 @@ export const read = (path = ''): Promise<Partial<Track>> =>
       .reduce((res: MetaFlac, line: string) => {
         const [key, val] = line.split('=');
         // @ts-ignore
-        res[key] = val;
+        res[key] = val && singleSpace(val);
         return res;
       }, {} as MetaFlac);
 
@@ -56,6 +58,8 @@ const generateRemoveTagString = ({
     .join(' ');
 };
 
+const flacTag = (val: string, tag: string) => val && [tag, `"${val}"`].join('=');
+
 const generateSetTagString = ({
   album,
   artist,
@@ -67,15 +71,15 @@ const generateSetTagString = ({
   year,
 }: Partial<Track>) =>
   [
-    artist && [ARTIST, `'${artist}'`].join('='),
-    artist && [ALBUMARTIST, `'${artist}'`].join('='),
-    discNumber && [DISCNUMBER, `'${discNumber}'`].join('='),
-    year && [DATE, `'${year}'`].join('='),
-    album && [ALBUM, `'${album}'`].join('='),
-    trackNo && [TRACKNUMBER, `'${trackNo}'`].join('='),
-    trackNoTotal && [TRACKTOTAL, `'${trackNoTotal}'`].join('='),
-    trackName && [TITLE, `'${trackName}'`].join('='),
-    discNumber && `${DISCID}='${[discNumber, noOfDiscs].defined().join('/')}'`,
+    flacTag(artist, ARTIST),
+    flacTag(artist, ALBUMARTIST),
+    flacTag(discNumber, DISCNUMBER),
+    flacTag(year, DATE),
+    flacTag(album, ALBUM),
+    flacTag(trackNo, TRACKNUMBER),
+    flacTag(trackNoTotal, TRACKTOTAL),
+    flacTag(trackName, TITLE),
+    flacTag([discNumber, noOfDiscs].defined().join('/'), DISCID),
   ]
     .defined()
     .map((param) => ['--set-tag', param].join('='))
@@ -85,7 +89,7 @@ export const write = ({ path, track }: File) => {
   info(`Tagging ${path}`);
   const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
     .map((action) => action(track))
-    .map((tags) => ['metaflac', tags, `'${path}'`].join(' '))
+    .map((tags) => ['metaflac', tags, `"${path}"`].join(' '))
     .map((exec) => exec.replace(/\s+/, ' ').trim());
 
   return execute(executeRemoveTag)

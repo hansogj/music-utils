@@ -1,5 +1,7 @@
 import fs from 'fs';
 
+import { ACUTE, DISC_NO_SPLIT } from '../constants';
+import { singleSpace } from '../tag/parser';
 import { FILETYPE } from '../types';
 import { execute } from './execute';
 
@@ -35,6 +37,8 @@ export const getFileType = (filePath: string): Promise<FILETYPE> =>
     return 'unknown';
   });
 
-export const renameCurrentFolder = (src: string, target: string) => execute(`mv ../'${src}' ../'${target}'`);
+export const renameCurrentFolder = (src: string, target: string) => execute(`mv ../"${src}" ../"${target}"`);
 
-export const renameFile = (src: string, target: string) => execute(`mv '${src}' '${target}'`);
+export const renameFile = (src: string, target: string) => execute(`mv "${src}" "${target}"`);
+
+export const replaceDangers = (str: string = '') => singleSpace(str).replace(/"/, '"').replace(/\//, DISC_NO_SPLIT);

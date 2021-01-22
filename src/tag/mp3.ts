@@ -52,7 +52,7 @@ export const id3v2 = (unparsed: string = ''): Partial<Track> => {
 };
 
 export const read = (path = ''): Promise<Partial<Track>> =>
-  execute(`id3v2 -l '${path}'`)
+  execute(`id3v2 -l "${path}"`)
     .then((output) => [output].join('').trim())
     .then((output: string) => {
       if (/^id3v1/.test(output)) {
@@ -71,6 +71,8 @@ export const read = (path = ''): Promise<Partial<Track>> =>
       return {};
     });
 
+const mp3Tag = (val: string, tag: string) => val && `--${tag} "${val}"`;
+
 const generateTagString = ({
   album,
   artist,
@@ -82,17 +84,17 @@ const generateTagString = ({
   year,
 }: Partial<Track>) =>
   [
-    artist && `--TPE1 '${artist}'`,
-    discNumber && `--TPOS '${[discNumber, noOfDiscs].defined().join('/')}'`,
-    year && `--TYER '${year}'`,
-    album && `--TALB '${album}'`,
-    trackNo && `--TRCK '${[trackNo, trackNoTotal].defined().join('/')}'`,
-    trackName && `--TIT2 '${trackName}'`,
+    mp3Tag(artist, 'TPE1'),
+    mp3Tag([discNumber, noOfDiscs].defined().join('/'), 'TPOS'),
+    mp3Tag(year, 'TYER'),
+    mp3Tag(album, 'TALB'),
+    mp3Tag([trackNo, trackNoTotal].defined().join('/'), 'TRCK'),
+    mp3Tag(trackName, 'TIT2'),
   ]
     .defined()
     .join(' ');
 
 export const write = ({ path, track }: File) => {
   info(`Tagging ${path}`);
-  return execute(`id3v2 -2 ${generateTagString(track)} '${path}'`.replace(/\s+/, ' ').trim());
+  return execute(`id3v2 -2 ${generateTagString(track)} "${path}"`.replace(/\s+/, ' ').trim());
 };
