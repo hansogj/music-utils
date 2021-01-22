@@ -50,7 +50,7 @@ alias music-utils-tag-tracks="PATH/TO/music-utils/scripts/tag.tracks.sh"
 Music/Artist> music-utils-cdrip Album\ Name
  ```
 
-Creates a folder 'Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./wav2flac.sh) and setting tags "Album" and "Artist" according to values in current path
+Creates a folder 'Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./scripts/wav2flac.sh) and setting tags "Album" and "Artist" according to values in current path
  
 
 ## cover.photo
