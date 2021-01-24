@@ -1,7 +1,7 @@
 import { File, MetaFlac, Track } from '../types';
 import { error, info } from '../utils/color.log';
 import { execute } from '../utils/execute';
-import { replaceDangers } from '../utils/path';
+import { replaceDangers, replaceQuotes } from '../utils/path';
 import { singleSpace } from './parser';
 
 const ARTIST = `ARTIST`;
@@ -13,6 +13,8 @@ const ALBUM = 'ALBUM';
 const TRACKNUMBER = 'TRACKNUMBER';
 const TRACKTOTAL = 'TRACKTOTAL';
 const TITLE = 'TITLE';
+
+const harmless = (val: string): string => `"${replaceQuotes(val)}"`;
 
 export const read = (path = ''): Promise<Partial<Track>> =>
   execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER "${path}"`).then((output) => {
@@ -58,7 +60,7 @@ const generateRemoveTagString = ({
     .join(' ');
 };
 
-const flacTag = (val: string, tag: string) => val && [tag, `"${val}"`].join('=');
+const flacTag = (val: string, tag: string) => val && [tag, harmless(val)].join('=');
 
 const generateSetTagString = ({
   album,
@@ -89,7 +91,7 @@ export const write = ({ path, track }: File) => {
   info(`Tagging ${path}`);
   const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
     .map((action) => action(track))
-    .map((tags) => ['metaflac', tags, `"${path}"`].join(' '))
+    .map((tags) => ['metaflac', tags, harmless(path)].join(' '))
     .map((exec) => exec.replace(/\s+/, ' ').trim());
 
   return execute(executeRemoveTag)

@@ -61,7 +61,7 @@ describe('flac', () => {
 
       beforeEach(async () => {
         mocks.execute.mockResolvedValue('SUCCESS');
-        await flac.write({ path, fileType: 'mp3', track });
+        await flac.write({ path, fileType: 'flac', track });
       });
       it('has executed once', () => expect(mocks.execute).toHaveBeenCalledTimes(2));
       it(`has executed once with ${callParamsRemoveTags}`, () =>
@@ -70,5 +70,27 @@ describe('flac', () => {
       it(`has executed once with ${callParamsSetTags}`, () =>
         expect(mocks.execute).toHaveBeenCalledWith(callParamsSetTags));
     });
+  });
+
+  describe('when filename contains quote', () => {
+    beforeEach(async () => {
+      mocks.execute.mockResolvedValue('SUCCESS');
+      await flac.write({
+        path: '/artist/album name with "quotes"/track name with "quotes".flac',
+        fileType: 'flac',
+        track: { album: 'album name with "quotes"' },
+      });
+    });
+
+    it('has executed once', () => expect(mocks.execute).toHaveBeenCalledTimes(2));
+    it(`has escaped quotes on tag remove`, () =>
+      expect(mocks.execute).toHaveBeenCalledWith(
+        `metaflac --remove-tag=ALBUM \"/artist/album name with 'quotes'/track name with 'quotes'.flac\"`
+      ));
+
+    it(`has escaped quotes on set tag `, () =>
+      expect(mocks.execute).toHaveBeenCalledWith(
+        `metaflac --set-tag=ALBUM=\"album name with 'quotes'\" \"/artist/album name with 'quotes'/track name with 'quotes'.flac\"`
+      ));
   });
 });

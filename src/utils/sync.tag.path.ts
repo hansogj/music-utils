@@ -4,6 +4,7 @@ import { defined } from 'array.defined';
 
 import { DISC_LABLE, DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';
+import { debugInfo } from './color.log';
 import { renameCurrentFolder, renameFile } from './path';
 
 const toLowerCase = (s: string = '') =>
@@ -34,6 +35,8 @@ export const syncTrackNames = (files: File[] = []) =>
         [track, track?.trackName, track?.trackNo].every((e) => defined(e)) &&
         `${track.trackNo} ${track.trackName}.${fileType}`;
 
+      debugInfo([track?.trackName, track?.trackNo]);
+      debugInfo(`mv  ${src}  ${target}`);
       return defined(target) && target !== src ? renameFile(src, target).then(() => files) : Promise.resolve(files);
     })
   );

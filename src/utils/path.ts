@@ -41,4 +41,6 @@ export const renameCurrentFolder = (src: string, target: string) => execute(`mv 
 
 export const renameFile = (src: string, target: string) => execute(`mv "${src}" "${target}"`);
 
-export const replaceDangers = (str: string = '') => singleSpace(str).replace(/"/, '"').replace(/\//, DISC_NO_SPLIT);
+export const replaceQuotes = (str: string = '') => singleSpace(str).replace(/"/g, `'`);
+
+export const replaceDangers = (str: string = '') => replaceQuotes(str).replace(/\//g, DISC_NO_SPLIT);

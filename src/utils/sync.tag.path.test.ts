@@ -9,7 +9,7 @@ import { syncReleaseFolder, syncTrackNames } from './sync.tag.path';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const might = (cond: any) => (defined(cond) ? 'should' : `shouldn't`);
 
-jest.mock('../utils/path');
+jest.mock('../utils/path').mock('../utils/color.log');
 const mocks = MockUtil<typeof pathUtils>(jest).requireMocks('../utils/path');
 type CallParams = { src: string; target: string };
 describe('sync.tag.path', () => {

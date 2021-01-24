@@ -51,25 +51,15 @@ export const id3v2 = (unparsed: string = ''): Partial<Track> => {
   } as Partial<Track>;
 };
 
+export const parseId3Output = (output: string) => ({
+  ...id3v2(output),
+  ...id3v1(output),
+});
+
 export const read = (path = ''): Promise<Partial<Track>> =>
   execute(`id3v2 -l "${path}"`)
     .then((output) => [output].join('').trim())
-    .then((output: string) => {
-      if (/^id3v1/.test(output)) {
-        id3v1(output);
-      }
-
-      if (/^id3v2/.test(output)) {
-        id3v2(output);
-      }
-
-      if (/No ID3 tag/.test(output)) {
-        // TODO TEST
-        return new Error('No ID3 tag');
-      }
-
-      return {};
-    });
+    .then(parseId3Output);
 
 const mp3Tag = (val: string, tag: string) => val && `--${tag} "${val}"`;
 
