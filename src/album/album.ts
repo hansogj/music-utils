@@ -9,33 +9,28 @@ import { readDir } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
 import { syncReleaseFolder } from '../utils/sync.tag.path';
 import { mergeMetaData } from './merge-meta';
-import { getAlbumArtistInfoFromPath, parseAlbumFolderName } from './parse.path';
+import { parseAlbumInfo } from './parse.path';
 
 export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}
 
 type ReleaseFiles = { release: Release; files: File[] };
 
 export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
-  const [artist, albumSplit] = getAlbumArtistInfoFromPath(dirName);
-  const { noOfDiscs, discNumber, ...parasedAlbum } = parseAlbumFolderName(albumSplit);
   const fileList = readDir(dirName).map((file) => join(dirName, file));
 
-  return albumPrompt({
-    artist,
-    ...parasedAlbum,
-    discNumber: discNumber || '1',
-    noOfDiscs: noOfDiscs || discNumber,
-  })
+  return albumPrompt(parseAlbumInfo(dirName))
     .then((release) =>
       Promise.all(fileList.map(extractTags))
         .then((files: Array<File>) => files.filter((file) => MuiscFileTypes.includes(file.fileType)))
         .then((files: Array<File>) => mergeMetaData(files, release, tracksFromFile))
         .then((files: Array<File>) => debugInfo(files))
         .then((files: Array<File>) => Promise.all(files.map(tagFile)))
-        .then((files: Array<File>) => ({
-          release: syncReleaseFolder(release as Release, dirName),
-          files,
-        }))
+        .then((files: Array<File>) =>
+          syncReleaseFolder(release as Release, dirName).then(() => ({
+            files,
+            release,
+          }))
+        )
     )
     .catch((e) => {
       error(e);

@@ -18,8 +18,8 @@ const mocks = MockUtil<Mocks>(jest).requireMocks('./parse.path', '../utils/promp
 const parsedAlbumFolderName = {
   album: release.album,
   year: release.year,
-  discNumber: 1,
-  noOfDiscs: 1,
+  discNumber: '1',
+  noOfDiscs: '1',
 };
 const mockDirName = '/MyArtis/1973 MyAlbum';
 describe('tag album', () => {
@@ -27,20 +27,17 @@ describe('tag album', () => {
   afterEach(jest.resetModules);
 
   describe(`tagAlbum(${mockDirName})`, () => {
-    beforeEach(() => mocks.getAlbumArtistInfoFromPath.mockReturnValue([release.artist, release.album]));
+    beforeEach(() => mocks.parseAlbumInfo.mockReturnValue(parsedAlbumFolderName));
     describe('is connected', () => {
       beforeEach(async () => {
-        mocks.getAlbumArtistInfoFromPath.mockReturnValue([release.artist, release.album]);
-        mocks.parseAlbumFolderName.mockReturnValue(parsedAlbumFolderName);
         mocks.albumPrompt.mockResolvedValue({});
         mocks.readDir.mockReturnValue([]);
         await tagAlbum(mockDirName);
       });
       it('should call utils', () => {
-        expect(mocks.getAlbumArtistInfoFromPath).toHaveBeenCalledTimes(1);
-        expect(mocks.getAlbumArtistInfoFromPath).toHaveBeenCalledWith(mockDirName);
+        expect(mocks.parseAlbumInfo).toHaveBeenCalledTimes(1);
         expect(mocks.albumPrompt).toHaveBeenCalledTimes(1);
-        expect(mocks.albumPrompt).toHaveBeenCalledWith({ ...release, ...parsedAlbumFolderName });
+        expect(mocks.albumPrompt).toHaveBeenCalledWith(parsedAlbumFolderName);
       });
     });
 
@@ -53,7 +50,7 @@ describe('tag album', () => {
       beforeEach(async () => {
         mocks.albumPrompt.mockResolvedValue(release);
         mocks.readDir.mockReturnValue(mdkls);
-        mocks.parseAlbumFolderName.mockReturnValue(parsedAlbumFolderName);
+
         mocks.extractTags.mockImplementation((trackPath: string) =>
           Promise.resolve({
             fileType: /jpg/.test(trackPath) ? 'jpg' : 'mp3',

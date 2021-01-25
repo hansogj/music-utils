@@ -26,10 +26,10 @@ npn ci && npm run build
 
 # Features
 
-_Music Utils_ provides 4  scripts: 
-* cdrip.sh  
+_Music Utils_ provides 4 scripts: 
+* cdrip.sh 
 * cover.photo.sh
-* tag.album.sh  
+* tag.album.sh 
 * tag.tracks.sh
 
 It's recomended to assign aliases for them i.e: 
@@ -48,7 +48,7 @@ alias music-utils-tag-tracks="PATH/TO/music-utils/scripts/tag.tracks.sh"
 
 ### Usage
  ```
-Music/Artist> music-utils-cdrip Album\ Name
+Music/Artist $> music-utils-cdrip Album\ Name
  ```
 
 Creates a folder 'Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./scripts/wav2flac.sh) and setting tags "Album" and "Artist" according to values in current path
@@ -58,7 +58,7 @@ Creates a folder 'Album Name' from your current position (pwd), rips the cd in y
 
 ### Usage
  ```
-Music/Artist/2020 Album> music-utils-cover-photo
+Music/Artist/2020 Album $> music-utils-cover-photo
  ```
 
 Parse your current position (pwd) to extract artist and album information. Then, with help from _sacad_, searches the Internet for matching cover photos and places the resulting image in a 'cover.jpg' file
@@ -68,7 +68,9 @@ Parse your current position (pwd) to extract artist and album information. Then,
 
 ### Usage
  ```
-Music/Artist/2020 Album> Music/Artist/2020 Album> music-utils-tag-album
+Music/Artist/YYYY Album $> music-utils-tag-album
+Music/Artist $> music-utils-tag-album -a YYYY Album
+Music/Artist $> music-utils-tag-album --album YYYY Album
  ```
 
 Parse your current position (pwd) to extract artist and album information. Then, for each file in current directory, extracts information either from flac, mp3 or file path, structurize these, rewrites tags and renames folder to match with standardized structure as follows: 
@@ -82,8 +84,7 @@ Parse your current position (pwd) to extract artist and album information. Then,
 
 ### Usage
  ```
-Music/Artist/2020 Album>  tag-tracks.sh -f /path/to/tracks.txt 
+Music/Artist/2020 Album $> tag-tracks.sh -f /path/to/tracks.txt 
  ```
 
 As _tag-artist_ but fetches tracks info from provided tracks.txt file
-   

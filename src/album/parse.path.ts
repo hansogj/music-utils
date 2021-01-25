@@ -1,10 +1,13 @@
+import { defined } from 'array.defined';
 import path from 'path';
 
 import { DISC_NO_SPLIT } from '../constants';
 import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
-import parse from '../utils/parse.defined';
-import { splits } from '../utils/path';
+import { getCommandLineArgs } from '../utils/cmd.options';
+import { exit } from '../utils/color.log';
+import numParser from '../utils/parse.defined';
+import { getDirName, readDir, splits } from '../utils/path';
 
 const capitalize = (s: string) => s.slice(0, 1).toLocaleUpperCase() + s.slice(1);
 
@@ -29,12 +32,13 @@ const joinedRest = (albumTitle: string | string[], rest: string[], fallback: str
     .onEmpty((o: string[]) => o.push(fallback))
     .join(' ');
 
-const splitDiscNumber = (parsedDiscNumber: string) =>
+const splitParsedDiscNumber = (parsedDiscNumber: string) =>
   `${parsedDiscNumber}`
     .split(DISC_NO_SPLIT)
-    .map((n: string) => parse(n, undefined))
+    .map((n: string) => numParser(n, undefined))
     .defined()
-    .map((e) => `${e}`);
+    .map((e) => `${e}`)
+    .onEmpty((o: string[]) => o.push('1')); // defaults to discNumber: 1
 
 const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
   return [parsedAlbum]
@@ -45,7 +49,7 @@ const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
     }))
     .map(({ parsedDiscNumber, album }) => {
       const [albumTitle, aux, rest] = auxParserApplied(album);
-      const [discNumber, noOfDiscs] = splitDiscNumber(parsedDiscNumber);
+      const [discNumber, noOfDiscs] = splitParsedDiscNumber(parsedDiscNumber);
       return {
         discNumber,
         noOfDiscs,
@@ -56,7 +60,7 @@ const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
     .shift();
 };
 
-export const parseAlbumFolderName = (
+const parseAlbumFolderName = (
   albumPath: string
 ): Pick<Release, 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
   const splitParts: string[] = albumPath.split(' ').defined();
@@ -75,8 +79,41 @@ export const parseAlbumFolderName = (
   };
 };
 
-export const getAlbumArtistInfoFromPath = (current: string = __dirname) =>
+const getAlbumArtistInfoFromPath = (current: string = __dirname) =>
   splits(path.join(current))
     .splice(-2)
     .flatMap((split: string, i: number) => (i === 1 ? [split] : [split]))
-    .filter((split) => split !== '.');
+    .filter((split) => split !== '.')
+    .map((split) => split.split(' ').defined().join(' '));
+
+const calcNoOfDiscsFromPath = (dirName: string, { album }: Partial<Release> = {}): string => {
+  const listOfDirs = readDir(dirName.split('/').slice(0, -1).join('/')).filter((disc) =>
+    new RegExp(`${album}`, 'i').test(disc)
+  );
+
+  return defined(listOfDirs) && `${listOfDirs.length}`;
+};
+
+export const parseAlbumInfo = (
+  albumPath: string = __dirname
+): Pick<Release, 'artist' | 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
+  const [artist, albumSplit] = getAlbumArtistInfoFromPath(albumPath);
+  const release = albumSplit && parseAlbumFolderName(albumSplit);
+  const noOfDiscs = release?.noOfDiscs ? release?.noOfDiscs : calcNoOfDiscsFromPath(albumPath, release);
+
+  return { artist, ...(release && release), ...(noOfDiscs && { noOfDiscs }) };
+};
+
+export const getAlbumDirectory = () => {
+  const { album } = getCommandLineArgs();
+
+  if (defined(album)) {
+    try {
+      process.chdir(path.join(getDirName(), album));
+    } catch (err) {
+      exit(`chdir: ${err}`);
+    }
+  }
+
+  return getDirName();
+};

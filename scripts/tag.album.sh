@@ -7,5 +7,5 @@
 
 
 BASEDIR=$(dirname "$0")
-node $BASEDIR/../build/run/tag.album.js 
+node $BASEDIR/../build/run/tag.album.js $@
 
