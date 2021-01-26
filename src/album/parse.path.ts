@@ -23,6 +23,7 @@ const auxParser: Parser = {
 
 const discNrParserApplied = (album: string) => applyMatch(album, [discNrParser]);
 const auxParserApplied = (album: string) => applyMatch(album, [auxParser]);
+const removeDoubleSpace = (str: string) => str.split(' ').defined().join(' ');
 
 const joinedRest = (albumTitle: string | string[], rest: string[], fallback: string) =>
   []
@@ -53,8 +54,8 @@ const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
       return {
         discNumber,
         noOfDiscs,
-        aux,
-        album: joinedRest([albumTitle, album].defined().first(), rest, parsedAlbum),
+        ...(aux && { aux: removeDoubleSpace(aux) }),
+        album: removeDoubleSpace(joinedRest([albumTitle, album].defined().first(), rest, parsedAlbum)),
       };
     })
     .shift();
@@ -72,9 +73,9 @@ const parseAlbumFolderName = (
 
   return {
     album: album.split(' ').map(capitalize).join(' '),
+    ...(year && { year }),
     ...(discNumber && { discNumber }),
     ...(noOfDiscs && { noOfDiscs }),
-    ...(year && { year }),
     ...(aux && { aux }),
   };
 };
@@ -84,7 +85,7 @@ const getAlbumArtistInfoFromPath = (current: string = __dirname) =>
     .splice(-2)
     .flatMap((split: string, i: number) => (i === 1 ? [split] : [split]))
     .filter((split) => split !== '.')
-    .map((split) => split.split(' ').defined().join(' '));
+    .map(removeDoubleSpace);
 
 const calcNoOfDiscsFromPath = (dirName: string, { album }: Partial<Release> = {}): string => {
   const listOfDirs = readDir(dirName.split('/').slice(0, -1).join('/')).filter((disc) =>

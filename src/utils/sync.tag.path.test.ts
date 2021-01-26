@@ -25,6 +25,11 @@ describe('sync.tag.path', () => {
       [{ album: 'New Album', year: '2020' }, 'Album', { src: 'Album', target: '2020 New Album' }],
       [{ album: 'Album', year: '2020', discNumber: '1' }, 'Album', { src: 'Album', target: '2020 Album' }],
       [
+        { album: 'Album', year: '2020', discNumber: '1', noOfDiscs: '1' },
+        'Album',
+        { src: 'Album', target: '2020 Album' },
+      ],
+      [
         { album: 'Album', year: '2020', discNumber: '1', noOfDiscs: '2' },
         'Album',
         { src: 'Album', target: `2020 Album (${DISC_LABLE} ${[1, 2].join(DISC_NO_SPLIT)})` },

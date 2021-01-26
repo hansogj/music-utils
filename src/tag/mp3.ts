@@ -3,6 +3,7 @@ import { info } from 'console';
 
 import { File, Track } from '../types';
 import { execute } from '../utils/execute';
+import { replaceQuotes } from '../utils/path';
 import { applyMatch, Parser, regExp } from './parser';
 
 const splitLines = (lines: string = '') =>
@@ -61,7 +62,7 @@ export const read = (path = ''): Promise<Partial<Track>> =>
     .then((output) => [output].join('').trim())
     .then(parseId3Output);
 
-const mp3Tag = (val: string, tag: string) => val && `--${tag} "${val}"`;
+const mp3Tag = (val: string, tag: string) => val && `--${tag} "${replaceQuotes(val)}"`;
 
 const generateTagString = ({
   album,

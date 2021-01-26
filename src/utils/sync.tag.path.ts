@@ -5,6 +5,7 @@ import { defined } from 'array.defined';
 import { DISC_LABLE, DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';
 import { debugInfo } from './color.log';
+import parseNumber from './parse.defined';
 import { renameCurrentFolder, renameFile } from './path';
 
 const toLowerCase = (s: string = '') =>
@@ -20,6 +21,7 @@ export const syncReleaseFolder = (release: Release, dirName: string = ''): Promi
   const aux = release?.aux && `[${release.aux}]`;
   const disc =
     [discNumber, noOfDiscs].every(defined) &&
+    parseNumber(noOfDiscs, 0) > 1 &&
     `(${DISC_LABLE} ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
   const target = [year, album, aux, disc].defined().join(' ');
   const shouldRename = defined(src) && toLowerCase(target) !== toLowerCase(src);
