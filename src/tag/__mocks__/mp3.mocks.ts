@@ -6,6 +6,21 @@ export const id3v1 = `
   d1t1 track.wtf: No ID3v2 tag
   `;
 
+export const id3v1_2 = `
+  id3v1 tag info for 04 - Down and out.mp3:
+  Title  : Down and out                    Artist: Accept                        
+  Album  : Live In Holland                 Year: 1980, Genre: Other (12)
+  Comment:                                 Track: 0
+  id3v2 tag info for 04 - Down and out.mp3:
+  TCON (Content type): Other (12)
+  TPE1 (Lead performer(s)/Soloist(s)): Accept
+  TPOS (Part of a set): 2/2
+  TYER (Year): 1980
+  TALB (Album/Movie/Show title): Live In Holland
+  TIT2 (Title/songname/content description): Down and out
+  TRCK (Track number/Position in set): 
+  `;
+
 export const id3v2 = `
 id3v2 tag info for d1t1 track.wtf:
 TIT2 (Title/songname/content description): Track Name

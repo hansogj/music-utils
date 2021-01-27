@@ -87,12 +87,12 @@ const getAlbumArtistInfoFromPath = (current: string = __dirname) =>
     .filter((split) => split !== '.')
     .map(removeDoubleSpace);
 
-const calcNoOfDiscsFromPath = (dirName: string, { album }: Partial<Release> = {}): string => {
-  const listOfDirs = readDir(dirName.split('/').slice(0, -1).join('/')).filter((disc) =>
+const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<Release> = {}): string => {
+  const numberOfAlbumsWithSimilarNames = readDir(dirName.split('/').slice(0, -1).join('/')).filter((disc) =>
     new RegExp(`${album}`, 'i').test(disc)
-  );
+  ).length;
 
-  return defined(listOfDirs) && `${listOfDirs.length}`;
+  return numParser(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
 };
 
 export const parseAlbumInfo = (

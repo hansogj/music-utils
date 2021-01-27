@@ -1,5 +1,4 @@
 import { defined } from 'array.defined';
-
 import { File, FILETYPE, Track } from '../types';
 import { getFileType } from '../utils/path';
 import * as flac from './flac';

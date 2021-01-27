@@ -1,8 +1,9 @@
 import { defined } from 'array.defined';
-import { info } from 'console';
 
 import { File, Track } from '../types';
+import { info } from '../utils/color.log';
 import { execute } from '../utils/execute';
+import parseNum from '../utils/parse.defined';
 import { replaceQuotes } from '../utils/path';
 import { applyMatch, Parser, regExp } from './parser';
 
@@ -29,7 +30,7 @@ export const id3v1 = (unparsed: string): Partial<Track> => {
     const [trackName] = applyMatch(line, [trackNameParser]);
     const [trackNo] = applyMatch(line, [trackNoParser]);
 
-    return { ...res, ...(defined(trackName) && { trackName }), ...(defined(trackNo) && { trackNo }) };
+    return { ...res, ...(defined(trackName) && { trackName }), ...(parseNum(trackNo, undefined) && { trackNo }) };
   }, {});
 
   return reduced;
@@ -43,7 +44,10 @@ export const id3v2 = (unparsed: string = ''): Partial<Track> => {
     return res;
   }, {});
 
-  const [trackNo, trackNoTotal] = reduced.TRCK?.split(/\//) || [];
+  const [trackNo, trackNoTotal] =
+    reduced.TRCK?.split(/\//)
+      .defined()
+      .filter((e) => parseNum(e, 0) !== 0) || [];
 
   return {
     ...(reduced.TIT2 && { trackName: reduced.TIT2 }),

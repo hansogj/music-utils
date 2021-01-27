@@ -9,14 +9,17 @@ jest.mock('../utils/color.log');
 describe('parse.path', () => {
   describe.each([
     ['artist', { artist: 'artist' }],
-    ['artist/album', { artist: 'artist', album: 'Album', discNumber: '1' }],
-    ['/My Band / album   of the Year   ', { artist: 'My Band', album: 'Album Of The Year', discNumber: '1' }],
-    [`/Artist/'74 album`, { artist: 'Artist', album: `'74 Album`, discNumber: '1' }],
-    [`/Artist/1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1' }],
-    [`/Artist/ 1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1' }],
-    [`/Artist/album (${DISC_LABLE} 1)`, { artist: 'Artist', album: `Album`, discNumber: '1' }],
-    [`/Artist/album (disc21 )`, { artist: 'Artist', album: `Album`, discNumber: '21' }],
-    [`/Artist/album ( ${DISC_LABLE}  21 ) `, { artist: 'Artist', album: `Album`, discNumber: '21' }],
+    ['artist/album', { artist: 'artist', album: 'Album', discNumber: '1', noOfDiscs: '1' }],
+    [
+      '/My Band / album   of the Year   ',
+      { artist: 'My Band', album: 'Album Of The Year', discNumber: '1', noOfDiscs: '1' },
+    ],
+    [`/Artist/'74 album`, { artist: 'Artist', album: `'74 Album`, discNumber: '1', noOfDiscs: '1' }],
+    [`/Artist/1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1', noOfDiscs: '1' }],
+    [`/Artist/ 1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1', noOfDiscs: '1' }],
+    [`/Artist/album (${DISC_LABLE} 1)`, { artist: 'Artist', album: `Album`, discNumber: '1', noOfDiscs: '1' }],
+    [`/Artist/album (disc21 )`, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '21' }],
+    [`/Artist/album ( ${DISC_LABLE}  21 ) `, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '21' }],
     [`/Artist/album (disc21∕22 )`, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '22' }],
     [
       `/Artist/album ( ${DISC_LABLE}  21 ∕ 22 ) `,
@@ -28,11 +31,18 @@ describe('parse.path', () => {
     ],
     [
       `/Artist/1974 album [1980 - 1981]   `,
-      { artist: 'Artist', album: `Album`, year: '1974', aux: '1980 - 1981', discNumber: '1' },
+      { artist: 'Artist', album: `Album`, year: '1974', aux: '1980 - 1981', discNumber: '1', noOfDiscs: '1' },
     ],
     [
       `Artist/1974 album of the year ( ${DISC_LABLE}  21 ) [1980 -   1981]   `,
-      { artist: 'Artist', album: `Album Of The Year`, discNumber: '21', year: '1974', aux: '1980 - 1981' },
+      {
+        artist: 'Artist',
+        album: `Album Of The Year`,
+        discNumber: '21',
+        year: '1974',
+        aux: '1980 - 1981',
+        noOfDiscs: '21',
+      },
     ],
   ])('parseAlbumInfo(%s)', (path: string, epected: Partial<Release>) => {
     beforeEach(() => {
@@ -44,7 +54,7 @@ describe('parse.path', () => {
   });
 
   describe.each([
-    ['/artist/album', [], { artist: 'artist', album: 'Album', discNumber: '1' }],
+    ['/artist/album', [], { artist: 'artist', album: 'Album', discNumber: '1', noOfDiscs: '1' }],
     [`/artist/album (${DISC_LABLE} 1∕2)`, [], { artist: 'artist', album: 'Album', noOfDiscs: '2', discNumber: '1' }],
     ['/artist/album', ['album'], { artist: 'artist', album: 'Album', noOfDiscs: '1', discNumber: '1' }],
 

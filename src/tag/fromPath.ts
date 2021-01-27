@@ -6,7 +6,7 @@ import { applyMatch, Parser, regExp } from './parser';
 const dash = /(\s*-\s*)?/;
 
 const trackNoParser: Parser = {
-  matcher: regExp(/(\d*)/, dash, /(.*)/),
+  matcher: regExp(/(\d*)\.?/, dash, /(.*)/),
   select: [1, 3],
 };
 

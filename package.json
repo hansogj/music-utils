@@ -20,7 +20,7 @@
         "ci:tag:zep2": "run-s  ci:pre &&  ./ci/tag-album/run.zep2.sh",
         "ci:tag:acc": "run-s  ci:pre &&  ./ci/tag-album/run.acc.sh",
         "ci:prompt": "run-s  ci:pre && node ./build.ci/ci/prompt/run.js",
-        "jest": "npx jest --runInBand --detectOpenHandles --colors --verbose --reporters=default",
+        "jest": "npx jest --runInBand --detectOpenHandles --colors --reporters=default",
         "jest:ci": "npx jest --ci --runInBand --silent --colors --coverage",
         "jest:clear": "npm run jest -- --clearCache && npm run jest",
         "jest:watch": "npm run jest -- --watch",

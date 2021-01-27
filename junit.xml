@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="117" failures="0" time="2.037">
+  <testsuite name="tag album" errors="0" failures="0" skipped="0" timestamp="2021-01-27T13:00:13" time="0.693" tests="11">
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) is connected should call utils" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) is connected should call utils" time="0.021">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called readDir(/MyArtis/1973 MyAlbum)" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called readDir(/MyArtis/1973 MyAlbum)" time="0.002">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called extractTags" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called extractTags" time="0.003">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile 7 times" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile 7 times" time="0.002">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 0}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 0}" time="0.002">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 1}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 1}" time="0.001">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 2}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 2}" time="0.002">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 3}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 3}" time="0.002">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 4}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 4}" time="0.001">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 5}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 5}" time="0.002">
+    </testcase>
+    <testcase classname="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 6}" name="tag album tagAlbum(/MyArtis/1973 MyAlbum) with response from prompt has called tagFile with {&quot;file&quot;: [Object], &quot;index&quot;: 6}" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="tag test" errors="0" failures="0" skipped="0" timestamp="2021-01-27T13:00:13" time="0.283" tests="28">
+    <testcase classname="tag test getTrackTags when no matcihng fileType getFileType is called" name="tag test getTrackTags when no matcihng fileType getFileType is called" time="0.005">
+    </testcase>
+    <testcase classname="tag test getTrackTags when no matcihng fileType has not tried read tags from meta data" name="tag test getTrackTags when no matcihng fileType has not tried read tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when no matcihng fileType should result expected" name="tag test getTrackTags when no matcihng fileType should result expected" time="0.002">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is undefined  getFileType is called" name="tag test getTrackTags when filetype is mp3 and read track is undefined  getFileType is called" time="0.003">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is undefined  has red tags from meta data" name="tag test getTrackTags when filetype is mp3 and read track is undefined  has red tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is undefined  should result expected" name="tag test getTrackTags when filetype is mp3 and read track is undefined  should result expected" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is {}  getFileType is called" name="tag test getTrackTags when filetype is mp3 and read track is {}  getFileType is called" time="0.002">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is {}  has red tags from meta data" name="tag test getTrackTags when filetype is mp3 and read track is {}  has red tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is {}  should result expected" name="tag test getTrackTags when filetype is mp3 and read track is {}  should result expected" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  getFileType is called" name="tag test getTrackTags when filetype is mp3 and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  getFileType is called" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  has red tags from meta data" name="tag test getTrackTags when filetype is mp3 and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  has red tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is mp3 and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  should result expected" name="tag test getTrackTags when filetype is mp3 and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  should result expected" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is undefined  getFileType is called" name="tag test getTrackTags when filetype is flac and read track is undefined  getFileType is called" time="0.002">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is undefined  has red tags from meta data" name="tag test getTrackTags when filetype is flac and read track is undefined  has red tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is undefined  should result expected" name="tag test getTrackTags when filetype is flac and read track is undefined  should result expected" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is {}  getFileType is called" name="tag test getTrackTags when filetype is flac and read track is {}  getFileType is called" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is {}  has red tags from meta data" name="tag test getTrackTags when filetype is flac and read track is {}  has red tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is {}  should result expected" name="tag test getTrackTags when filetype is flac and read track is {}  should result expected" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  getFileType is called" name="tag test getTrackTags when filetype is flac and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  getFileType is called" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  has red tags from meta data" name="tag test getTrackTags when filetype is flac and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  has red tags from meta data" time="0.001">
+    </testcase>
+    <testcase classname="tag test getTrackTags when filetype is flac and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  should result expected" name="tag test getTrackTags when filetype is flac and read track is { trackName: &apos;track&apos;, noOfDiscs: &apos;1&apos;, trackNo: &apos;1&apos; }  should result expected" time="0.007">
+    </testcase>
+    <testcase classname="tag test tagFile with filetype unknown rejects" name="tag test tagFile with filetype unknown rejects" time="0.002">
+    </testcase>
+    <testcase classname="tag test tagFile with flac filetype calls flac write" name="tag test tagFile with flac filetype calls flac write" time="0.002">
+    </testcase>
+    <testcase classname="tag test tagFile with flac filetype fire callback" name="tag test tagFile with flac filetype fire callback" time="0.001">
+    </testcase>
+    <testcase classname="tag test tagFile with flac filetype mp3 write is never called" name="tag test tagFile with flac filetype mp3 write is never called" time="0.001">
+    </testcase>
+    <testcase classname="tag test tagFile with mp3 filetype calls mp3 write" name="tag test tagFile with mp3 filetype calls mp3 write" time="0.002">
+    </testcase>
+    <testcase classname="tag test tagFile with mp3 filetype fire callback" name="tag test tagFile with mp3 filetype fire callback" time="0.002">
+    </testcase>
+    <testcase classname="tag test tagFile with mp3 filetype flac write is never called" name="tag test tagFile with mp3 filetype flac write is never called" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="mergeMetaData" errors="0" failures="0" skipped="0" timestamp="2021-01-27T13:00:14" time="0.22" tests="25">
+    <testcase classname="mergeMetaData of parameters files: {} ,  userInput release: [ [length]: 0 ] and tracksFromFile: %o  should result in expected: []" name="mergeMetaData of parameters files: {} ,  userInput release: [ [length]: 0 ] and tracksFromFile: %o  should result in expected: []" time="0.003">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [ { path: &apos;mypath&apos; }, [length]: 1 ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: undefined, track: { trackNoTotal: &apos;1&apos; } },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [ { path: &apos;mypath&apos; }, [length]: 1 ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: undefined, track: { trackNoTotal: &apos;1&apos; } },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.001">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [ { path: &apos;mypath&apos;, fileType: &apos;flac&apos; }, [length]: 1 ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;1&apos; } },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [ { path: &apos;mypath&apos;, fileType: &apos;flac&apos; }, [length]: 1 ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;1&apos; } },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;mypath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+    },
+    [length]: 1
+  ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Album&apos;, artist: &apos;Artist&apos;, trackNoTotal: &apos;1&apos; }
+  },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;mypath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+    },
+    [length]: 1
+  ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Album&apos;, artist: &apos;Artist&apos;, trackNoTotal: &apos;1&apos; }
+  },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.001">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;mypath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+    },
+    [length]: 1
+  ],
+  release: { album: &apos;Override&apos;, artist: &apos;Override&apos; },
+  tracksFromFile: undefined
+} ,  userInput release: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Override&apos;, artist: &apos;Override&apos;, trackNoTotal: &apos;1&apos; }
+  },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Override&quot;,&quot;artist&quot;:&quot;Override&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;mypath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { album: &apos;Album&apos;, artist: &apos;Artist&apos; }
+    },
+    [length]: 1
+  ],
+  release: { album: &apos;Override&apos;, artist: &apos;Override&apos; },
+  tracksFromFile: undefined
+} ,  userInput release: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { album: &apos;Override&apos;, artist: &apos;Override&apos;, trackNoTotal: &apos;1&apos; }
+  },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Override&quot;,&quot;artist&quot;:&quot;Override&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0.001">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;mypath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { trackName: &apos;TrackName&apos; }
+    },
+    [length]: 1
+  ],
+  release: { album: &apos;Album&apos;, artist: &apos;Artist&apos; },
+  tracksFromFile: undefined
+} ,  userInput release: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: {
+      album: &apos;Album&apos;,
+      artist: &apos;Artist&apos;,
+      trackName: &apos;TrackName&apos;,
+      trackNoTotal: &apos;1&apos;
+    }
+  },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackName&quot;:&quot;TrackName&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;mypath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { trackName: &apos;TrackName&apos; }
+    },
+    [length]: 1
+  ],
+  release: { album: &apos;Album&apos;, artist: &apos;Artist&apos; },
+  tracksFromFile: undefined
+} ,  userInput release: [
+  {
+    path: &apos;mypath&apos;,
+    fileType: &apos;flac&apos;,
+    track: {
+      album: &apos;Album&apos;,
+      artist: &apos;Artist&apos;,
+      trackName: &apos;TrackName&apos;,
+      trackNoTotal: &apos;1&apos;
+    }
+  },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;album&quot;:&quot;Album&quot;,&quot;artist&quot;:&quot;Artist&quot;,&quot;trackName&quot;:&quot;TrackName&quot;,&quot;trackNoTotal&quot;:&quot;1&quot;}}]" time="0">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;15&apos; } },
+    [length]: 1
+  ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;15&apos; } },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;15&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;15&apos; } },
+    [length]: 1
+  ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;15&apos; } },
+  [length]: 1
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;15&quot;}}]" time="0">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+    { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+    [length]: 2
+  ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;2&apos; } },
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;2&apos; } },
+  [length]: 2
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}},{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+    { path: &apos;mypath&apos;, fileType: &apos;flac&apos; },
+    [length]: 2
+  ],
+  release: {},
+  tracksFromFile: undefined
+} ,  userInput release: [
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;2&apos; } },
+  { path: &apos;mypath&apos;, fileType: &apos;flac&apos;, track: { trackNoTotal: &apos;2&apos; } },
+  [length]: 2
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}},{&quot;path&quot;:&quot;mypath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;}}]" time="0.001">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    { path: &apos;myPath&apos;, fileType: &apos;flac&apos; },
+    { path: &apos;myPath&apos;, fileType: &apos;flac&apos; },
+    [length]: 2
+  ],
+  release: {},
+  tracksFromFile: [ &apos;Track 01&apos;, &apos;Track 02&apos;, [length]: 2 ]
+} ,  userInput release: [
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 01&apos; }
+  },
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 02&apos; }
+  },
+  [length]: 2
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 01&quot;}},{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 02&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    { path: &apos;myPath&apos;, fileType: &apos;flac&apos; },
+    { path: &apos;myPath&apos;, fileType: &apos;flac&apos; },
+    [length]: 2
+  ],
+  release: {},
+  tracksFromFile: [ &apos;Track 01&apos;, &apos;Track 02&apos;, [length]: 2 ]
+} ,  userInput release: [
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 01&apos; }
+  },
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 02&apos; }
+  },
+  [length]: 2
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 01&quot;}},{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 02&quot;}}]" time="0">
+    </testcase>
+    <testcase classname="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;myPath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { trackName: &apos;Oldie 20&apos; }
+    },
+    {
+      path: &apos;myPath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { trackName: &apos;Oldie 20&apos; }
+    },
+    [length]: 2
+  ],
+  release: {},
+  tracksFromFile: [ &apos;Track 01&apos;, &apos;Track 02&apos;, [length]: 2 ]
+} ,  userInput release: [
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 01&apos; }
+  },
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 02&apos; }
+  },
+  [length]: 2
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 01&quot;}},{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 02&quot;}}]" name="mergeMetaData of parameters files: {
+  files: [
+    {
+      path: &apos;myPath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { trackName: &apos;Oldie 20&apos; }
+    },
+    {
+      path: &apos;myPath&apos;,
+      fileType: &apos;flac&apos;,
+      track: { trackName: &apos;Oldie 20&apos; }
+    },
+    [length]: 2
+  ],
+  release: {},
+  tracksFromFile: [ &apos;Track 01&apos;, &apos;Track 02&apos;, [length]: 2 ]
+} ,  userInput release: [
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 01&apos; }
+  },
+  {
+    path: &apos;myPath&apos;,
+    fileType: &apos;flac&apos;,
+    track: { trackNoTotal: &apos;2&apos;, trackName: &apos;Track 02&apos; }
+  },
+  [length]: 2
+] and tracksFromFile: %o  should result in expected: [{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 01&quot;}},{&quot;path&quot;:&quot;myPath&quot;,&quot;fileType&quot;:&quot;flac&quot;,&quot;track&quot;:{&quot;trackNoTotal&quot;:&quot;2&quot;,&quot;trackName&quot;:&quot;Track 02&quot;}}]" time="0">
+    </testcase>
+    <testcase classname="with track  undefined  should alter trackNo as sortable result in undefined" name="with track  undefined  should alter trackNo as sortable result in undefined" time="0.001">
+    </testcase>
+    <testcase classname="with track  {}  should alter trackNo as sortable result in {}" name="with track  {}  should alter trackNo as sortable result in {}" time="0">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;}" name="with track  { trackNo: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;}" time="0.007">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;01&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" name="with track  { trackNo: &apos;01&apos;, trackNoTotal: &apos;10&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;10&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;110&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;}" name="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;110&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;101&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;110&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;110&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;2&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;210&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;2&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;2&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;210&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;2&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;110&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;10&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;1&apos;, noOfDiscs: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;110&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;20&apos;, discNumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;20&quot;,&quot;discNumber&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discNumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discNumber&quot;:&quot;2&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discNumber: &apos;2&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discNumber&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discNumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discNumber&quot;:&quot;02&quot;}" name="with track  { trackNo: &apos;1&apos;, trackNoTotal: &apos;9&apos;, discNumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discNumber&quot;:&quot;02&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="with track  { trackNo: &apos;201&apos;, trackNoTotal: &apos;9&apos;, discNumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discNumber&quot;:&quot;02&quot;}" name="with track  { trackNo: &apos;201&apos;, trackNoTotal: &apos;9&apos;, discNumber: &apos;02&apos; }  should alter trackNo as sortable result in {&quot;trackNo&quot;:&quot;201&quot;,&quot;trackNoTotal&quot;:&quot;9&quot;,&quot;discNumber&quot;:&quot;02&quot;}" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="parse.path" errors="0" failures="0" skipped="0" timestamp="2021-01-27T13:00:14" time="0.205" tests="21">
+    <testcase classname="parse.path parseAlbumInfo(artist) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;}})" name="parse.path parseAlbumInfo(artist) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;}})" time="0.003">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(artist/album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(artist/album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.002">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/My Band / album   of the Year   ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;My Band&quot;,&quot;album&quot;:&quot;Album Of The Year&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/My Band / album   of the Year   ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;My Band&quot;,&quot;album&quot;:&quot;Album Of The Year&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/&apos;74 album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;&apos;74 Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/Artist/&apos;74 album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;&apos;74 Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/1974 album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/Artist/1974 album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/ 1974 album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/Artist/ 1974 album) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/album (Disc 1)) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/Artist/album (Disc 1)) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.005">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/album (disc21 )) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;21&quot;}})" name="parse.path parseAlbumInfo(/Artist/album (disc21 )) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;21&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/album ( Disc  21 ) ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;21&quot;}})" name="parse.path parseAlbumInfo(/Artist/album ( Disc  21 ) ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;21&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/album (disc21∕22 )) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;}})" name="parse.path parseAlbumInfo(/Artist/album (disc21∕22 )) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;}})" time="0.002">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/album ( Disc  21 ∕ 22 ) ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;}})" name="parse.path parseAlbumInfo(/Artist/album ( Disc  21 ∕ 22 ) ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;}})" time="0">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/album ( Disc  21∕22 ) ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;}})" name="parse.path parseAlbumInfo(/Artist/album ( Disc  21∕22 ) ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/Artist/1974 album [1980 - 1981]   ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;aux&quot;:&quot;1980 - 1981&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/Artist/1974 album [1980 - 1981]   ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;aux&quot;:&quot;1980 - 1981&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(Artist/1974 album of the year ( Disc  21 ) [1980 -   1981]   ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album Of The Year&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;aux&quot;:&quot;1980 - 1981&quot;,&quot;noOfDiscs&quot;:&quot;21&quot;}})" name="parse.path parseAlbumInfo(Artist/1974 album of the year ( Disc  21 ) [1980 -   1981]   ) should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;Artist&quot;,&quot;album&quot;:&quot;Album Of The Year&quot;,&quot;discNumber&quot;:&quot;21&quot;,&quot;year&quot;:&quot;1974&quot;,&quot;aux&quot;:&quot;1980 - 1981&quot;,&quot;noOfDiscs&quot;:&quot;21&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/album) and lsDir eq [] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/artist/album) and lsDir eq [] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;discNumber&quot;:&quot;1&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/album (Disc 1∕2)) and lsDir eq [] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/artist/album (Disc 1∕2)) and lsDir eq [] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/album) and lsDir eq [&quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/artist/album) and lsDir eq [&quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;1&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/1977 album) and lsDir eq [&quot;album&quot;, &quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;,&quot;year&quot;:&quot;1977&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/artist/1977 album) and lsDir eq [&quot;album&quot;, &quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;,&quot;year&quot;:&quot;1977&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" time="0">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/1977 album) and lsDir eq [&quot;album&quot;, &quot;not my release&quot;, &quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;,&quot;year&quot;:&quot;1977&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/artist/1977 album) and lsDir eq [&quot;album&quot;, &quot;not my release&quot;, &quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;2&quot;,&quot;year&quot;:&quot;1977&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/1997 match album) and lsDir eq [&quot;1997 match album 1&quot;, &quot;1998 Some other release&quot;, &quot;1997 match album 2&quot;, &quot;1999 No match excact album&quot;, &quot;1997 match album 3 [with external info]&quot;, &quot;1997 something else but still match album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Match Album&quot;,&quot;noOfDiscs&quot;:&quot;4&quot;,&quot;year&quot;:&quot;1997&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" name="parse.path parseAlbumInfo(/artist/1997 match album) and lsDir eq [&quot;1997 match album 1&quot;, &quot;1998 Some other release&quot;, &quot;1997 match album 2&quot;, &quot;1999 No match excact album&quot;, &quot;1997 match album 3 [with external info]&quot;, &quot;1997 something else but still match album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Match Album&quot;,&quot;noOfDiscs&quot;:&quot;4&quot;,&quot;year&quot;:&quot;1997&quot;,&quot;discNumber&quot;:&quot;1&quot;}})" time="0.001">
+    </testcase>
+    <testcase classname="parse.path parseAlbumInfo(/artist/album (Disc 3∕22)) and lsDir eq [&quot;album&quot;, &quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;,&quot;discNumber&quot;:&quot;3&quot;}})" name="parse.path parseAlbumInfo(/artist/album (Disc 3∕22)) and lsDir eq [&quot;album&quot;, &quot;album&quot;] should return {&quot;epected&quot;:{&quot;artist&quot;:&quot;artist&quot;,&quot;album&quot;:&quot;Album&quot;,&quot;noOfDiscs&quot;:&quot;22&quot;,&quot;discNumber&quot;:&quot;3&quot;}})" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="flac" errors="0" failures="0" skipped="0" timestamp="2021-01-27T13:00:14" time="0.199" tests="20">
+    <testcase classname="flac when path is read and metaflac returns of undefined  finds metadata from file tag" name="flac when path is read and metaflac returns of undefined  finds metadata from file tag" time="0.003">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of undefined  should result expected" name="flac when path is read and metaflac returns of undefined  should result expected" time="0.002">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of 
+    TITLE=
+    TRACKNUMBER=
+      finds metadata from file tag" name="flac when path is read and metaflac returns of 
+    TITLE=
+    TRACKNUMBER=
+      finds metadata from file tag" time="0.001">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of 
+    TITLE=
+    TRACKNUMBER=
+      should result expected" name="flac when path is read and metaflac returns of 
+    TITLE=
+    TRACKNUMBER=
+      should result expected" time="0.001">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of 
+    TITLE=Flac Track
+    TRACKNUMBER=1
+  finds metadata from file tag" name="flac when path is read and metaflac returns of 
+    TITLE=Flac Track
+    TRACKNUMBER=1
+  finds metadata from file tag" time="0.001">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of 
+    TITLE=Flac Track
+    TRACKNUMBER=1
+  should result expected" name="flac when path is read and metaflac returns of 
+    TITLE=Flac Track
+    TRACKNUMBER=1
+  should result expected" time="0.001">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of 
+    TITLE=Flac Track  with &apos;acute ,  /    slash and extra   space
+    TRACKNUMBER=1
+  finds metadata from file tag" name="flac when path is read and metaflac returns of 
+    TITLE=Flac Track  with &apos;acute ,  /    slash and extra   space
+    TRACKNUMBER=1
+  finds metadata from file tag" time="0.001">
+    </testcase>
+    <testcase classname="flac when path is read and metaflac returns of 
+    TITLE=Flac Track  with &apos;acute ,  /    slash and extra   space
+    TRACKNUMBER=1
+  should result expected" name="flac when path is read and metaflac returns of 
+    TITLE=Flac Track  with &apos;acute ,  /    slash and extra   space
+    TRACKNUMBER=1
+  should result expected" time="0.002">
+    </testcase>
+    <testcase classname="flac write with track data {}  has executed once" name="flac write with track data {}  has executed once" time="0.002">
+    </testcase>
+    <testcase classname="flac write with track data {}  has executed once with metaflac &quot;/Album/d1t1 track.flac&quot;" name="flac write with track data {}  has executed once with metaflac &quot;/Album/d1t1 track.flac&quot;" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data {}  has executed once with metaflac &quot;/Album/d1t1 track.flac&quot;" name="flac write with track data {}  has executed once with metaflac &quot;/Album/d1t1 track.flac&quot;" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data { album: &apos;MDK&apos; }  has executed once" name="flac write with track data { album: &apos;MDK&apos; }  has executed once" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data { album: &apos;MDK&apos; }  has executed once with metaflac --remove-tag=ALBUM &quot;/Album/d1t1 track.flac&quot;" name="flac write with track data { album: &apos;MDK&apos; }  has executed once with metaflac --remove-tag=ALBUM &quot;/Album/d1t1 track.flac&quot;" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data { album: &apos;MDK&apos; }  has executed once with metaflac --set-tag=ALBUM=&quot;MDK&quot; &quot;/Album/d1t1 track.flac&quot;" name="flac write with track data { album: &apos;MDK&apos; }  has executed once with metaflac --set-tag=ALBUM=&quot;MDK&quot; &quot;/Album/d1t1 track.flac&quot;" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once" name="flac write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once with metaflac --remove-tag=ARTIST --remove-tag=ALBUMARTIST --remove-tag=DISCID --remove-tag=DISCNUMBER --remove-tag=DATE --remove-tag=ALBUM --remove-tag=TRACKNUMBER --remove-tag=TRACKTOTAL --remove-tag=TITLE &quot;/Album/d1t1 track.flac&quot;" name="flac write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once with metaflac --remove-tag=ARTIST --remove-tag=ALBUMARTIST --remove-tag=DISCID --remove-tag=DISCNUMBER --remove-tag=DATE --remove-tag=ALBUM --remove-tag=TRACKNUMBER --remove-tag=TRACKTOTAL --remove-tag=TITLE &quot;/Album/d1t1 track.flac&quot;" time="0.001">
+    </testcase>
+    <testcase classname="flac write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once with metaflac --set-tag=ARTIST=&quot;Magma&quot; --set-tag=ALBUMARTIST=&quot;Magma&quot; --set-tag=DISCNUMBER=&quot;02&quot; --set-tag=DATE=&quot;1973&quot; --set-tag=ALBUM=&quot;MDK&quot; --set-tag=TRACKNUMBER=&quot;01&quot; --set-tag=TRACKTOTAL=&quot;12&quot; --set-tag=TITLE=&quot;Tusen Takk&quot; --set-tag=DISCID=&quot;02/04&quot; &quot;/Album/d1t1 track.flac&quot;" name="flac write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once with metaflac --set-tag=ARTIST=&quot;Magma&quot; --set-tag=ALBUMARTIST=&quot;Magma&quot; --set-tag=DISCNUMBER=&quot;02&quot; --set-tag=DATE=&quot;1973&quot; --set-tag=ALBUM=&quot;MDK&quot; --set-tag=TRACKNUMBER=&quot;01&quot; --set-tag=TRACKTOTAL=&quot;12&quot; --set-tag=TITLE=&quot;Tusen Takk&quot; --set-tag=DISCID=&quot;02/04&quot; &quot;/Album/d1t1 track.flac&quot;" time="0.001">
+    </testcase>
+    <testcase classname="flac when filename contains quote has executed once" name="flac when filename contains quote has executed once" time="0.001">
+    </testcase>
+    <testcase classname="flac when filename contains quote has escaped quotes on tag remove" name="flac when filename contains quote has escaped quotes on tag remove" time="0.001">
+    </testcase>
+    <testcase classname="flac when filename contains quote has escaped quotes on set tag " name="flac when filename contains quote has escaped quotes on set tag " time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="mp3" errors="0" failures="0" skipped="0" timestamp="2021-01-27T13:00:14" time="0.189" tests="12">
+    <testcase classname="mp3 when path is read should call execute" name="mp3 when path is read should call execute" time="0.004">
+    </testcase>
+    <testcase classname="mp3 when path is read should call execute with params " name="mp3 when path is read should call execute with params " time="0.001">
+    </testcase>
+    <testcase classname="mp3 when path is read extract and parse id3 data when commandline output is undefined  id3v2 should return {}" name="mp3 when path is read extract and parse id3 data when commandline output is undefined  id3v2 should return {}" time="0.001">
+    </testcase>
+    <testcase classname="mp3 when path is read extract and parse id3 data when commandline output is 
+  id3v1 tag info for d1t1 track.wtf:
+  Title  : Track Name                 Artist: Fun Band Name                  
+  Album  : Album Name                 Year: 1993, Genre: Zeuhl (9)
+  Comment: Track 1                    Track: 1
+  d1t1 track.wtf: No ID3v2 tag
+    id3v2 should return {&quot;trackName&quot;:&quot;Track Name&quot;,&quot;trackNo&quot;:&quot;1&quot;}" name="mp3 when path is read extract and parse id3 data when commandline output is 
+  id3v1 tag info for d1t1 track.wtf:
+  Title  : Track Name                 Artist: Fun Band Name                  
+  Album  : Album Name                 Year: 1993, Genre: Zeuhl (9)
+  Comment: Track 1                    Track: 1
+  d1t1 track.wtf: No ID3v2 tag
+    id3v2 should return {&quot;trackName&quot;:&quot;Track Name&quot;,&quot;trackNo&quot;:&quot;1&quot;}" time="0.002">
+    </testcase>
+    <testcase classname="mp3 when path is read extract and parse id3 data when commandline output is 
+id3v2 tag info for d1t1 track.wtf:
+TIT2 (Title/songname/content description): Track Name
+TPE1 (Lead performer(s)/Soloist(s)): Fun Band Name
+TALB (Album/Movie/Show title): Album Name
+TPOS (Part of a set): 1
+TYER (Year): 1993
+TRCK (Track number/Position in set): 01/12
+TCON (Content type): Zeuhl (9)
+COMM (Comments): ()[]: Track 1
+TENC (Encoded by): Exact Audio Copy   (Burst mode)
+d1t1 track.wtf: No ID3v1 tag
+  id3v2 should return {&quot;trackName&quot;:&quot;Track Name&quot;,&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;12&quot;}" name="mp3 when path is read extract and parse id3 data when commandline output is 
+id3v2 tag info for d1t1 track.wtf:
+TIT2 (Title/songname/content description): Track Name
+TPE1 (Lead performer(s)/Soloist(s)): Fun Band Name
+TALB (Album/Movie/Show title): Album Name
+TPOS (Part of a set): 1
+TYER (Year): 1993
+TRCK (Track number/Position in set): 01/12
+TCON (Content type): Zeuhl (9)
+COMM (Comments): ()[]: Track 1
+TENC (Encoded by): Exact Audio Copy   (Burst mode)
+d1t1 track.wtf: No ID3v1 tag
+  id3v2 should return {&quot;trackName&quot;:&quot;Track Name&quot;,&quot;trackNo&quot;:&quot;01&quot;,&quot;trackNoTotal&quot;:&quot;12&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="mp3 when path is read extract and parse id3 data when commandline output is 
+id3v1 tag info for Kaptein_kaliber_-_Pop_Ultra_2b_-_Track_02.mp3:
+Title  :                                 Artist: Kaptein Kaliber               
+Album  : Pop Ultra                       Year: 2002, Genre: Unknown (255)
+Comment:                                 Track: 2
+id3v2 tag info for Kaptein_kaliber_-_Pop_Ultra_2b_-_Track_02.mp3:
+TPE1 (Lead performer(s)/Soloist(s)): Kaptein Kaliber
+TPOS (Part of a set): 1
+TYER (Year): 2002
+TALB (Album/Movie/Show title): Pop Ultra 2b
+TRCK (Track number/Position in set): 10
+TIT2 (Title/songname/content description): Spyworld
+    
+      id3v2 should return {&quot;trackName&quot;:&quot;Spyworld&quot;,&quot;trackNo&quot;:&quot;2&quot;}" name="mp3 when path is read extract and parse id3 data when commandline output is 
+id3v1 tag info for Kaptein_kaliber_-_Pop_Ultra_2b_-_Track_02.mp3:
+Title  :                                 Artist: Kaptein Kaliber               
+Album  : Pop Ultra                       Year: 2002, Genre: Unknown (255)
+Comment:                                 Track: 2
+id3v2 tag info for Kaptein_kaliber_-_Pop_Ultra_2b_-_Track_02.mp3:
+TPE1 (Lead performer(s)/Soloist(s)): Kaptein Kaliber
+TPOS (Part of a set): 1
+TYER (Year): 2002
+TALB (Album/Movie/Show title): Pop Ultra 2b
+TRCK (Track number/Position in set): 10
+TIT2 (Title/songname/content description): Spyworld
+    
+      id3v2 should return {&quot;trackName&quot;:&quot;Spyworld&quot;,&quot;trackNo&quot;:&quot;2&quot;}" time="0.001">
+    </testcase>
+    <testcase classname="mp3 when path is read write with track data {}  has executed once" name="mp3 when path is read write with track data {}  has executed once" time="0.003">
+    </testcase>
+    <testcase classname="mp3 when path is read write with track data {}  has executed once with id3v2 -2  &quot;/Album/d1t1 track.wtf&quot;" name="mp3 when path is read write with track data {}  has executed once with id3v2 -2  &quot;/Album/d1t1 track.wtf&quot;" time="0.002">
+    </testcase>
+    <testcase classname="mp3 when path is read write with track data { album: &apos;MDK&apos; }  has executed once" name="mp3 when path is read write with track data { album: &apos;MDK&apos; }  has executed once" time="0.001">
+    </testcase>
+    <testcase classname="mp3 when path is read write with track data { album: &apos;MDK&apos; }  has executed once with id3v2 -2 --TALB &quot;MDK&quot; &quot;/Album/d1t1 track.wtf&quot;" name="mp3 when path is read write with track data { album: &apos;MDK&apos; }  has executed once with id3v2 -2 --TALB &quot;MDK&quot; &quot;/Album/d1t1 track.wtf&quot;" time="0.001">
+    </testcase>
+    <testcase classname="mp3 when path is read write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once" name="mp3 when path is read write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once" time="0.002">
+    </testcase>
+    <testcase classname="mp3 when path is read write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once with id3v2 -2 --TPE1 &quot;Magma&quot; --TPOS &quot;02/04&quot; --TYER &quot;1973&quot; --TALB &quot;MDK&quot; --TRCK &quot;01/12&quot; --TIT2 &quot;Tusen Takk&quot; &quot;/Album/d1t1 track.wtf&quot;" name="mp3 when path is read write with track data {
+  artist: &apos;Magma&apos;,
+  album: &apos;MDK&apos;,
+  year: &apos;1973&apos;,
+  trackName: &apos;Tusen Takk&apos;,
+  trackNo: &apos;01&apos;,
+  discNumber: &apos;02&apos;,
+  noOfDiscs: &apos;04&apos;,
+  trackNoTotal: &apos;12&apos;
+}  has executed once with id3v2 -2 --TPE1 &quot;Magma&quot; --TPOS &quot;02/04&quot; --TYER &quot;1973&quot; --TALB &quot;MDK&quot; --TRCK &quot;01/12&quot; --TIT2 &quot;Tusen Takk&quot; &quot;/Album/d1t1 track.wtf&quot;" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>

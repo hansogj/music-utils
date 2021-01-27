@@ -4,14 +4,13 @@ import { Track } from '../types';
 import { MockUtil } from '../utils/__mocks__/mockutils';
 import { albumTrack } from '../utils/__mocks__/record.mock';
 import * as execute from '../utils/execute';
-import * as pathUtils from '../utils/path';
 import * as mp3mocks from './__mocks__/mp3.mocks';
 import * as mp3 from './mp3';
 
-jest.mock('../utils/execute').mock('../utils/path');
+jest.mock('../utils/execute').mock('../utils/color.log');
 
 const path = '/Album/d1t1 track.wtf';
-const mocks = MockUtil<typeof execute & typeof pathUtils>(jest).requireMocks('../utils/execute', '../utils/path');
+const mocks = MockUtil<typeof execute>(jest).requireMocks('../utils/execute');
 
 describe('mp3', () => {
   beforeEach(() => {
@@ -39,6 +38,13 @@ describe('mp3', () => {
           {
             trackName: 'Track Name',
             trackNo: '1',
+          } as Partial<Track>,
+        ],
+
+        [
+          mp3mocks.id3v1_2,
+          {
+            trackName: 'Down and out',
           } as Partial<Track>,
         ],
         [

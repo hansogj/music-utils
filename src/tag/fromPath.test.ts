@@ -20,6 +20,8 @@ describe('fromPath', () => {
     ['/album/track.flac', { trackName: 'track' }],
     ['/album/track.no1.flac', { trackName: 'track.no1' }],
     ['/album/01 track.flac', { trackName: 'track', trackNo: '01' }],
+    ['/album/01. artist dist 1 track.flac', { trackName: 'artist dist 1 track', trackNo: '01' }],
+    ['/album/01 The Final Chapter - Starlight.mp3', { trackName: 'The Final Chapter - Starlight', trackNo: '01' }],
     ['/album/01 - track.flac', { trackName: 'track', trackNo: '01' }],
     ['/album/Disc 2 - 01 - track.flac', { trackName: 'track', trackNo: '01', noOfDiscs: '2' }],
     ['/album/Disc 1  01 track.flac', { trackName: 'track', trackNo: '01', noOfDiscs: '1' }],

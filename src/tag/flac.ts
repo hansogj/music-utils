@@ -1,7 +1,7 @@
 import { File, MetaFlac, Track } from '../types';
 import { error, info } from '../utils/color.log';
 import { execute } from '../utils/execute';
-import { replaceDangers, replaceQuotes } from '../utils/path';
+import { replaceQuotes } from '../utils/path';
 import { singleSpace } from './parser';
 
 const ARTIST = `ARTIST`;
