@@ -23,7 +23,9 @@ export const syncReleaseFolder = (release: Release, dirName: string = ''): Promi
     [discNumber, noOfDiscs].every(defined) &&
     parseNumber(noOfDiscs, 0) > 1 &&
     `(${DISC_LABLE} ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
-  const target = [year, album, aux, disc].defined().join(' ');
+  const target = [year, album, disc, aux].defined().join(' ');
+
+  debugInfo({ msg: 'rename folder name', src, target });
   const shouldRename = defined(src) && toLowerCase(target) !== toLowerCase(src);
 
   return shouldRename ? renameCurrentFolder(src, target).then(() => release) : Promise.resolve(release);

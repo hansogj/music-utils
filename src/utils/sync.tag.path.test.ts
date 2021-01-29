@@ -48,7 +48,7 @@ describe('sync.tag.path', () => {
       [
         { album: 'New Album', year: '2020', aux: '1980 - 1981', discNumber: '11', noOfDiscs: '12' },
         '/store/Long Artist Name/Album',
-        { src: 'Album', target: `2020 New Album [1980 - 1981] (${DISC_LABLE} ${[11, 12].join(DISC_NO_SPLIT)})` },
+        { src: 'Album', target: `2020 New Album (${DISC_LABLE} ${[11, 12].join(DISC_NO_SPLIT)}) [1980 - 1981]` },
       ],
     ])('when release eq %o & dirName eq %s ', (release: Partial<Release>, dirName: string, expected: CallParams) => {
       beforeEach(() => mocks.renameCurrentFolder.mockResolvedValueOnce(release));

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 export const id3v1 = `
   id3v1 tag info for d1t1 track.wtf:
   Title  : Track Name                 Artist: Fun Band Name                  
@@ -35,7 +36,6 @@ TENC (Encoded by): Exact Audio Copy   (Burst mode)
 d1t1 track.wtf: No ID3v1 tag
 `;
 
-// eslint-disable-next-line camelcase
 export const id3v2_2 = `
 id3v1 tag info for Kaptein_kaliber_-_Pop_Ultra_2b_-_Track_02.mp3:
 Title  :                                 Artist: Kaptein Kaliber               

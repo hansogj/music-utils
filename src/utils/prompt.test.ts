@@ -43,14 +43,18 @@ describe('prompt', () => {
   describe('userDefaultPrompt', () => {
     let response: Partial<Release>;
     beforeEach(async () => {
-      mockPrompt.mockResolvedValueOnce({ artist: 'Altered Artist', album: '' });
-      response = await userDefinedPrompt({ artist: 'Artist', noOfDiscs: '2', album: 'Album' });
+      mockPrompt.mockResolvedValueOnce({ artist: 'Altered Artist    ', album: '    Album  with multiple space  ' });
+      response = await userDefinedPrompt({
+        artist: 'Artist',
+        noOfDiscs: '2',
+        album: 'Album',
+      });
     });
 
     it('merges respons with passed release data', async () =>
       expect(response).toStrictEqual({
         artist: 'Altered Artist',
-        album: 'Album',
+        album: 'Album with multiple space',
         noOfDiscs: '2',
       }));
   });

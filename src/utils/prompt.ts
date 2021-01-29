@@ -1,3 +1,5 @@
+import './polyfills';
+
 import { defined } from 'array.defined';
 import prompts, { Answers } from 'prompts';
 
@@ -64,7 +66,7 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
     ...Object.entries(response).reduce(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line
-      (resu: any, [key, val]) => (defined(val) && (resu[key] = `${val}`), resu),
+      (resu: any, [key, val]) => (defined(val) && (resu[key] = `${val}`.split(' ').defined().join(' ')), resu),
       {} as Partial<Release>
     ),
   };
