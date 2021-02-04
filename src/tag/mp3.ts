@@ -3,9 +3,16 @@ import { defined } from 'array.defined';
 import { File, Track } from '../types';
 import { info } from '../utils/color.log';
 import { execute } from '../utils/execute';
-import parseNum from '../utils/parse.defined';
+import { wov } from '../utils/number';
 import { replaceQuotes } from '../utils/path';
 import { applyMatch, Parser, regExp } from './parser';
+
+const ARTIST = `TPE1`;
+const TPOS = 'TPOS';
+const YEAR = 'TYER';
+const ALBUM = 'TALB';
+const TRACKNUMBER = 'TRCK';
+const TITLE = 'TIT2';
 
 const splitLines = (lines: string = '') =>
   lines
@@ -30,7 +37,7 @@ export const id3v1 = (unparsed: string): Partial<Track> => {
     const [trackName] = applyMatch(line, [trackNameParser]);
     const [trackNo] = applyMatch(line, [trackNoParser]);
 
-    return { ...res, ...(defined(trackName) && { trackName }), ...(parseNum(trackNo, undefined) && { trackNo }) };
+    return { ...res, ...(defined(trackName) && { trackName }), ...(wov(trackNo, undefined) && { trackNo }) };
   }, {});
 
   return reduced;
@@ -47,7 +54,7 @@ export const id3v2 = (unparsed: string = ''): Partial<Track> => {
   const [trackNo, trackNoTotal] =
     reduced.TRCK?.split(/\//)
       .defined()
-      .filter((e) => parseNum(e, 0) !== 0) || [];
+      .filter((e) => wov(e, 0) !== 0) || [];
 
   return {
     ...(reduced.TIT2 && { trackName: reduced.TIT2 }),
@@ -79,12 +86,12 @@ const generateTagString = ({
   year,
 }: Partial<Track>) =>
   [
-    mp3Tag(artist, 'TPE1'),
-    mp3Tag([discNumber, noOfDiscs].defined().join('/'), 'TPOS'),
-    mp3Tag(year, 'TYER'),
-    mp3Tag(album, 'TALB'),
-    mp3Tag([trackNo, trackNoTotal].defined().join('/'), 'TRCK'),
-    mp3Tag(trackName, 'TIT2'),
+    mp3Tag(artist, ARTIST),
+    mp3Tag([discNumber, noOfDiscs].defined().join('/'), TPOS),
+    mp3Tag(year, YEAR),
+    mp3Tag(album, ALBUM),
+    mp3Tag([trackNo, trackNoTotal].defined().join('/'), TRACKNUMBER),
+    mp3Tag(trackName, TITLE),
   ]
     .defined()
     .join(' ');

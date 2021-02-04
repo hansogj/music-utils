@@ -2,7 +2,7 @@
 /* eslint-disable no-restricted-globals */
 import './polyfills';
 
-const numberParser = (num: string | number, or: number | undefined): number => {
+export const wov = (num: string | number, or: number | undefined): number => {
   return [num]
     .defined()
     .map((n) => `${n}`)
@@ -13,8 +13,6 @@ const numberParser = (num: string | number, or: number | undefined): number => {
 };
 
 export const generator = (or: number | undefined) => (...nums: Array<string | number>) =>
-  nums.map((num) => numberParser(num, or));
+  nums.map((num) => wov(num, or));
 
 export const numOrNull = generator(0);
-
-export default numberParser;

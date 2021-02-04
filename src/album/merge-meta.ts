@@ -3,7 +3,7 @@ import '../utils/polyfills';
 import { defined } from 'array.defined';
 
 import { File, Release, Track } from '../types';
-import parse, { numOrNull } from '../utils/parse.defined';
+import { numOrNull, wov } from '../utils/number';
 
 export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}
 
@@ -14,9 +14,9 @@ export const sortable = (file: File): File => {
   let track = file?.track;
 
   if (defined(track) && defined(track.trackNo)) {
-    const discNumber = parse(track?.discNumber, undefined);
+    const discNumber = wov(track?.discNumber, undefined);
     const trackNumber = numOrNull(track?.trackNo, 0)
-      .map((trNum) => (trNum > 100 ? parse(trNum % 100, 0) : trNum))
+      .map((trNum) => (trNum > 100 ? wov(trNum % 100, 0) : trNum))
       .shift();
 
     const preceedingZero = defined(discNumber) && trackNumber < 10 ? 0 : trackNumber < 10 && 0; //  trackNoTotal > 10 ? (defined(discNumber)  || trackNumber < 10) && 0;

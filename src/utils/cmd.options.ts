@@ -1,4 +1,4 @@
-const commandLineArgs = require('command-line-args');
+import commandLineArgs from 'command-line-args';
 
 const optionDefinitions = [
   { name: 'verbose', alias: 'v', type: Boolean },
@@ -7,13 +7,20 @@ const optionDefinitions = [
 ];
 
 const parseCommandLineArgs = () => {
-  const args = commandLineArgs(optionDefinitions);
+  const { verbose, album, fileName } = commandLineArgs(optionDefinitions);
 
   return {
-    ...args,
-    ...(args.album && { album: args.album.join(' ') }),
-    ...(args.fileName && { fileName: args.fileName.join(' ') }),
+    ...{ verbose },
+    ...(album && { album: album.join(' ') }),
+    ...(fileName && { fileName: fileName.join(' ') }),
   };
 };
 
-export const getCommandLineArgs = () => parseCommandLineArgs();
+export const getCommandLineArgs = (): ReturnType<typeof parseCommandLineArgs> => {
+  try {
+    return parseCommandLineArgs();
+  } catch (e) {
+    console.error('Wrong number of arguments. See Readme file for how to use');
+    process.exit(0);
+  }
+};

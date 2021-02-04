@@ -1,6 +1,7 @@
 import { defined } from 'array.defined';
 
 import { Track } from '../types';
+import { capitalize } from '../utils/string';
 import { applyMatch, Parser, regExp } from './parser';
 
 const dash = /(\s*-\s*)?/;
@@ -34,7 +35,7 @@ export const read = (path = ''): Promise<Partial<Track>> => {
     trackNoParser,
     trackNameParser,
     noOfDiscsParser,
-  ]);
+  ]).map(capitalize);
 
   return new Promise((resolve) =>
     resolve({

@@ -6,10 +6,9 @@ import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
 import { exit } from '../utils/color.log';
-import numParser from '../utils/parse.defined';
+import { wov } from '../utils/number';
 import { getDirName, readDir, splits } from '../utils/path';
-
-const capitalize = (s: string) => s.slice(0, 1).toLocaleUpperCase() + s.slice(1);
+import { capitalize, removeDoubleSpace } from '../utils/string';
 
 const discNrParser: Parser = {
   matcher: regExp(/(.*)\(\s*[dD][iI][sS][cC]\s*(.*)\s*\)(.*)/),
@@ -23,7 +22,6 @@ const auxParser: Parser = {
 
 const discNrParserApplied = (album: string) => applyMatch(album, [discNrParser]);
 const auxParserApplied = (album: string) => applyMatch(album, [auxParser]);
-const removeDoubleSpace = (str: string) => str.split(' ').defined().join(' ');
 
 const joinedRest = (albumTitle: string | string[], rest: string[], fallback: string) =>
   []
@@ -36,7 +34,7 @@ const joinedRest = (albumTitle: string | string[], rest: string[], fallback: str
 const splitParsedDiscNumber = (parsedDiscNumber: string) =>
   `${parsedDiscNumber}`
     .split(DISC_NO_SPLIT)
-    .map((n: string) => numParser(n, undefined))
+    .map((n: string) => wov(n, undefined))
     .defined()
     .map((e) => `${e}`)
     .onEmpty((o: string[]) => o.push('1')); // defaults to discNumber: 1
@@ -72,7 +70,7 @@ const parseAlbumFolderName = (
   const { discNumber, noOfDiscs, album, aux } = parseDiscNumber(albumNameSplits.join(' '));
 
   return {
-    album: album.split(' ').map(capitalize).join(' '),
+    album: capitalize(album),
     ...(year && { year }),
     ...(discNumber && { discNumber }),
     ...(noOfDiscs && { noOfDiscs }),
@@ -92,7 +90,7 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
     new RegExp(`${album}`, 'i').test(disc)
   ).length;
 
-  return numParser(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
+  return wov(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
 };
 
 export const parseAlbumInfo = (
