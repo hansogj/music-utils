@@ -44,7 +44,7 @@ describe('tag test', () => {
 
     const trackReads = [[undefined], [{}], [{ trackName: 'Track', noOfDiscs: '1', trackNo: '1' }]] as Partial<Track>[];
     describe('when filetype is mp3', () => {
-      describe.skip.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
+      describe.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
         beforeEach(async () => {
           mp3Mock.read.mockResolvedValue({ tags });
           mocks.getFileType.mockResolvedValue('mp3');
@@ -65,7 +65,7 @@ describe('tag test', () => {
     });
 
     describe('when filetype is flac', () => {
-      describe.only.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
+      describe.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
         beforeEach(async () => {
           flacMock.read.mockResolvedValue({ track: tags });
 

@@ -42,17 +42,20 @@ const splitParsedDiscNumber = (parsedDiscNumber: string) =>
 const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
   return [parsedAlbum]
     .map(discNrParserApplied)
-    .map(([albumTitle, parsedDiscNumber, ...rest]) => ({
+    .map(([albumTitle, parsedDiscNumber, ...aux]) => ({
+      aux: aux.join(' '),
       parsedDiscNumber,
-      album: joinedRest(albumTitle, rest, parsedAlbum),
+      album: joinedRest(albumTitle, undefined, parsedAlbum),
     }))
-    .map(({ parsedDiscNumber, album }) => {
-      const [albumTitle, aux, rest] = auxParserApplied(album);
+    .map(({ parsedDiscNumber, album, aux }) => {
+      const [albumTitle, parsedAux, rest] = auxParserApplied(album);
       const [discNumber, noOfDiscs] = splitParsedDiscNumber(parsedDiscNumber);
+      // eslint-disable-next-line no-param-reassign
+      aux = joinedRest(aux, parsedAux, undefined);
       return {
         discNumber,
         noOfDiscs,
-        ...(aux && { aux: removeDoubleSpace(aux) }),
+        ...(aux && { aux: removeDoubleSpace(aux).replace(/\[|\]/g, '') }),
         album: removeDoubleSpace(joinedRest([albumTitle, album].defined().first(), rest, parsedAlbum)),
       };
     })

@@ -34,6 +34,18 @@ describe('parse.path', () => {
       { artist: 'Artist', album: `Album`, year: '1974', aux: '1980 - 1981', discNumber: '1', noOfDiscs: '1' },
     ],
     [
+      `Artist/1974 album of the year ( ${DISC_LABLE}  21 ) some aux information   `,
+      {
+        artist: 'Artist',
+        album: `Album Of The Year`,
+        discNumber: '21',
+        year: '1974',
+        aux: 'some aux information',
+        noOfDiscs: '21',
+      },
+    ],
+
+    [
       `Artist/1974 album of the year ( ${DISC_LABLE}  21 ) [1980 -   1981]   `,
       {
         artist: 'Artist',
@@ -41,6 +53,18 @@ describe('parse.path', () => {
         discNumber: '21',
         year: '1974',
         aux: '1980 - 1981',
+        noOfDiscs: '21',
+      },
+    ],
+
+    [
+      `Artist/1974 album of the year [  1980 - 1981 ] ( ${DISC_LABLE}  21 ) some aux information   `,
+      {
+        artist: 'Artist',
+        album: `Album Of The Year`,
+        discNumber: '21',
+        year: '1974',
+        aux: 'some aux information 1980 - 1981',
         noOfDiscs: '21',
       },
     ],
