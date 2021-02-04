@@ -1,4 +1,5 @@
 import { defined } from 'array.defined';
+import maybe from 'maybe-for-sure';
 import path from 'path';
 
 import { DISC_NO_SPLIT } from '../constants';
@@ -23,14 +24,7 @@ const auxParser: Parser = {
 const discNrParserApplied = (album: string) => applyMatch(album, [discNrParser]);
 const auxParserApplied = (album: string) => applyMatch(album, [auxParser]);
 
-const joinedRest = (albumTitle: string | string[], rest: string[], fallback: string) =>
-  []
-    .concat(albumTitle)
-    .concat(rest)
-    .defined()
-    .onEmpty((o: string[]) => o.push(fallback))
-    .join(' ');
-
+const prettyAux = (...aux: string[]) => removeDoubleSpace(aux.join(' ')).replace(/\[|\]/g, '');
 const splitParsedDiscNumber = (parsedDiscNumber: string) =>
   `${parsedDiscNumber}`
     .split(DISC_NO_SPLIT)
@@ -45,18 +39,20 @@ const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
     .map(([albumTitle, parsedDiscNumber, ...aux]) => ({
       aux: aux.join(' '),
       parsedDiscNumber,
-      album: joinedRest(albumTitle, undefined, parsedAlbum),
+      album: maybe(albumTitle).valueOr(parsedAlbum),
     }))
     .map(({ parsedDiscNumber, album, aux }) => {
       const [albumTitle, parsedAux, rest] = auxParserApplied(album);
       const [discNumber, noOfDiscs] = splitParsedDiscNumber(parsedDiscNumber);
-      // eslint-disable-next-line no-param-reassign
-      aux = joinedRest(aux, parsedAux, undefined);
       return {
         discNumber,
         noOfDiscs,
-        ...(aux && { aux: removeDoubleSpace(aux).replace(/\[|\]/g, '') }),
-        album: removeDoubleSpace(joinedRest([albumTitle, album].defined().first(), rest, parsedAlbum)),
+        ...((aux || parsedAux) && { aux: prettyAux(aux, parsedAux) }),
+        album: removeDoubleSpace(
+          maybe(albumTitle || album)
+            .map((it) => [it].concat([rest]).defined().join(' '))
+            .valueOr(parsedAlbum)
+        ),
       };
     })
     .shift();

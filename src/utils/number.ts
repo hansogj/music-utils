@@ -2,14 +2,20 @@
 /* eslint-disable no-restricted-globals */
 import './polyfills';
 
-export const wov = (num: string | number, or: number | undefined): number => {
-  return [num]
-    .defined()
+import maybeOr from 'maybe-for-sure';
+
+export const maybe = (num: string | number) =>
+  maybeOr(num)
     .map((n) => `${n}`)
     .map(parseInt)
-    .filter((e) => !isNaN(e))
-    .onEmpty((o: any[]) => o.push(or))
-    .shift();
+    .nothingIf(isNaN);
+
+export const wov = (num: string | number, or: number | undefined): number => {
+  return maybeOr(num)
+    .map((n) => `${n}`)
+    .map(parseInt)
+    .nothingIf(isNaN)
+    .valueOr(or) as number;
 };
 
 export const generator = (or: number | undefined) => (...nums: Array<string | number>) =>

@@ -26,7 +26,7 @@ describe('tag test', () => {
     let extraction: File;
     const path = '/Album/d1t1 track.wtf';
     const track: Track = { trackName: 'Track', noOfDiscs: '1', trackNo: '1' } as Track;
-    describe('when no matcihng fileType', () => {
+    describe('when no matching fileType', () => {
       beforeEach(async () => {
         //      mocks.execute.mockResolvedValue('TITLE=Rock and Roll');
         mocks.getFileType.mockResolvedValue('unknown');
