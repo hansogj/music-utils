@@ -1,5 +1,5 @@
 import { File, MetaFlac, Track } from '../types';
-import { error, info } from '../utils/color.log';
+import { debugInfo, error } from '../utils/color.log';
 import { execute } from '../utils/execute';
 import { replaceQuotes } from '../utils/path';
 import { singleSpace } from './parser';
@@ -88,7 +88,7 @@ const generateSetTagString = ({
     .join(' ');
 
 export const write = ({ path, track }: File) => {
-  info(`Tagging ${path.split('/').slice(-2).join('/')}`);
+  debugInfo(`Tagging ${path.split('/').slice(-2).join('/')}`);
   const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
     .map((action) => action(track))
     .map((tags) => ['metaflac', tags, harmless(path)].join(' '))

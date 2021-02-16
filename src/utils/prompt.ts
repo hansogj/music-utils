@@ -80,3 +80,11 @@ export const userDefinedRelease = (release: Partial<Release>): Promise<Partial<R
 
 export const albumPrompt = (album: Partial<Release>): Promise<Partial<Release>> =>
   verifyPrompt(album).catch(() => userDefinedRelease(album));
+
+export const artistPrompt = (src: string, target: string): Promise<string> =>
+  prompts({
+    type: 'confirm',
+    name: 'value',
+    message: `Rename ${src} > ${target}?`,
+    initial: true,
+  }).then(({ value }) => (value ? Promise.resolve(value) : Promise.reject(value)));

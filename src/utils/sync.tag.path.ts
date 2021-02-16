@@ -2,17 +2,12 @@ import './polyfills';
 
 import { defined } from 'array.defined';
 
-import { DISC_LABLE, DISC_NO_SPLIT } from '../constants';
+import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';
 import { debugInfo } from './color.log';
 import { wov } from './number';
-import { renameCurrentFolder, renameFile } from './path';
-
-const toLowerCase = (s: string = '') =>
-  s
-    .split('')
-    .map((split) => split.toLowerCase())
-    .join('');
+import { renameFile, renameFolder } from './path';
+import { toLowerCase } from './string';
 
 export const syncReleaseFolder = (release: Release, dirName: string = ''): Promise<Release> => {
   const { discNumber, noOfDiscs, year, album } = release || ({} as Release);
@@ -22,13 +17,12 @@ export const syncReleaseFolder = (release: Release, dirName: string = ''): Promi
   const disc =
     [discNumber, noOfDiscs].every(defined) &&
     wov(noOfDiscs, 0) > 1 &&
-    `(${DISC_LABLE} ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
+    `(${DISC_LABEL} ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
   const target = [year, album, disc, aux].defined().join(' ');
 
-  debugInfo({ msg: 'rename folder name', src, target });
   const shouldRename = defined(src) && toLowerCase(target) !== toLowerCase(src);
-
-  return shouldRename ? renameCurrentFolder(src, target).then(() => release) : Promise.resolve(release);
+  debugInfo({ msg: shouldRename ? 'rename album folder name' : 'keeping', src, target });
+  return shouldRename ? renameFolder(src, target).then(() => release) : Promise.resolve(release);
 };
 
 export const syncTrackNames = (files: File[] = []) =>

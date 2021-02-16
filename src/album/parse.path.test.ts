@@ -1,11 +1,25 @@
 import '../utils/polyfills';
 
-import { DISC_LABLE } from '../constants';
+import { DISC_LABEL } from '../constants';
 import { Release } from '../types';
 import * as pathUtils from '../utils/path';
-import { parseAlbumInfo } from './parse.path';
+import { artistSortable, parseAlbumInfo } from './parse.path';
 
 jest.mock('../utils/color.log');
+
+describe('artist sort', () => {
+  describe.each([
+    ['artist', 'artist'],
+    ['the artist', 'artist, the'],
+    ['The Artist', 'Artist, the'],
+    ['TheArtist', 'TheArtist'],
+    ['los Artist', 'Artist, los'],
+    ['la Artist', 'Artist, la'],
+    ['il Artist', 'Artist, il'],
+  ])('artistSortable(%s)', (path: string, expected: string) => {
+    it(`should return ${expected}`, () => expect(artistSortable(path)).toEqual(expected));
+  });
+});
 describe('parse.path', () => {
   describe.each([
     ['artist', { artist: 'artist' }],
@@ -15,18 +29,19 @@ describe('parse.path', () => {
       { artist: 'My Band', album: 'Album Of The Year', discNumber: '1', noOfDiscs: '1' },
     ],
     [`/Artist/'74 album`, { artist: 'Artist', album: `'74 Album`, discNumber: '1', noOfDiscs: '1' }],
+    [`/The Artist/'74 album`, { artist: 'Artist, the', album: `'74 Album`, discNumber: '1', noOfDiscs: '1' }],
     [`/Artist/1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1', noOfDiscs: '1' }],
     [`/Artist/ 1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1', noOfDiscs: '1' }],
-    [`/Artist/album (${DISC_LABLE} 1)`, { artist: 'Artist', album: `Album`, discNumber: '1', noOfDiscs: '1' }],
+    [`/Artist/album (${DISC_LABEL} 1)`, { artist: 'Artist', album: `Album`, discNumber: '1', noOfDiscs: '1' }],
     [`/Artist/album (disc21 )`, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '21' }],
-    [`/Artist/album ( ${DISC_LABLE}  21 ) `, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '21' }],
+    [`/Artist/album ( ${DISC_LABEL}  21 ) `, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '21' }],
     [`/Artist/album (disc21∕22 )`, { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '22' }],
     [
-      `/Artist/album ( ${DISC_LABLE}  21 ∕ 22 ) `,
+      `/Artist/album ( ${DISC_LABEL}  21 ∕ 22 ) `,
       { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '22' },
     ],
     [
-      `/Artist/album ( ${DISC_LABLE}  21∕22 ) `,
+      `/Artist/album ( ${DISC_LABEL}  21∕22 ) `,
       { artist: 'Artist', album: `Album`, discNumber: '21', noOfDiscs: '22' },
     ],
     [
@@ -34,7 +49,7 @@ describe('parse.path', () => {
       { artist: 'Artist', album: `Album`, year: '1974', aux: '1980 - 1981', discNumber: '1', noOfDiscs: '1' },
     ],
     [
-      `Artist/1974 album of the year ( ${DISC_LABLE}  21 ) some aux information   `,
+      `Artist/1974 album of the year ( ${DISC_LABEL}  21 ) some aux information   `,
       {
         artist: 'Artist',
         album: `Album Of The Year`,
@@ -46,7 +61,7 @@ describe('parse.path', () => {
     ],
 
     [
-      `Artist/1974 album of the year ( ${DISC_LABLE}  21 ) [1980 -   1981]   `,
+      `Artist/1974 album of the year ( ${DISC_LABEL}  21 ) [1980 -   1981]   `,
       {
         artist: 'Artist',
         album: `Album Of The Year`,
@@ -58,7 +73,7 @@ describe('parse.path', () => {
     ],
 
     [
-      `Artist/1974 album of the year [  1980 - 1981 ] ( ${DISC_LABLE}  21 ) some aux information   `,
+      `Artist/1974 album of the year [  1980 - 1981 ] ( ${DISC_LABEL}  21 ) some aux information   `,
       {
         artist: 'Artist',
         album: `Album Of The Year`,
@@ -68,18 +83,18 @@ describe('parse.path', () => {
         noOfDiscs: '21',
       },
     ],
-  ])('parseAlbumInfo(%s)', (path: string, epected: Partial<Release>) => {
+  ])('parseAlbumInfo(%s)', (path: string, expected: Partial<Release>) => {
     beforeEach(() => {
       jest.spyOn(pathUtils, 'readDir');
       // @ts-ignore
       pathUtils.readDir.mockReturnValue([]);
     });
-    it(`should return ${JSON.stringify({ epected })})`, () => expect(parseAlbumInfo(path)).toEqual(epected));
+    it(`should return ${JSON.stringify({ expected })})`, () => expect(parseAlbumInfo(path)).toEqual(expected));
   });
 
   describe.each([
     ['/artist/album', [], { artist: 'artist', album: 'Album', discNumber: '1', noOfDiscs: '1' }],
-    [`/artist/album (${DISC_LABLE} 1∕2)`, [], { artist: 'artist', album: 'Album', noOfDiscs: '2', discNumber: '1' }],
+    [`/artist/album (${DISC_LABEL} 1∕2)`, [], { artist: 'artist', album: 'Album', noOfDiscs: '2', discNumber: '1' }],
     ['/artist/album', ['album'], { artist: 'artist', album: 'Album', noOfDiscs: '1', discNumber: '1' }],
 
     [
@@ -98,7 +113,7 @@ describe('parse.path', () => {
         `1997 match album 1`,
         '1998 Some other release',
         '1997 match album 2',
-        '1999 No match excact album',
+        '1999 No match exact album',
         '1997 match album 3 [with external info]',
         '1997 something else but still match album',
       ],
@@ -106,16 +121,16 @@ describe('parse.path', () => {
     ],
 
     [
-      `/artist/album (${DISC_LABLE} 3∕22)`,
+      `/artist/album (${DISC_LABEL} 3∕22)`,
       ['album', 'album'],
       { artist: 'artist', album: 'Album', noOfDiscs: '22', discNumber: '3' },
     ],
-  ])('parseAlbumInfo(%s) and lsDir eq %p', (path: string, lsDir: string[], epected: Partial<Release>) => {
+  ])('parseAlbumInfo(%s) and lsDir eq %p', (path: string, lsDir: string[], expected: Partial<Release>) => {
     beforeEach(() => {
       jest.spyOn(pathUtils, 'readDir');
       // @ts-ignore
       pathUtils.readDir.mockReturnValue(lsDir);
     });
-    it(`should return ${JSON.stringify({ epected })})`, () => expect(parseAlbumInfo(path)).toEqual(epected));
+    it(`should return ${JSON.stringify({ expected })})`, () => expect(parseAlbumInfo(path)).toEqual(expected));
   });
 });

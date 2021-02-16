@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import { ACUTE, DISC_NO_SPLIT } from '../constants';
+import { DISC_NO_SPLIT } from '../constants';
 import { singleSpace } from '../tag/parser';
 import { FILETYPE } from '../types';
 import { execute } from './execute';
@@ -22,22 +22,23 @@ export const getDirName = () => process.cwd();
 
 export const getFileType = (filePath: string): Promise<FILETYPE> =>
   execute(`file -i "${filePath}"`).then((stdout) => {
-    if (/mp3/.test(`${stdout}`)) {
+    if (/\.mp3/.test(`${stdout}`)) {
       return 'mp3';
     }
 
-    if (/flac/.test(`${stdout}`)) {
+    if (/\.flac/.test(`${stdout}`)) {
       return 'flac';
     }
 
-    if (/jpe?g/.test(`${stdout}`)) {
+    if (/\.jpe?g/.test(`${stdout}`)) {
       return 'jpg';
     }
 
     return 'unknown';
   });
 
-export const renameCurrentFolder = (src: string, target: string) => execute(`mv ../"${src}" ../"${target}"`);
+export const renameFolder = (src: string, target: string, root = '../') =>
+  execute(`mv ${root}"${src}" ${root}"${target}"`);
 
 export const renameFile = (src: string, target: string) => execute(`mv "${src}" "${target}"`);
 

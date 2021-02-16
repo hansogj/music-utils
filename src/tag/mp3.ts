@@ -1,7 +1,7 @@
 import { defined } from 'array.defined';
 
 import { File, Track } from '../types';
-import { info } from '../utils/color.log';
+import { debugInfo } from '../utils/color.log';
 import { execute } from '../utils/execute';
 import { wov } from '../utils/number';
 import { replaceQuotes } from '../utils/path';
@@ -97,7 +97,7 @@ const generateTagString = ({
     .join(' ');
 
 export const write = ({ path, track }: File) => {
-  info(`Tagging ${path.split('/').slice(-2).join('/')}`);
+  debugInfo(`Tagging ${path.split('/').slice(-2).join('/')}`);
 
   return execute(`id3v2 -2 ${generateTagString(track)} "${path}"`.replace(/\s+/, ' ').trim());
 };

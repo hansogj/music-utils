@@ -92,6 +92,18 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
   return wov(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
 };
 
+export const artistSortable = (artist: string) =>
+  ['the', 'los', 'il', 'la', 'el']
+    .filter((prefix) => RegExp(`^${prefix} `, 'i').test(artist))
+    .map((prefix: string) =>
+      artist
+        .split(RegExp(`^${prefix} `, 'i'))
+        .reverse()
+        .join(`, ${prefix}`)
+    )
+    .onEmpty((o: string[]) => o.push(artist))
+    .shift();
+
 export const parseAlbumInfo = (
   albumPath: string = __dirname
 ): Pick<Release, 'artist' | 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
@@ -99,7 +111,7 @@ export const parseAlbumInfo = (
   const release = albumSplit && parseAlbumFolderName(albumSplit);
   const noOfDiscs = release?.noOfDiscs ? release?.noOfDiscs : calcNoOfDiscsFromPath(albumPath, release);
 
-  return { artist, ...(release && release), ...(noOfDiscs && { noOfDiscs }) };
+  return { ...{ artist: artistSortable(artist) }, ...(release && release), ...(noOfDiscs && { noOfDiscs }) };
 };
 
 export const getAlbumDirectory = () => {
