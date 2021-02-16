@@ -20,7 +20,7 @@ export const getCommandLineArgs = (): ReturnType<typeof parseCommandLineArgs> =>
   try {
     return parseCommandLineArgs();
   } catch (e) {
-    console.error('Wrong number of arguments. See Readme file for how to use');
+    console.error('\x1b[30m\x1b[41m%s\x1b[0m', '\n\nWrong number of arguments. \n See Readme file for how to use\n');
     process.exit(0);
   }
 };

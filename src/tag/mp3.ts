@@ -97,6 +97,7 @@ const generateTagString = ({
     .join(' ');
 
 export const write = ({ path, track }: File) => {
-  info(`Tagging ${path}`);
+  info(`Tagging ${path.split('/').slice(-2).join('/')}`);
+
   return execute(`id3v2 -2 ${generateTagString(track)} "${path}"`.replace(/\s+/, ' ').trim());
 };

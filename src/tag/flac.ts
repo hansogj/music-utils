@@ -88,7 +88,7 @@ const generateSetTagString = ({
     .join(' ');
 
 export const write = ({ path, track }: File) => {
-  info(`Tagging ${path}`);
+  info(`Tagging ${path.split('/').slice(-2).join('/')}`);
   const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
     .map((action) => action(track))
     .map((tags) => ['metaflac', tags, harmless(path)].join(' '))
