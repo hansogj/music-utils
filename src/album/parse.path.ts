@@ -93,7 +93,7 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
 };
 
 export const artistSortable = (artist: string) =>
-  ['the', 'los', 'il', 'la', 'el']
+  ['the', 'los', 'il', 'la', 'el', 'le']
     .filter((prefix) => RegExp(`^${prefix} `, 'i').test(artist))
     .map((prefix: string) =>
       artist
