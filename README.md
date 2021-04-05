@@ -15,6 +15,7 @@ TODO
 * [v] get track name from list of tracks
 * [v] include coverPhoto-function as part of music-utils
 * [v] extract additional info from `YYYY Album [some additional info] (Disc 1)`
+* [v] detect similarities across folders
 
 
 # Installation
@@ -80,7 +81,7 @@ Parse your current position (pwd) to extract artist and album information. Then,
 * Artist/YYYY Album name (Disc 1∕2)
 
 
-## tag-tracs
+## tag-tracks
 
 ### Usage
  ```
@@ -88,3 +89,28 @@ Music/Artist/2020 Album $> tag-tracks.sh -f /path/to/tracks.txt
  ```
 
 As _tag-artist_ but fetches tracks info from provided tracks.txt file
+
+
+## Find similarities among music folders
+
+If your catalog consist of ie
+
+```
+| - A
+    | - A Band
+| - B
+    | - Band, A
+``` 
+where _A Band_ is actually the same band as _Band, A_ , similarities script will output as a table 
+
+
+### Usage
+
+```
+/>  ./scripts/similarities.sh -A /path/to/origin/ -B /path/to/comparator/ -T 0.5  -Q > output.table
+```
+
+Where -A is dir1, -B is dir2, T is threshold of equality and Q is quiet
+
+
+

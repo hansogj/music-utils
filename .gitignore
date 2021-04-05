@@ -150,4 +150,5 @@ dist
 .tern-port
 
 tracks.txt
+**/*MD
 JosteinSync.md

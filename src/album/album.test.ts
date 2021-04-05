@@ -12,7 +12,14 @@ import * as parsePath from './parse.path';
 
 type Mocks = typeof prompt & typeof parsePath & typeof log & typeof tags & typeof path;
 
-jest.mock('./parse.path').mock('../utils/prompt').mock('../utils/path').mock('../utils/color.log').mock('../tag');
+jest
+  .mock('./parse.path')
+  .mock('../utils/prompt')
+  .mock('../utils/cmd.options')
+  .mock('../utils/path')
+  .mock('../utils/color.log')
+  .mock('../tag');
+
 const mocks = MockUtil<Mocks>(jest).requireMocks('./parse.path', '../utils/prompt', '../tag', '../utils/path');
 
 const parsedAlbumFolderName = {

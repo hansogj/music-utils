@@ -1,11 +1,10 @@
+/* eslint-disable no-useless-escape */
 import '../utils/polyfills';
 
-import { ACUTE, DISC_NO_SPLIT } from '../constants';
 import { Track } from '../types';
 import { MockUtil } from '../utils/__mocks__/mockutils';
 import { albumTrack } from '../utils/__mocks__/record.mock';
 import * as execute from '../utils/execute';
-import * as pathUtils from '../utils/path';
 import { metaflac } from './__mocks__/flac.mocks';
 import * as flac from './flac';
 

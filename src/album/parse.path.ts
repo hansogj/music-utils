@@ -2,7 +2,7 @@ import { defined } from 'array.defined';
 import maybe from 'maybe-for-sure';
 import path from 'path';
 
-import { DISC_NO_SPLIT } from '../constants';
+import { DEFINITE_ARTICLES, DISC_NO_SPLIT } from '../constants';
 import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
@@ -93,8 +93,7 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
 };
 
 export const artistSortable = (artist: string) =>
-  ['the', 'los', 'il', 'la', 'el', 'le']
-    .filter((prefix) => RegExp(`^${prefix} `, 'i').test(artist))
+  DEFINITE_ARTICLES.filter((prefix) => RegExp(`^${prefix} `, 'i').test(artist))
     .map((prefix: string) =>
       artist
         .split(RegExp(`^${prefix} `, 'i'))

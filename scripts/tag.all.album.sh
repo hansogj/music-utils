@@ -12,14 +12,18 @@
 BASEDIR=$(dirname "$0")
 
 DIR='.'
-if [ -d "$1" ]; then DIR="$1"; fi
+if [ -d "$1" ]; then
+ DIR="$1";
+ SHIFT $@;
+fi
    
 ls -l "$DIR"
+
 for D in "$DIR"/* ;
  do
  if [ -d "$D" ]; then
     echo "$D"
-    node $BASEDIR/../build/run/tag.album.js -a "$D"
+    node $BASEDIR/../build/run/tag.album.js -a "$D" "$@"
  fi
  done
 

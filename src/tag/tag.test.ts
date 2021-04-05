@@ -4,7 +4,6 @@ import { File, Track } from '../types';
 import { MockUtil } from '../utils/__mocks__/mockutils';
 import * as execute from '../utils/execute';
 import * as pathUtils from '../utils/path';
-import { capitalize } from '../utils/string';
 import * as flac from './flac';
 import * as mp3 from './mp3';
 import { extractTags, tagFile } from './tag';
