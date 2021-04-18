@@ -100,12 +100,19 @@ export const getArtistCombination = (artist: string) => {
   return permute(splits).filter((permutation) => !BLACK_LIST_SIMILAR_WORD.includes(permutation.toLocaleLowerCase()));
 };
 
+const skipPrecedingFolders = (other: string) =>
+  other
+    .split('/')
+    .defined()
+    .filter((_, i, self) => (self.length > 2 ? i > self.length - 3 : true))
+    .join('/');
+
 export const findSimToOther = (combination: string, fromDirectory: string[], threshold: number): Similarity[] =>
   fromDirectory
     .defined()
     .map((other) => ({
       combination,
-      other,
+      other: skipPrecedingFolders(other),
       similarity: parseFloat(equalityLevel(combination, other).toFixed(2)),
     }))
     .filter(({ similarity }) => similarity > threshold);

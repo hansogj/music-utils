@@ -1,5 +1,15 @@
 {
+    "window.title": "/git/bin",
+    "workbench.colorTheme": "Darktooth",
+    "workbench.colorCustomizations": {
+        "[Darktooth]": {
+            "activityBar.background": "#66999D",
+            "statusBar.background": "#66999D",
+            "titleBar.activeBackground": "#66999D",
+            "titleBar.inactiveBackground": "#66999D",
+            "scrollbar.shadow": "#66999D",
+            "scrollbarSlider.background": "#66999D",
+        }
+    },
     "jestrunner.jestCommand": "npm run test --"
-  }
-  
-
+}

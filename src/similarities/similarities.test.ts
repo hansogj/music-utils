@@ -6,36 +6,48 @@ jest.mock('../utils/cmd.options');
 
 const mockedLogger: typeof console = { ...global.console, time: jest.fn(), timeLog: jest.fn() };
 
-const dirB = ['A/Artist', 'B/The Balad', 'M/Magma', 'M/MAGMA'];
+const dirB = ['A/Artist', 'B/The Balad', 'M/Magma', '/lib/music/M/MAGMA'];
 describe('similarities', () => {
-  const extractSimilarities = (compares: ArtistSimilarity[]) => {
-    // compares.forEach(({ similarities }: ArtistSimilarity) => console.table(similarities));
-    return compares.flatMap(({ similarities }: ArtistSimilarity) => similarities.map(({ similarity }) => similarity));
-  };
+  const extractSimilarities = (compares: ArtistSimilarity[]) =>
+    compares.flatMap(({ similarities }: ArtistSimilarity) =>
+      similarities.map(({ similarity, other }) => ({ similarity, other }))
+    );
 
   describe.each([
     [[], []],
-    [['O/Artist'], [1]],
+    [['O/Artist'], [{ similarity: 1, other: 'A/Artist' }]],
     [['A/Artist'], []],
-    [['O/ARTIST'], [1]],
-    [['A/Artyst'], [0.83]],
-    [['B/*** Balad'], [1]],
+    [['O/ARTIST'], [{ similarity: 1, other: 'A/Artist' }]],
+    [['A/Artyst'], [{ similarity: 0.83, other: 'A/Artist' }]],
+    [['B/*** Balad'], [{ similarity: 1, other: 'B/The Balad' }]],
     [['B/The Balad'], []],
-    [['B/Balad, the'], [1]],
-    [['Balad, the'], [1]],
-    [['Magma'], [1, 1]],
+    [['B/Balad, the'], [{ similarity: 1, other: 'B/The Balad' }]],
+    [['Balad, the'], [{ similarity: 1, other: 'B/The Balad' }]],
+    [
+      ['Magma'],
+      [
+        { similarity: 1, other: 'M/MAGMA' }, // skipped preceding folders
+        { similarity: 1, other: 'M/Magma' },
+      ],
+    ],
     [
       ['Artist', 'Artyst'],
-      [1, 0.83],
+      [
+        { similarity: 1, other: 'A/Artist' },
+        { similarity: 0.83, other: 'A/Artist' },
+      ],
     ],
-  ])('when artists eq %o ', (dirA: string[], expected: number[]) => {
+  ])('when artists eq %o ', (dirA: string[], expected: Partial<Similarity>[]) => {
     let compare: ArtistSimilarity[];
     beforeEach(() => (compare = findSimilaritiesAmongArtists(dirA, dirB, 0.4, [], mockedLogger)));
     it(`should result in expected`, () => expect(extractSimilarities(compare)).toEqual(expected));
   });
 
   describe('compare complex band name', () => {
-    const dirBB = ['K/King Gizzard and the Lizzard Wizzard', 'W/Wizzard King Gizzard and the Lizzard '];
+    const dirBB = [
+      '/lib/music/K/King Gizzard and the Lizzard Wizzard',
+      '/lib/music/W/Wizzard King Gizzard and the Lizzard ',
+    ];
 
     let compare: ArtistSimilarity[];
     beforeEach(
@@ -48,7 +60,17 @@ describe('similarities', () => {
           mockedLogger
         ))
     );
-    it(`should not generate artist combination`, () => expect(extractSimilarities(compare)).toEqual([1, 1]));
+    it(`should not generate artist combination`, () =>
+      expect(extractSimilarities(compare)).toEqual([
+        {
+          other: 'K/King Gizzard and the Lizzard Wizzard',
+          similarity: 1,
+        },
+        {
+          other: 'W/Wizzard King Gizzard and the Lizzard ',
+          similarity: 1,
+        },
+      ]));
   });
 
   describe('compare with ignore option', () => {
@@ -79,16 +101,16 @@ describe('utils', () => {
   });
 
   const calculatedSimilarities = [
-    { other: '/esterhase/beet/G/Grant‐Lee Phillips', combination: 'Phillips', similarity: 1 },
-    { other: '/esterhase/beet/E/Esther Phillips', combination: 'Phillips', similarity: 1 },
-    { other: '/esterhase/beet/E/Esther Phillips', combination: 'Antony Phillips', similarity: 0.67 },
-    { other: '/esterhase/beet/A/Anthony Phillips', combination: 'Phillips', similarity: 1 },
-    { other: '/esterhase/beet/A/Anthony Phillips', combination: 'Antony Phillips', similarity: 0.93 },
-    { other: '/esterhase/beet/A/Altona', combination: 'Antony', similarity: 0.67 },
-    { other: '/esterhase/beet/A/Anthony Phillips', combination: 'Antony', similarity: 1 },
+    { other: '/music/lib/G/Grant‐Lee Phillips', combination: 'Phillips', similarity: 1 },
+    { other: '/music/lib/E/Esther Phillips', combination: 'Phillips', similarity: 1 },
+    { other: '/music/lib/E/Esther Phillips', combination: 'Antony Phillips', similarity: 0.67 },
+    { other: '/music/lib/A/Anthony Phillips', combination: 'Phillips', similarity: 1 },
+    { other: '/music/lib/A/Anthony Phillips', combination: 'Antony Phillips', similarity: 0.93 },
+    { other: '/music/lib/A/Altona', combination: 'Antony', similarity: 0.67 },
+    { other: '/music/lib/A/Anthony Phillips', combination: 'Antony', similarity: 1 },
   ];
   // prettier-ignore
-  const calculateNova = [ { combination: 'Nova Ars', other: '/esterhase/beet/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Nova Ars', other: '/esterhase/beet/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Nova', other: '/esterhase/beet/V/Vita Nova', similarity: 1, }, { combination: 'Nova', other: '/esterhase/beet/N/Nova', similarity: 1, }, { combination: 'Nova', other: '/esterhase/beet/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Nova', other: '/esterhase/beet/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Ars Nova', other: '/esterhase/beet/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Ars Nova', other: '/esterhase/beet/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Ars', other: '/esterhase/beet/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Ars', other: '/esterhase/beet/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Nova', other: '/esterhase/beet/N/NOVI', similarity: 0.75, }, { combination: 'Ars', other: '/esterhase/beet/A/Arc', similarity: 0.67, }, { combination: 'Nova Ars', other: '/esterhase/beet/N/Novalis', similarity: 0.63, }, { combination: 'Nova Ars', other: '/esterhase/beet/N/Nuova Era', similarity: 0.63, }, ];
+  const calculateNova = [ { combination: 'Nova Ars', other: '/music/lib/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Nova Ars', other: '/music/lib/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Nova', other: '/music/lib/V/Vita Nova', similarity: 1, }, { combination: 'Nova', other: '/music/lib/N/Nova', similarity: 1, }, { combination: 'Nova', other: '/music/lib/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Nova', other: '/music/lib/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Ars Nova', other: '/music/lib/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Ars Nova', other: '/music/lib/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Ars', other: '/music/lib/A/Ars Nova [USA]', similarity: 1, }, { combination: 'Ars', other: '/music/lib/A/Ars Nova [Japan]', similarity: 1, }, { combination: 'Nova', other: '/music/lib/N/NOVI', similarity: 0.75, }, { combination: 'Ars', other: '/music/lib/A/Arc', similarity: 0.67, }, { combination: 'Nova Ars', other: '/music/lib/N/Novalis', similarity: 0.63, }, { combination: 'Nova Ars', other: '/music/lib/N/Nuova Era', similarity: 0.63, }, ];
 
   const from = (...index: number[]) => calculatedSimilarities.filter((_, i) => index.includes(i));
   const fromNova = (...index: number[]) => calculateNova.filter((_, i) => index.includes(i));
