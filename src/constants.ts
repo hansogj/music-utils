@@ -15,6 +15,8 @@ export const BLACK_LIST_SIMILAR_WORD = DEFINITE_ARTICLES.concat([
   'di',
   'de',
   'e',
+  'group',
+  'john',
   'och',
   'of',
   'og',
