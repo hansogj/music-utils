@@ -11,6 +11,6 @@ export const execute = <T>(cmd: string): Promise<T> =>
         }
       });
     } catch (error) {
-      reject(new Error(`Rejecting cmd because of ${error}`));
+      reject(new Error(`Rejecting cmd - Error Thrown -  ${error}`));
     }
   });
