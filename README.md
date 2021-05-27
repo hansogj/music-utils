@@ -27,23 +27,19 @@ npn ci && npm run build
 
 # Features
 
-_Music Utils_ provides 4 scripts: 
+_Music Utils_ provides 5 scripts: 
 * cdrip.sh 
 * cover.photo.sh
 * tag.album.sh 
 * tag.tracks.sh
+* glyrc.cover.photo.sh
 
-It's recomended to assign aliases for them i.e: 
-
-```
-alias music-utils-cdrip="PATH/TO/music-utils/scripts/cdrip.sh"
-alias music-utils-cover-photo="PATH/TO/music-utils/scripts/cover.photo.sh"
-alias music-utils-tag-album="PATH/TO/music-utils/scripts/tag.album.sh"
-alias music-utils-tag-tracks="PATH/TO/music-utils/scripts/tag.tracks.sh"
+Bind them to your _.bashrc_ file by
 
 ```
-
-
+    source /path/to/music-utils/scripts/index.sh
+```
+Index.sh also creates an alias for bulk fetching cover photos with glyrc.
 
 ## cdrip
 
@@ -88,7 +84,7 @@ Parse your current position (pwd) to extract artist and album information. Then,
 Music/Artist/2020 Album $> tag-tracks.sh -f /path/to/tracks.txt 
  ```
 
-As _tag-artist_ but fetches tracks info from provided tracks.txt file
+As _tag-album_ but fetches tracks info from provided tracks.txt file
 
 
 ## Find similarities among music folders

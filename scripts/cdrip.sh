@@ -4,16 +4,14 @@
 #   Usage : 
 #   Music/Artist> cdrip Album\ Name
 ########################################
+BASEDIR=$(dirname "$0")
 ALBUM=$*
 ARTIST=$(basename "$PWD")
 mkdir -p "$ALBUM"
 cd "$ALBUM"
 cdparanoia -B
 eject
-wav2flac
-echo "Setting metadata ARTIST: ${ARTIST}"
-echo "Setting metadata ALBUM: ${ALBUM}"
-metaflac --set-tag=ARTIST="${ARTIST}"   *.flac
-metaflac --set-tag=ALBUM="${ALBUM}"   *.flac
-
+sh $BASEDIR/wav2flac.sh
+$BASEDIR/tag.album.sh
+cd -
 #cdrip-setdata
