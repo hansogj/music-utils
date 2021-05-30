@@ -1,4 +1,4 @@
-export type FILETYPE = 'mp3' | 'flac' | 'jpg' | 'unknown';
+export type FILETYPE = 'mp3' | 'flac' | 'jpg' | 'text' | 'unknown';
 export const MusicFileTypes: FILETYPE[] = ['flac', 'mp3'];
 
 interface Disc {

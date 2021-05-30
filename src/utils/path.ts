@@ -3,6 +3,7 @@ import fs from 'fs';
 import { DISC_NO_SPLIT } from '../constants';
 import { singleSpace } from '../tag/parser';
 import { FILETYPE } from '../types';
+import { debugInfo, info } from './color.log';
 import { execute } from './execute';
 
 export const splits = (paths: string) =>
@@ -32,6 +33,10 @@ export const getFileType = (filePath: string): Promise<FILETYPE> =>
 
     if (/\.jpe?g/.test(`${stdout}`)) {
       return 'jpg';
+    }
+
+    if (/\.te?xt/.test(`${stdout}`)) {
+      return 'text';
     }
 
     return 'unknown';

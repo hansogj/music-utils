@@ -26,7 +26,7 @@ const albumDirName = getAlbumDirectory();
 
 tagAlbum(albumDirName, tracks)
   .then(({ files, release }) => ({
-    files: syncTrackNames(files),
+    files: syncTrackNames(files, release),
     release,
   }))
   .then(({ release }) => {

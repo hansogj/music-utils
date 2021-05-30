@@ -2,6 +2,7 @@
 /* eslint-disable no-restricted-globals */
 import './polyfills';
 
+import { defined } from 'array.defined';
 import maybeOr from 'maybe-for-sure';
 
 export const maybe = (num: string | number) =>
@@ -22,3 +23,6 @@ export const generator = (or: number | undefined) => (...nums: Array<string | nu
   nums.map((num) => wov(num, or));
 
 export const numOrNull = generator(0);
+
+export const precedingZero = (discNumber: number, trackNumber: number) =>
+  defined(discNumber) && trackNumber < 10 ? 0 : trackNumber < 10 && 0;

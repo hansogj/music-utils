@@ -7,6 +7,7 @@ alias music-utils-cover-photo="$MU_ROOT/cover.photo.sh"
 alias music-utils-glyrc-cover-photo="$MU_ROOT/glyrc.cover.photo.sh"
 alias music-utils-album-tag="$MU_ROOT/tag.album.sh"
 alias music-utils-tracks-tag="$MU_ROOT/tag.tracks.sh"
+alias music-utils-sync-tracks-names="$MU_ROOT/sync.track.names.sh"
 alias music-utils-bulk-album-tag="$MU_ROOT/tag.all.album.sh"
 alias music-utils-album-cover="$MU_ROOT/tag.cover.album.sh"
 

@@ -5,7 +5,7 @@ import { defined } from 'array.defined';
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';
 import { debugInfo } from './color.log';
-import { wov } from './number';
+import { precedingZero, wov } from './number';
 import { renameFile, renameFolder } from './path';
 import { toLowerCase } from './string';
 
@@ -25,15 +25,25 @@ export const syncReleaseFolder = (release: Release, dirName: string = ''): Promi
   return shouldRename ? renameFolder(src, target).then(() => release) : Promise.resolve(release);
 };
 
-export const syncTrackNames = (files: File[] = []) =>
+export const syncTrackNames = (files: File[] = [], release?: Release) =>
   Promise.all(
-    files.map(({ path, fileType, track }) => {
+    files.map(({ path, fileType, track: { trackName, trackNo, discNumber } = {} }) => {
       const src = `${path}`.split('/').pop();
-      const target =
-        [track, track?.trackName, track?.trackNo].every((e) => defined(e)) &&
-        `${track.trackNo} ${track.trackName}.${fileType}`;
+      const discNr = discNumber || release.discNumber;
+      const zero = precedingZero(parseInt(discNr, 0), parseInt(trackNo, 0)) === 0 ? '0' : '';
+      const artistSection = release?.artist ? ` ${release?.artist} - ` : ' ';
+      let sortableTrackNumber = discNr ? `d${discNr}t${zero}${trackNo}.` : trackNo;
 
-      debugInfo([track?.trackName, track?.trackNo]);
+      if (trackNo?.length > 2) {
+        const [discNoFromTrack, ...rest] = trackNo.split('');
+        sortableTrackNumber = discNr ? `d${discNr}t${rest.join('')}.` : `d${discNoFromTrack}t${rest.join('')}.`;
+      }
+
+      const target =
+        [trackName, sortableTrackNumber].every((e) => defined(e)) &&
+        `${sortableTrackNumber}${artistSection}${trackName}.${fileType}`;
+
+      debugInfo({ trackName, trackNo, sortableTrackNumber, discNr });
       debugInfo(`mv  ${src}  ${target}`);
       return defined(target) && target !== src ? renameFile(src, target).then(() => files) : Promise.resolve(files);
     })

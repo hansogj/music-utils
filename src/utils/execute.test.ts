@@ -25,7 +25,7 @@ describe('execute', () => {
     it('should reject', async () => {
       expect.assertions(1);
       return execute('cd').catch((e) =>
-        expect(e.message).toContain('Rejecting cmd because of Error: some thrown error')
+        expect(e.message).toContain('Rejecting cmd - Error Thrown - Error: some thrown error')
       );
     });
   });

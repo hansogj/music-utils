@@ -117,9 +117,32 @@ describe('sync.tag.path', () => {
       [{ path: '/path/to/01 track.flac', fileType: 'flac', track: { trackName: 'track', trackNo: '01' } } as File],
       undefined,
     ],
-  ])('when files list is %o', (files: File[], expected: CallParams[]) => {
+
+    [
+      [
+        {
+          path: '/path/to/d1 track.flac',
+          fileType: 'flac',
+          track: { ...commonTrack, trackNo: '1', discNumber: '2' },
+        } as File,
+      ],
+      [{ src: 'd1 track.flac', target: 'd2t01. MyTrack.flac' }],
+    ],
+
+    [
+      [
+        {
+          path: '/path/to/d1 track.flac',
+          fileType: 'flac',
+          track: { ...commonTrack, trackNo: '101' },
+        } as File,
+      ],
+      [{ src: 'd1 track.flac', target: 'd1t01. Magma - MyTrack.flac' }],
+      { artist: 'Magma', album: 'Attak' },
+    ],
+  ])('when files list is %o', (files: File[], expected: CallParams[], release = {} as Release) => {
     beforeEach(() => mocks.renameFile.mockResolvedValue({}));
-    beforeEach(async () => syncTrackNames(files));
+    beforeEach(async () => syncTrackNames(files, release));
     it(`${might(expected)} call renameFile with params ${JSON.stringify(expected)}`, () => {
       if (defined(expected)) {
         expect(mocks.renameFile).toHaveBeenCalledTimes(expected.length);

@@ -16,14 +16,19 @@ export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}
 
 export type ReleaseFiles = { release: Release; files: File[] };
 
-export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
+export const extractAlbumInfo = (dirName: string): Promise<Array<File>> => {
   const fileList = readDir(dirName).map((file) => join(dirName, file));
+  return Promise.all(fileList.map((file) => extractTags(file)))
+    .then((files: Array<File>) => debugInfo(files))
+    .then((files: Array<File>) => files.filter((file) => MusicFileTypes.includes(file.fileType)));
+};
+
+export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
   const { tagOnly } = getCommandLineArgs();
 
   return (tagOnly ? Promise.resolve(parseAlbumInfo(dirName)) : albumPrompt(parseAlbumInfo(dirName)))
     .then((release) =>
-      Promise.all(fileList.map(extractTags))
-        .then((files: Array<File>) => files.filter((file) => MusicFileTypes.includes(file.fileType)))
+      extractAlbumInfo(dirName)
         .then((files: Array<File>) => mergeMetaData(files, release, tracksFromFile))
         .then((files: Array<File>) => debugInfo(files))
         .then((files: Array<File>) => Promise.all(files.map(tagFile)))

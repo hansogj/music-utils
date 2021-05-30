@@ -15,13 +15,14 @@ const validateAndfallbackToFileName = (track: Partial<Track>, path: string) =>
       }));
 
 const readTrackTags = (path: string, fileType: FILETYPE = 'unknown'): Promise<File> =>
-  // @ts-ignore
   [
     {
       flac: () => flac.read(path).then((track) => validateAndfallbackToFileName(track, path)),
       mp3: () => mp3.read(path).then((track) => validateAndfallbackToFileName(track, path)),
       unknown: () => fromPath.read(path),
       jpg: undefined,
+      text: undefined,
+      txt: undefined,
     }[fileType],
   ]
     .defined()
