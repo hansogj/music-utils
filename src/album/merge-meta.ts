@@ -1,9 +1,10 @@
 import '../utils/polyfills';
 
 import { defined } from 'array.defined';
+import maybe from 'maybe-for-sure';
 
 import { File, Release, Track } from '../types';
-import { numOrNull, precedingZero, wov } from '../utils/number';
+import { numOrNull, wov } from '../utils/number';
 
 export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}
 
@@ -14,14 +15,18 @@ export const sortable = (file: File): File => {
   let track = file?.track;
 
   if (defined(track) && defined(track.trackNo)) {
-    const discNumber = wov(track?.discNumber, undefined);
+    const discNumber = maybe(track)
+      .mapTo('discNumber')
+      .ifNothing(() => Math.floor(parseInt(track.trackNo, 0) / 100))
+      .map((it) => `${it}`)
+      .valueOr('1');
+
     const trackNumber = numOrNull(track?.trackNo, 0)
       .map((trNum) => (trNum > 100 ? wov(trNum % 100, 0) : trNum))
       .shift();
 
-    const zero = precedingZero(discNumber, trackNumber);
-    const trackNo = [discNumber, zero, trackNumber].defined().join('');
-    track = { ...track, ...{ trackNo } };
+    const trackNo = [trackNumber].defined().join('');
+    track = { ...track, ...{ discNumber, trackNo } };
   }
 
   return { ...file, track };
