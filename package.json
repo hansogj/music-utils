@@ -42,7 +42,7 @@
         "command-line-args": "^5.1.1",
         "jest": "^26.4.2",
         "jest-junit": "^11.1.0",
-        "maybe-for-sure": "^1.0.0",
+        "maybe-for-sure": "^1.3.0",
         "prettier": "^2.1.1",
         "prompts": "^2.3.2",
         "ts-jest": "^26.3.0",

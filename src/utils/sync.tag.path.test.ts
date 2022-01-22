@@ -1,4 +1,5 @@
 import { defined } from 'array.defined';
+import maybe from 'maybe-for-sure';
 
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release, Track } from '../types';
@@ -14,32 +15,7 @@ const mocks = MockUtil<typeof pathUtils>(jest).requireMocks('../utils/path');
 type CallParams = { src: string; target: string };
 describe('sync.tag.path', () => {
   afterEach(() => jest.resetAllMocks());
-  /* 
-  describe('syncArtistFolder', () => {
-    describe.each([
-      [undefined, undefined, undefined],
-      ['', undefined, undefined],
-      ['Artist', 'Artist/Album', undefined],
-      ['Artist', 'store/Artist/Album', undefined],
-      ['Altered Artist', 'store/Artist/Album', { src: 'Artist', target: 'Altered Artist' }],
-      ['Artist, the', 'store/The Artist/Album', { src: 'The Artist', target: 'Artist, the' }],
-    ])(
-      'when artist name eq %s & dirName eq %s ',
-      (artist: Release['artist'], dirName: string, expected: CallParams) => {
-        beforeEach(() => mocks.renameFolder.mockResolvedValueOnce(artist));
-        beforeEach(async () => syncArtistFolder(artist, dirName));
-        it(`${might(expected)} call renameFolder with params ${JSON.stringify(expected)}`, () => {
-          if (defined(expected)) {
-            expect(mocks.renameFolder).toHaveBeenCalled();
-            expect(mocks.renameFolder).toHaveBeenCalledWith(expected.src, expected.target);
-          } else {
-            expect(mocks.renameFolder).not.toHaveBeenCalled();
-          }
-        });
-      }
-    );
-  });
- */
+
   describe('syncReleaseFolder', () => {
     describe.each([
       [undefined, undefined, undefined],
@@ -144,12 +120,14 @@ describe('sync.tag.path', () => {
     beforeEach(() => mocks.renameFile.mockResolvedValue({}));
     beforeEach(async () => syncTrackNames(files, release));
     it(`${might(expected)} call renameFile with params ${JSON.stringify(expected)}`, () => {
-      if (defined(expected)) {
-        expect(mocks.renameFile).toHaveBeenCalledTimes(expected.length);
-        expected.map(({ src, target }: CallParams) => expect(mocks.renameFile).toHaveBeenCalledWith(src, target));
-      } else {
-        expect(mocks.renameFile).not.toHaveBeenCalled();
-      }
+      maybe(expected)
+        .nothingUnless(defined)
+        .map((it) => {
+          expect(mocks.renameFile).toHaveBeenCalledTimes(it.length);
+          it.map(({ src, target }: CallParams) => expect(mocks.renameFile).toHaveBeenCalledWith(src, target));
+          return it;
+        })
+        .ifNothing(() => expect(mocks.renameFile).not.toHaveBeenCalled());
     });
   });
 });
