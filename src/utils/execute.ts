@@ -5,7 +5,7 @@ export const execute = <T>(cmd: string): Promise<T> =>
     try {
       exec(cmd, (err, stdout) => {
         if (!err) {
-          resolve((stdout as unknown) as T);
+          resolve(stdout as unknown as T);
         } else {
           reject(new Error(`Rejecting cmd because of ${err} \n ${stdout}`));
         }

@@ -19,8 +19,10 @@ export const wov = (num: string | number, or: number | undefined): number => {
     .valueOr(or) as number;
 };
 
-export const generator = (or: number | undefined) => (...nums: Array<string | number>) =>
-  nums.map((num) => wov(num, or));
+export const generator =
+  (or: number | undefined) =>
+  (...nums: Array<string | number>) =>
+    nums.map((num) => wov(num, or));
 
 export const numOrNull = generator(0);
 
