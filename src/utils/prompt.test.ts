@@ -7,7 +7,7 @@ jest.mock('prompts', () => ({
 
 jest.mock('./color.log');
 import { Release } from '../types';
-import { albumPrompt, userDefinedPrompt } from './prompt';
+import { albumPrompt, Question, userDefinedPrompt, validate } from './prompt';
 
 describe('prompt', () => {
   const release: Partial<Release> = { artist: 'Magma' };
@@ -37,7 +37,7 @@ describe('prompt', () => {
       mockPrompt.mockResolvedValueOnce({ value: 'y' });
       response = await albumPrompt(release);
     });
-    it(`albumPrompt should pass back altered relase object`, () => expect(response).toEqual(alteredRelease));
+    it(`albumPrompt should pass back altered release object`, () => expect(response).toEqual(alteredRelease));
   });
 
   describe('userDefaultPrompt', () => {
@@ -51,11 +51,39 @@ describe('prompt', () => {
       });
     });
 
-    it('merges respons with passed release data', async () =>
+    it('merges responds with passed release data', async () =>
       expect(response).toStrictEqual({
         artist: 'Altered Artist',
         album: 'Album with multiple space',
         noOfDiscs: '2',
       }));
+  });
+
+  describe.each([
+    [{ name: 'artist', value: '' }, true],
+    [{ name: 'artist', value: 'a' }, true],
+    [{ name: 'artist', value: '1' }, true],
+
+    [{ name: 'album', value: '' }, true],
+    [{ name: 'album', value: 'a' }, true],
+    [{ name: 'album', value: '1' }, true],
+
+    [{ name: 'year', value: '' }, true],
+    [{ name: 'year', value: 'a' }, 'Numeric input only'],
+    [{ name: 'year', value: '1' }, true],
+
+    [{ name: 'discNumber', value: '' }, true],
+    [{ name: 'discNumber', value: 'a' }, 'Numeric input only'],
+    [{ name: 'discNumber', value: '1' }, true],
+
+    [{ name: 'noOfDiscs', value: '' }, true],
+    [{ name: 'noOfDiscs', value: 'a' }, 'Numeric input only'],
+    [{ name: 'noOfDiscs', value: '1' }, true],
+
+    [{ name: 'aux', value: '' }, true],
+    [{ name: 'aux', value: 'a' }, true],
+    [{ name: 'aux', value: '1' }, true],
+  ] as Array<[{ name: Question; value: string }, boolean]>)('with user input %p', (response, expected) => {
+    it(`should validate into ${expected}`, () => expect(validate(response.name, response.value)).toEqual(expected));
   });
 });

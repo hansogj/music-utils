@@ -26,7 +26,8 @@ const readTrackTags = (path: string, fileType: FILETYPE = 'unknown'): Promise<Fi
     }[fileType],
   ]
     .defined()
-    .onEmpty((o: Function[]) => o.push(() => new Promise((resolve) => resolve({ path, fileType, track: {} }))))
+    // eslint-disable-next-line no-promise-executor-return
+    .onEmpty((o: unknown[]) => o.push(() => new Promise((resolve) => resolve({ path, fileType, track: {} }))))
     .map((read) => read().then((track: Partial<Track>) => ({ track, path, fileType })))
     .shift();
 

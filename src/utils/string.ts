@@ -7,7 +7,7 @@ export const upperCase = (s: string) => s.slice(0, 1).toLocaleUpperCase() + s.sl
 export const capitalize = (s: string) => s.split(' ').map(upperCase).join(' ');
 
 export const removeDoubleSpace = (str: string) => str.split(' ').defined().join(' ');
-export const toLowerCase = (s: string = '') =>
+export const toLowerCase = (s = '') =>
   s
     .split('')
     .map((split) => split.toLowerCase())

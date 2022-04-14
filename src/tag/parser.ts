@@ -1,6 +1,6 @@
 import { defined } from 'array.defined';
 
-export const singleSpace = (str: string = '') => str.split(/\s/).defined().join(' ');
+export const singleSpace = (str = '') => str.split(/\s/).defined().join(' ');
 
 export type Parser = {
   matcher: RegExp;
