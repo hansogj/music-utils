@@ -1,4 +1,4 @@
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 import { File, Track } from '../types';
 import { debugInfo } from '../utils/color.log';
@@ -37,16 +37,19 @@ export const id3v1 = (unparsed: string): Partial<Track> => {
     const [trackName] = applyMatch(line, [trackNameParser]);
     const [trackNo] = applyMatch(line, [trackNoParser]);
 
-    return { ...res, ...(defined(trackName) && { trackName }), ...(wov(trackNo, undefined) && { trackNo }) };
+    return {
+      ...res,
+      ...(defined(trackName) && { trackName }),
+      ...(wov(trackNo, undefined) && { trackNo }),
+    } as Partial<Track>;
   }, {});
 
-  return reduced;
+  return reduced as Partial<Track>;
 };
 
 export const id3v2 = (unparsed = ''): Partial<Track> => {
   const reduced = splitLines(unparsed).reduce((res: Hash<string>, line: string) => {
     const [key, val] = line.split(/\(.*\):/).map((s) => s.trim());
-    // @ts-ignore
     res[key] = val;
     return res;
   }, {});

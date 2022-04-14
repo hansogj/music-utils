@@ -1,4 +1,4 @@
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 import { Track } from '../types';
 import { capitalize } from '../utils/string';
@@ -28,7 +28,7 @@ export const read = (path = ''): Promise<Partial<Track>> => {
     .map((filePath) => filePath.split('.').filter((_, i, arr) => arr.length === 1 || i < arr.length - 1))
     .map((filePaths) => filePaths.join('.'))
     .defined()
-    .onEmpty((o: Array<string>) => o.push(''))
+    .onEmpty((o: Array<string>) => o.push('') as never)
     .shift() as string;
 
   const [trackNo, trackName, noOfDiscs] = applyMatch(unparasedTrackName, [

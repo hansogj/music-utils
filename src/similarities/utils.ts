@@ -1,8 +1,9 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-param-reassign */
-import 'array.defined/lib/polyfill';
 
-import { defined } from 'array.defined';
+import '@hansogj/array.utils';
+
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 import { BLACK_LIST_SIMILAR_WORD } from '../constants';
 import { Similarity } from './types';

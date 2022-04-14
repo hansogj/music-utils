@@ -1,6 +1,6 @@
 import './polyfills';
 
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';

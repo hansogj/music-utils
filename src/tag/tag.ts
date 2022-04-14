@@ -1,4 +1,4 @@
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 import { File, FILETYPE, Track } from '../types';
 import { getFileType } from '../utils/path';
@@ -27,7 +27,7 @@ const readTrackTags = (path: string, fileType: FILETYPE = 'unknown'): Promise<Fi
   ]
     .defined()
     // eslint-disable-next-line no-promise-executor-return
-    .onEmpty((o: unknown[]) => o.push(() => new Promise((resolve) => resolve({ path, fileType, track: {} }))))
+    .onEmpty((o: unknown[]) => o.push(() => new Promise((resolve) => resolve({ path, fileType, track: {} }))) as never)
     .map((read) => read().then((track: Partial<Track>) => ({ track, path, fileType })))
     .shift();
 

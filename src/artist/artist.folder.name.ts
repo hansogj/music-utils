@@ -1,6 +1,6 @@
 import '../utils/polyfills';
 
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 import { getAlbumDirectory, parseAlbumInfo } from '../album/parse.path';
 import { renameFolder } from '../utils/path';

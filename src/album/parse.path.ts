@@ -1,4 +1,4 @@
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 import maybe from 'maybe-for-sure';
 import path from 'path';
 
@@ -31,7 +31,7 @@ const splitParsedDiscNumber = (parsedDiscNumber: string) =>
     .map((n: string) => wov(n, undefined))
     .defined()
     .map((e) => `${e}`)
-    .onEmpty((o: string[]) => o.push('1')); // defaults to discNumber: 1
+    .onEmpty((o: string[]) => o.push('1') as never); // defaults to discNumber: 1
 
 const parseDiscNumber = (parsedAlbum = ''): Partial<Release> =>
   [parsedAlbum]
@@ -99,7 +99,7 @@ export const artistSortable = (artist: string) =>
         .reverse()
         .join(`, ${prefix}`)
     )
-    .onEmpty((o: string[]) => o.push(artist))
+    .onEmpty((o: string[]) => o.push(artist) as never)
     .shift();
 
 export const parseAlbumInfo = (

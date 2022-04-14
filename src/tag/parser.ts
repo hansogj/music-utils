@@ -1,4 +1,4 @@
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 
 export const singleSpace = (str = '') => str.split(/\s/).defined().join(' ');
 

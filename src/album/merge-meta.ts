@@ -1,6 +1,6 @@
 import '../utils/polyfills';
 
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 import maybe from 'maybe-for-sure';
 
 import { File, Release, Track } from '../types';

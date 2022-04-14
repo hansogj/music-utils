@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-plusplus */
 /* eslint-disable no-param-reassign */
-import { defined } from 'array.defined';
+import { defined } from '@hansogj/array.utils/lib/defined';
 import fs from 'fs';
 
 import findSimilarArtists from '../similarities';

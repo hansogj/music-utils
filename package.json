@@ -34,10 +34,8 @@
     "author": "hansogj@gmail.com",
     "license": "UNLICENSED",
     "dependencies": {
+        "@hansogj/array.utils": "^1.1.0",
         "@types/prompts": "^2.0.8",
-        "array.defined": "^2.4.1",
-        "array.flatmap": "^1.1.0",
-        "array.onempty": "^1.4.0",
         "chalk": "^4.1.0",
         "command-line-args": "^5.1.1",
         "jest": "^26.4.2",

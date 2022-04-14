@@ -1,18 +1,16 @@
 {
     "extends": "./tsconfig.json",
     "rootDir": "./",
-    "include": [ 
-        "ci/**/*" ,        
+    "include": [
+        "ci/**/*",
         "lib.d.ts",
-        "array.defined",
-        "array.onEmpty/typings.d.ts",
-        "array.flatmap/typings.d.ts"
+        "@hansogj/array.utils",
     ],
     "exclude": [
         "node_modules",
         "**/__mocks__",
         "**/*.test.ts",
-     ],
+    ],
     "compilerOptions": {
         "outDir": "./build.ci",
     }
