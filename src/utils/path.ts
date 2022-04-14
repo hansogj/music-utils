@@ -3,7 +3,6 @@ import fs from 'fs';
 import { DISC_NO_SPLIT } from '../constants';
 import { singleSpace } from '../tag/parser';
 import { FILETYPE } from '../types';
-import { debugInfo, info } from './color.log';
 import { execute } from './execute';
 
 export const splits = (paths: string) =>
@@ -47,6 +46,6 @@ export const renameFolder = (src: string, target: string, root = '../') =>
 
 export const renameFile = (src: string, target: string) => execute(`mv "${src}" "${target}"`);
 
-export const replaceQuotes = (str: string = '') => singleSpace(str).replace(/"/g, `'`);
+export const replaceQuotes = (str = '') => singleSpace(str).replace(/"/g, `'`);
 
-export const replaceDangers = (str: string = '') => replaceQuotes(str).replace(/\//g, DISC_NO_SPLIT);
+export const replaceDangers = (str = '') => replaceQuotes(str).replace(/\//g, DISC_NO_SPLIT);

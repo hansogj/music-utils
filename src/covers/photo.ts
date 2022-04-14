@@ -19,14 +19,14 @@ const log = (release: Partial<Release>) => {
   return release;
 };
 
-export const sacad = (dirName: string, noPrompt: boolean): Promise<any> =>
+export const sacad = (dirName: string, noPrompt: boolean): Promise<unknown> =>
   getAlbumInfo(dirName, noPrompt)
     .then(log)
     .then((release) =>
       execute(`sacad "${release.artist}" "${release.album}" ${COVER_FILE_RESOLUTION} "${COVER_FILE_NAME}"`)
     );
 
-export const glyrc = (dirName: string, noPrompt: boolean): Promise<any> =>
+export const glyrc = (dirName: string, noPrompt: boolean): Promise<unknown> =>
   getAlbumInfo(dirName, noPrompt)
     .then(log)
     .then((release) => execute(`glyrc  cover --artist "${release.artist}"  --album "${release.album}" `))

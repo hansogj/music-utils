@@ -15,14 +15,15 @@ const questions: Release = {
   noOfDiscs: '1',
   aux: '',
 };
+export type Question = keyof typeof questions;
 
-const isNumberic = (name: string) =>
+const isNumeric = (name: Question) =>
   Object.keys(questions)
     .filter((_, i) => [2, 3, 4].includes(i))
     .includes(name);
 
-const validate = (name: string, value: string) => {
-  if (isNumberic(name)) {
+export const validate = (name: Question, value: string) => {
+  if (isNumeric(name)) {
     return value === '' || /^\d+$/.test(value) ? true : 'Numeric input only';
   }
 
@@ -36,7 +37,7 @@ const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>
     name: 'value',
     message: 'Is this right info? Y/N?',
     validate: (value: string) =>
-      ['y', 'n', 'yes', 'no'].includes(value.toLowerCase()) ? true : `You have to respons YES or NO`,
+      ['y', 'n', 'yes', 'no'].includes(value.toLowerCase()) ? true : `You have to response YES or NO`,
   });
 
   if (response.value === undefined) {
@@ -58,7 +59,7 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
       name,
       message: `${name.toUpperCase()}: ${originalValue}`,
       type: 'text',
-      validate: (value) => validate(name, value),
+      validate: (value) => validate(name as Question, value),
     }))
   );
 

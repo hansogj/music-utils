@@ -43,8 +43,8 @@ const generateRemoveTagString = ({
   trackNoTotal,
   discNumber,
   year,
-}: Partial<Track>) => {
-  return [
+}: Partial<Track>) =>
+  [
     artist && ARTIST,
     artist && ALBUMARTIST,
     discNumber && DISCID,
@@ -58,7 +58,6 @@ const generateRemoveTagString = ({
     .defined()
     .map((param) => ['--remove-tag', param].join('='))
     .join(' ');
-};
 
 const flacTag = (val: string, tag: string) => val && [tag, harmless(val)].join('=');
 

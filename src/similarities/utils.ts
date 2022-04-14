@@ -12,7 +12,7 @@ const editDistance = (s1: string, s2: string) => {
   s2 = s2.toLowerCase().trim();
 
   // eslint-disable-next-line no-array-constructor
-  const costs = new Array();
+  const costs = [];
 
   for (let i = 0; i <= s1.length; i++) {
     let lastValue = i;

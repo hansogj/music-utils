@@ -9,7 +9,7 @@ import { precedingZero, wov } from './number';
 import { renameFile, renameFolder } from './path';
 import { toLowerCase } from './string';
 
-export const syncReleaseFolder = (release: Release, dirName: string = ''): Promise<Release> => {
+export const syncReleaseFolder = (release: Release, dirName = ''): Promise<Release> => {
   const { discNumber, noOfDiscs, year, album } = release || ({} as Release);
   const src = dirName.split('/').pop();
 
@@ -30,7 +30,7 @@ export const syncTrackNames = (files: File[] = [], release?: Release) =>
     files.map(({ path, fileType, track: { trackName, trackNo, discNumber } = {} }) => {
       const src = `${path}`.split('/').pop();
       const discNr = discNumber || release.discNumber;
-      const zero = precedingZero(parseInt(discNr, 0), parseInt(trackNo, 0)) === 0 ? '0' : '';
+      const zero = precedingZero(parseInt(discNr, 10), parseInt(trackNo, 10)) === 0 ? '0' : '';
       const artistSection = release?.artist ? ` ${release?.artist} - ` : ' ';
       let sortableTrackNumber = discNr ? `d${discNr}t${zero}${trackNo}.` : trackNo;
 

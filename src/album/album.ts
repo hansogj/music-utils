@@ -12,7 +12,7 @@ import { syncReleaseFolder } from '../utils/sync.tag.path';
 import { mergeMetaData } from './merge-meta';
 import { parseAlbumInfo } from './parse.path';
 
-export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}
+export type ParsedValues = Pick<Track, 'artist' | 'album'>;
 
 export type ReleaseFiles = { release: Release; files: File[] };
 

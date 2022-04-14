@@ -6,7 +6,7 @@ import maybe from 'maybe-for-sure';
 import { File, Release, Track } from '../types';
 import { numOrNull, wov } from '../utils/number';
 
-export interface ParsedValues extends Pick<Track, 'artist' | 'album'> {}
+export type ParsedValues = Pick<Track, 'artist' | 'album'>;
 
 const totalNumberOfTracks = ({ trackNoTotal }: Partial<Track> = {} as Partial<Track>, files: File[]) =>
   `${trackNoTotal !== undefined ? trackNoTotal : files.length}`;
@@ -17,7 +17,7 @@ export const sortable = (file: File): File => {
   if (defined(track) && defined(track.trackNo)) {
     const discNumber = maybe(track)
       .mapTo('discNumber')
-      .ifNothing(() => Math.floor(parseInt(track.trackNo, 0) / 100))
+      .ifNothing(() => Math.floor(parseInt(track.trackNo, 10) / 100))
       .map((it) => `${it}`)
       .valueOr('1');
 

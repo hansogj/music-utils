@@ -33,8 +33,8 @@ const splitParsedDiscNumber = (parsedDiscNumber: string) =>
     .map((e) => `${e}`)
     .onEmpty((o: string[]) => o.push('1')); // defaults to discNumber: 1
 
-const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
-  return [parsedAlbum]
+const parseDiscNumber = (parsedAlbum = ''): Partial<Release> =>
+  [parsedAlbum]
     .map(discNrParserApplied)
     .map(([albumTitle, parsedDiscNumber, ...aux]) => ({
       aux: aux.join(' '),
@@ -56,7 +56,6 @@ const parseDiscNumber = (parsedAlbum: string = ''): Partial<Release> => {
       };
     })
     .shift();
-};
 
 const parseAlbumFolderName = (
   albumPath: string

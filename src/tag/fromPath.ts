@@ -38,6 +38,7 @@ export const read = (path = ''): Promise<Partial<Track>> => {
   ]).map(capitalize);
 
   return new Promise((resolve) =>
+    // eslint-disable-next-line no-promise-executor-return
     resolve({
       ...(defined(trackNo) && { trackNo }),
       ...(defined(trackName) && { trackName }),
@@ -46,4 +47,5 @@ export const read = (path = ''): Promise<Partial<Track>> => {
   );
 };
 
+// eslint-disable-next-line no-promise-executor-return
 export const write = (track: Track) => new Promise((resolve) => resolve(track));

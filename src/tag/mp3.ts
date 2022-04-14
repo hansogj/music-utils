@@ -14,7 +14,7 @@ const ALBUM = 'TALB';
 const TRACKNUMBER = 'TRCK';
 const TITLE = 'TIT2';
 
-const splitLines = (lines: string = '') =>
+const splitLines = (lines = '') =>
   lines
     .split(/\n/)
     .map((split: string) => split.trim())
@@ -43,7 +43,7 @@ export const id3v1 = (unparsed: string): Partial<Track> => {
   return reduced;
 };
 
-export const id3v2 = (unparsed: string = ''): Partial<Track> => {
+export const id3v2 = (unparsed = ''): Partial<Track> => {
   const reduced = splitLines(unparsed).reduce((res: Hash<string>, line: string) => {
     const [key, val] = line.split(/\(.*\):/).map((s) => s.trim());
     // @ts-ignore
