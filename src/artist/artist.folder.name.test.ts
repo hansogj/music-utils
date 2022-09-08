@@ -16,7 +16,7 @@ jest.mock('../utils/color.log').mock('../utils/prompt').mock('../utils/path').mo
 const mocks = MockUtil<typeof pathUtils & typeof utilPrompts & typeof parsePath>(jest).requireMocks(
   '../utils/path',
   '../utils/prompt',
-  '../album/parse.path'
+  '../album/parse.path',
 );
 type CallParams = { src: string; target: string; store?: string };
 
@@ -50,7 +50,7 @@ describe('artist.folder.name', () => {
             expect(mocks.renameFolder).not.toHaveBeenCalled();
           }
         });
-      }
+      },
     );
   });
 });

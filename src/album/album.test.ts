@@ -63,7 +63,7 @@ describe('tag album', () => {
             fileType: /jpg/.test(trackPath) ? 'jpg' : 'mp3',
             path: trackPath,
             track: extractedTagsDefault,
-          } as File)
+          } as File),
         );
         mocks.tagFile.mockImplementation((_, tag) => Promise.resolve(tag));
         await tagAlbum(mockDirName);
@@ -76,7 +76,7 @@ describe('tag album', () => {
       it(`has called extractTags`, () => {
         expect(mocks.extractTags).toHaveBeenCalledTimes(mdkls.length);
         mdkls.forEach((track, i) =>
-          expect(mocks.extractTags.mock.calls[i].shift()).toEqual([mockDirName, track].join('/'))
+          expect(mocks.extractTags.mock.calls[i].shift()).toEqual([mockDirName, track].join('/')),
         );
       });
 
@@ -99,9 +99,9 @@ describe('tag album', () => {
                 year: '1973',
               },
             } as File,
-          }))
+          })),
       )('has called tagFile with %p', ({ file, index }: { file: File; index: number }) =>
-        expect(mocks.tagFile.mock.calls[index][0]).toEqual(file)
+        expect(mocks.tagFile.mock.calls[index][0]).toEqual(file),
       );
     });
   });

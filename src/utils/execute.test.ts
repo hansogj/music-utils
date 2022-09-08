@@ -20,12 +20,12 @@ describe('execute', () => {
     beforeEach(() =>
       mocks.exec.mockImplementation(() => {
         throw new Error('some thrown error');
-      })
+      }),
     );
     it('should reject', async () => {
       expect.assertions(1);
       return execute('cd').catch((e) =>
-        expect(e.message).toContain('Rejecting cmd - Error Thrown - Error: some thrown error')
+        expect(e.message).toContain('Rejecting cmd - Error Thrown - Error: some thrown error'),
       );
     });
   });

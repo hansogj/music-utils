@@ -49,7 +49,10 @@ describe('sync.tag.path', () => {
       [
         { album: 'New Album', year: '2020', aux: '1980 - 1981', discNumber: '11', noOfDiscs: '12' },
         '/store/Long Artist Name/Album',
-        { src: 'Album', target: `2020 New Album (${DISC_LABEL} ${[11, 12].join(DISC_NO_SPLIT)}) [1980 - 1981]` },
+        {
+          src: 'Album',
+          target: `2020 New Album (${DISC_LABEL} ${[11, 12].join(DISC_NO_SPLIT)}) [1980 - 1981]`,
+        },
       ],
     ])('when release eq %o & dirName eq %s ', (release: Partial<Release>, dirName: string, expected: CallParams) => {
       beforeEach(() => mocks.renameFolder.mockResolvedValueOnce(release));
@@ -90,7 +93,13 @@ describe('sync.tag.path', () => {
     ],
 
     [
-      [{ path: '/path/to/01 track.flac', fileType: 'flac', track: { trackName: 'track', trackNo: '01' } } as File],
+      [
+        {
+          path: '/path/to/01 track.flac',
+          fileType: 'flac',
+          track: { trackName: 'track', trackNo: '01' },
+        } as File,
+      ],
       undefined,
     ],
 

@@ -35,7 +35,7 @@ export const sortable = (file: File): File => {
 export const mergeMetaData = (
   files: Array<File> = [],
   release: Partial<Release>,
-  tracksFromFile?: string[]
+  tracksFromFile?: string[],
 ): Array<File> =>
   files
     .filter((file) => defined(file.path))
