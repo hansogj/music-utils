@@ -46,5 +46,5 @@ export const syncTrackNames = (files: File[] = [], release?: Release) =>
       debugInfo({ trackName, trackNo, sortableTrackNumber, discNr });
       debugInfo(`mv  ${src}  ${target}`);
       return defined(target) && target !== src ? renameFile(src, target).then(() => files) : Promise.resolve(files);
-    })
+    }),
   );

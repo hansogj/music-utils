@@ -21,7 +21,13 @@ describe('mergeMetaData', () => {
         release: {},
         tracksFromFile: undefined,
       },
-      [{ path: 'mypath', fileType: 'flac', track: { album: 'Album', artist: 'Artist', trackNoTotal: '1' } } as File],
+      [
+        {
+          path: 'mypath',
+          fileType: 'flac',
+          track: { album: 'Album', artist: 'Artist', trackNoTotal: '1' },
+        } as File,
+      ],
     ],
 
     [
@@ -106,7 +112,7 @@ describe('mergeMetaData', () => {
     ({ files, release, tracksFromFile }: TestCase, mergedData: Array<File>) => {
       it(`should result in expected: ${JSON.stringify(mergedData)}`, () =>
         expect(mergeMetaData(files, release, tracksFromFile)).toStrictEqual(mergedData));
-    }
+    },
   );
 });
 
@@ -176,6 +182,6 @@ describe.each([
         path: './',
         fileType: 'flac',
         track,
-      }).track
+      }).track,
     ).toStrictEqual(expected));
 });

@@ -1,5 +1,5 @@
 import { defined } from '@hansogj/array.utils/lib/defined';
-import maybe from 'maybe-for-sure';
+import maybe from '@hansogj/maybe';
 import path from 'path';
 
 import { DEFINITE_ARTICLES, DISC_NO_SPLIT } from '../constants';
@@ -51,14 +51,14 @@ const parseDiscNumber = (parsedAlbum = ''): Partial<Release> =>
         album: removeDoubleSpace(
           maybe(albumTitle || album)
             .map((it) => [it].concat([rest]).defined().join(' '))
-            .valueOr(parsedAlbum)
+            .valueOr(parsedAlbum),
         ),
       };
     })
     .shift();
 
 const parseAlbumFolderName = (
-  albumPath: string
+  albumPath: string,
 ): Pick<Release, 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
   const splitParts: string[] = albumPath.split(' ').defined();
   const [year, ...albumNameSplits] = /\d{4}/.test(splitParts[0])
@@ -85,7 +85,7 @@ const getAlbumArtistInfoFromPath = (current: string = __dirname) =>
 
 const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<Release> = {}): string => {
   const numberOfAlbumsWithSimilarNames = readDir(dirName.split('/').slice(0, -1).join('/')).filter((disc) =>
-    new RegExp(`${album}`, 'i').test(disc)
+    new RegExp(`${album}`, 'i').test(disc),
   ).length;
 
   return wov(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
@@ -97,13 +97,13 @@ export const artistSortable = (artist: string) =>
       artist
         .split(RegExp(`^${prefix} `, 'i'))
         .reverse()
-        .join(`, ${prefix}`)
+        .join(`, ${prefix}`),
     )
     .onEmpty((o: string[]) => o.push(artist) as never)
     .shift();
 
 export const parseAlbumInfo = (
-  albumPath: string = __dirname
+  albumPath: string = __dirname,
 ): Pick<Release, 'artist' | 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
   const [artist, albumSplit] = getAlbumArtistInfoFromPath(albumPath);
   const release = albumSplit && parseAlbumFolderName(albumSplit);

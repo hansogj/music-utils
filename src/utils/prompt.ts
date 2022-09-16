@@ -60,7 +60,7 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
       message: `${name.toUpperCase()}: ${originalValue}`,
       type: 'text',
       validate: (value) => validate(name as Question, value),
-    }))
+    })),
   );
 
   return {
@@ -69,7 +69,7 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line
       (resu: any, [key, val]) => (defined(val) && (resu[key] = removeDoubleSpace(`${val}`)), resu),
-      {} as Partial<Release>
+      {} as Partial<Release>,
     ),
   };
 };

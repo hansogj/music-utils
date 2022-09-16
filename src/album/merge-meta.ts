@@ -1,7 +1,7 @@
 import '../utils/polyfills';
 
 import { defined } from '@hansogj/array.utils/lib/defined';
-import maybe from 'maybe-for-sure';
+import maybe from '@hansogj/maybe';
 
 import { File, Release, Track } from '../types';
 import { numOrNull, wov } from '../utils/number';
@@ -35,7 +35,7 @@ export const sortable = (file: File): File => {
 export const mergeMetaData = (
   files: Array<File> = [],
   release: Partial<Release>,
-  tracksFromFile?: string[]
+  tracksFromFile?: string[],
 ): Array<File> =>
   files
     .filter((file) => defined(file.path))

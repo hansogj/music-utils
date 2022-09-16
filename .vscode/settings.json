@@ -1,5 +1,5 @@
 {
-    "window.title": "/git/bin",
+    "window.title": "music-utils [${activeEditorShort}]",
     "workbench.colorTheme": "Darktooth",
     "workbench.colorCustomizations": {
         "[Darktooth]": {
@@ -9,6 +9,8 @@
             "titleBar.inactiveBackground": "#66999D",
             "scrollbar.shadow": "#66999D",
             "scrollbarSlider.background": "#66999D",
+            "editor.background": "#002528",
+            "sideBar.background": "#002528"
         }
     },
     "jestrunner.jestCommand": "npm run test --"
