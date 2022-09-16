@@ -3,7 +3,7 @@
 import './polyfills';
 
 import { defined } from '@hansogj/array.utils/lib/defined';
-import maybeOr from 'maybe-for-sure';
+import maybeOr from '@hansogj/maybe';
 
 export const maybe = (num: string | number) =>
   maybeOr(num)

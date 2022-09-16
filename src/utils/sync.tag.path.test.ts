@@ -1,5 +1,5 @@
 import { defined } from '@hansogj/array.utils/lib/defined';
-import maybe from 'maybe-for-sure';
+import maybe from '@hansogj/maybe';
 
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release, Track } from '../types';

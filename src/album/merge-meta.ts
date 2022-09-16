@@ -1,7 +1,7 @@
 import '../utils/polyfills';
 
 import { defined } from '@hansogj/array.utils/lib/defined';
-import maybe from 'maybe-for-sure';
+import maybe from '@hansogj/maybe';
 
 import { File, Release, Track } from '../types';
 import { numOrNull, wov } from '../utils/number';
