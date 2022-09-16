@@ -15,7 +15,7 @@ jest
   .mock('../utils/color.log');
 
 const mocks = MockUtil<typeof execute /* & typeof pathUtils */>(jest).requireMocks(
-  '../utils/execute' /* , '../utils/path' */
+  '../utils/execute' /* , '../utils/path' */,
 );
 const path = '/Album/d1t1 track.flac';
 
@@ -55,7 +55,7 @@ describe('flac', () => {
       ],
     ])('with track data %o ', (track: Partial<Track>, expectedRemoveParams: string, expectedSetParams: string) => {
       const [callParamsRemoveTags, callParamsSetTags] = [expectedRemoveParams, expectedSetParams].map((params) =>
-        [`metaflac`, params, `"/Album/d1t1 track.flac"`].defined().join(' ')
+        [`metaflac`, params, `"/Album/d1t1 track.flac"`].defined().join(' '),
       );
 
       beforeEach(async () => {
@@ -84,12 +84,12 @@ describe('flac', () => {
     it('has executed once', () => expect(mocks.execute).toHaveBeenCalledTimes(2));
     it(`has escaped quotes on tag remove`, () =>
       expect(mocks.execute).toHaveBeenCalledWith(
-        `metaflac --remove-tag=ALBUM \"/artist/album name with 'quotes'/track name with 'quotes'.flac\"`
+        `metaflac --remove-tag=ALBUM \"/artist/album name with 'quotes'/track name with 'quotes'.flac\"`,
       ));
 
     it(`has escaped quotes on set tag `, () =>
       expect(mocks.execute).toHaveBeenCalledWith(
-        `metaflac --set-tag=ALBUM=\"album name with 'quotes'\" \"/artist/album name with 'quotes'/track name with 'quotes'.flac\"`
+        `metaflac --set-tag=ALBUM=\"album name with 'quotes'\" \"/artist/album name with 'quotes'/track name with 'quotes'.flac\"`,
       ));
   });
 });

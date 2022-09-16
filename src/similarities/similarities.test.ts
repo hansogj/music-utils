@@ -10,7 +10,7 @@ const dirB = ['A/Artist', 'B/The Balad', 'M/Magma', '/lib/music/M/MAGMA'];
 describe('similarities', () => {
   const extractSimilarities = (compares: ArtistSimilarity[]) =>
     compares.flatMap(({ similarities }: ArtistSimilarity) =>
-      similarities.map(({ similarity, other }) => ({ similarity, other }))
+      similarities.map(({ similarity, other }) => ({ similarity, other })),
     );
 
   describe.each([
@@ -57,8 +57,8 @@ describe('similarities', () => {
           dirBB,
           0.4,
           [],
-          mockedLogger
-        ))
+          mockedLogger,
+        )),
     );
     it(`should not generate artist combination`, () =>
       expect(extractSimilarities(compare)).toEqual([

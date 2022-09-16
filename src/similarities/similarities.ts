@@ -7,7 +7,7 @@ export const findSimilaritiesAmongArtists = (
   threshold: number,
   ignore: string[],
   logger: typeof console,
-  persist?: (artistSimilarity: ArtistSimilarity) => void
+  persist?: (artistSimilarity: ArtistSimilarity) => void,
 ): ArtistSimilarity[] => {
   const timerKey = 'find similarities among all artists';
   logger.time(timerKey);

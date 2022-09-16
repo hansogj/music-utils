@@ -36,8 +36,8 @@ export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<Re
           (tagOnly ? Promise.resolve({}) : syncReleaseFolder(release as Release, dirName)).then(() => ({
             files,
             release,
-          }))
-        )
+          })),
+        ),
     )
     .catch((e) => {
       error(e);

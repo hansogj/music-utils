@@ -43,7 +43,7 @@ export const read = (path = ''): Promise<Partial<Track>> => {
       ...(defined(trackNo) && { trackNo }),
       ...(defined(trackName) && { trackName }),
       ...(defined(noOfDiscs) && { noOfDiscs }),
-    })
+    }),
   );
 };
 

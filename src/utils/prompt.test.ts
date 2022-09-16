@@ -43,7 +43,10 @@ describe('prompt', () => {
   describe('userDefaultPrompt', () => {
     let response: Partial<Release>;
     beforeEach(async () => {
-      mockPrompt.mockResolvedValueOnce({ artist: 'Altered Artist    ', album: '    Album  with multiple space  ' });
+      mockPrompt.mockResolvedValueOnce({
+        artist: 'Altered Artist    ',
+        album: '    Album  with multiple space  ',
+      });
       response = await userDefinedPrompt({
         artist: 'Artist',
         noOfDiscs: '2',

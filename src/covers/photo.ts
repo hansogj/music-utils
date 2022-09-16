@@ -23,7 +23,7 @@ export const sacad = (dirName: string, noPrompt: boolean): Promise<unknown> =>
   getAlbumInfo(dirName, noPrompt)
     .then(log)
     .then((release) =>
-      execute(`sacad "${release.artist}" "${release.album}" ${COVER_FILE_RESOLUTION} "${COVER_FILE_NAME}"`)
+      execute(`sacad "${release.artist}" "${release.album}" ${COVER_FILE_RESOLUTION} "${COVER_FILE_NAME}"`),
     );
 
 export const glyrc = (dirName: string, noPrompt: boolean): Promise<unknown> =>
@@ -32,8 +32,8 @@ export const glyrc = (dirName: string, noPrompt: boolean): Promise<unknown> =>
     .then((release) => execute(`glyrc  cover --artist "${release.artist}"  --album "${release.album}" `))
     .then(() =>
       execute(
-        'for IMG in *.jpg *.jpeg *.png; do echo $IMG; rename \'s/.*cover.*\\.([0-9a-z]+)$/cover.$1/i\' "$IMG"; done '
-      )
+        'for IMG in *.jpg *.jpeg *.png; do echo $IMG; rename \'s/.*cover.*\\.([0-9a-z]+)$/cover.$1/i\' "$IMG"; done ',
+      ),
     )
     .catch(error)
     .then(() => execute('[ -e cover.png ] && convert cover.png cover.jpg ; [ -e cover.png ] && rm cover.png'))
