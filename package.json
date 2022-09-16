@@ -1,6 +1,6 @@
 {
     "name": "music-utils",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "music tools for my flac & mp3 collection",
     "main": "",
     "scripts": {
