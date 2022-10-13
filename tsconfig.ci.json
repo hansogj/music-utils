@@ -4,14 +4,14 @@
     "include": [
         "ci/**/*",
         "lib.d.ts",
-        "@hansogj/array.utils",
+        "@hansogj/array.utils"
     ],
     "exclude": [
         "node_modules",
         "**/__mocks__",
-        "**/*.test.ts",
+        "**/*.test.ts"
     ],
     "compilerOptions": {
-        "outDir": "./build.ci",
+        "outDir": "./build.ci"
     }
 }

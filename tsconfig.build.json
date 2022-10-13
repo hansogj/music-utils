@@ -4,15 +4,15 @@
     "include": [
         "src/**/*",
         "lib.d.ts",
-        "@hansogj/array.utils",
+        "@hansogj/array.utils"
     ],
     "exclude": [
         "node_modules",
         "**/__mocks__",
         "**/*.test.ts",
-        "ci",
+        "ci"
     ],
     "compilerOptions": {
-        "outDir": "./build",
+        "outDir": "./build"
     }
 }
