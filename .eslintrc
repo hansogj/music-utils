@@ -6,13 +6,17 @@
     ],
     "parser": "@typescript-eslint/parser",
     "extends": [
-        "airbnb",
         "eslint:recommended",
+        "airbnb-base",
+        "airbnb-typescript/base",
         "plugin:@typescript-eslint/eslint-recommended",
         "plugin:@typescript-eslint/recommended",
         "prettier",
         "./.eslint.rules.json"
     ],
+    "parserOptions": {
+        "project": "./tsconfig.json"
+    },
     "settings": {
         "import/resolver": {
             "node": {

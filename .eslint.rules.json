@@ -1,83 +1,82 @@
 {
-    "rules": {
-        "no-return-assign": [
-            "error",
-            "except-parens"
-        ],
-        "prettier/prettier": "error",
-        "padding-line-between-statements": [
-            "warn",
-            {
-                "blankLine": "always",
-                "prev": "*",
-                "next": "block"
-            },
-            {
-                "blankLine": "always",
-                "prev": "block",
-                "next": "*"
-            },
-            {
-                "blankLine": "always",
-                "prev": "*",
-                "next": "block-like"
-            },
-            {
-                "blankLine": "always",
-                "prev": "block-like",
-                "next": "*"
-            }
-        ],
-        "eol-last": [
-            "error",
-            "always"
-        ],
-        "no-irregular-whitespace": "warn",
-        "@typescript-eslint/no-explicit-any": "error",
-        "@typescript-eslint/ban-ts-comment": "off",
-        "@typescript-eslint/no-unused-vars": [
-            "error",
-            {
-                "varsIgnorePattern": "^_",
-                "argsIgnorePattern": "^_"
-            }
-        ],
-        "prefer-promise-reject-errors": "warn",
-        "react/prop-types": "off",
-        "linebreak-style": "off",
-        "comma-dangle": "off",
-        "class-methods-use-this": "off",
-        "import/prefer-default-export": "off",
-        "default-param-last": "off",
-        "max-classes-per-file": "off",
-        "simple-import-sort/imports": "error",
-        "import/no-duplicates": [
-            "error",
-            {
-                "considerQueryString": true
-            }
-        ],
-        "import/no-extraneous-dependencies": [
-            "error",
-            {
-                "devDependencies": [
-                    "**/*.test.ts",
-                    "**/*.test.tsx",
-                    "**/test.tsx",
-                    "**/testUtils/**"
-                ]
-            }
-        ],
-        "import/extensions": [
-            "error",
-            "ignorePackages",
-            {
-                "js": "never",
-                "jsx": "never",
-                "ts": "never",
-                "tsx": "never",
-                "mjs": "never"
-            }
+  "rules": {
+    "no-return-assign": [
+      "error",
+      "except-parens"
+    ],
+    "prettier/prettier": "error",
+    "padding-line-between-statements": [
+      "warn",
+      {
+        "blankLine": "always",
+        "prev": "*",
+        "next": "block"
+      },
+      {
+        "blankLine": "always",
+        "prev": "block",
+        "next": "*"
+      },
+      {
+        "blankLine": "always",
+        "prev": "*",
+        "next": "block-like"
+      },
+      {
+        "blankLine": "always",
+        "prev": "block-like",
+        "next": "*"
+      }
+    ],
+    "eol-last": [
+      "error",
+      "always"
+    ],
+    "no-irregular-whitespace": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "varsIgnorePattern": "^_",
+        "argsIgnorePattern": "^_"
+      }
+    ],
+    "prefer-promise-reject-errors": "warn",
+    "linebreak-style": "off",
+    "comma-dangle": "off",
+    "class-methods-use-this": "off",
+    "import/prefer-default-export": "off",
+    "default-param-last": "off",
+    "max-classes-per-file": "off",
+    "simple-import-sort/imports": "error",
+    "import/no-duplicates": [
+      "error",
+      {
+        "considerQueryString": true
+      }
+    ],
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": [
+          "**/*.test.ts",
+          "**/*.test.tsx",
+          "**/test.tsx",
+          "**/testUtils/**"
         ]
-    }
+      }
+    ],
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "never",
+        "jsx": "never",
+        "ts": "never",
+        "tsx": "never",
+        "mjs": "never"
+      }
+    ]
+  }
 }
