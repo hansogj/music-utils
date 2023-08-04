@@ -8,6 +8,7 @@ import { numOrNull, wov } from '../utils/number';
 
 export type ParsedValues = Pick<Track, 'artist' | 'album'>;
 
+// eslint-disable-next-line @typescript-eslint/default-param-last
 const totalNumberOfTracks = ({ trackNoTotal }: Partial<Track> = {} as Partial<Track>, files: File[]) =>
   `${trackNoTotal !== undefined ? trackNoTotal : files.length}`;
 
@@ -33,6 +34,7 @@ export const sortable = (file: File): File => {
 };
 
 export const mergeMetaData = (
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   files: Array<File> = [],
   release: Partial<Release>,
   tracksFromFile?: string[],

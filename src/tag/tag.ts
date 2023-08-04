@@ -37,9 +37,9 @@ export const tagFile = (file: File): Promise<File> =>
     flac: () => flac.write(file),
     mp3: () => mp3.write(file),
     unknown: () => Promise.reject(new Error(`Unable to write tags to to undefined filetype: ${file.path}`)),
-  }
+  })
     [file.fileType]()
-    .then(() => file));
+    .then(() => file);
 
 export const extractTags = (path: string): Promise<File> =>
   getFileType(path).then((fileType) => readTrackTags(path, fileType));
