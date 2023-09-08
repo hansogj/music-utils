@@ -2,16 +2,26 @@
 
 MU_ROOT=`dirname "$BASH_SOURCE"`
 
-alias music-utils-rip="$MU_ROOT/cdrip.sh"
-alias music-utils-cover-photo="$MU_ROOT/cover.photo.sh"
-alias music-utils-glyrc-cover-photo="$MU_ROOT/glyrc.cover.photo.sh"
-alias music-utils-album-tag="$MU_ROOT/tag.album.sh"
-alias music-utils-tracks-tag="$MU_ROOT/tag.tracks.sh"
-alias music-utils-sync-tracks-names="$MU_ROOT/sync.track.names.sh"
-alias music-utils-bulk-album-tag="$MU_ROOT/tag.all.album.sh"
-alias music-utils-album-cover="$MU_ROOT/tag.cover.album.sh"
+
+
+ function __music_util_version() {
+    builtin cd $MU_ROOT
+    printf "Running %s@%s \n\n" $(npm pkg get name) $(npm pkg  get version)
+    builtin cd -
+}
+
+
+alias music-utils-rip="__music_util_version && $MU_ROOT/cdrip.sh"
+alias music-utils-cover-photo="__music_util_version && $MU_ROOT/cover.photo.sh"
+alias music-utils-glyrc-cover-photo="__music_util_version && $MU_ROOT/glyrc.cover.photo.sh"
+alias music-utils-album-tag="__music_util_version && $MU_ROOT/tag.album.sh"
+alias music-utils-tracks-tag="__music_util_version && $MU_ROOT/tag.tracks.sh"
+alias music-utils-sync-tracks-names="__music_util_version && $MU_ROOT/sync.track.names.sh"
+alias music-utils-bulk-album-tag="__music_util_version && $MU_ROOT/tag.all.album.sh"
+alias music-utils-album-cover="__music_util_version && $MU_ROOT/tag.cover.album.sh"
 
  function music-utils-bulk-glyrc-cover-photo() {
+    __music_util_version
     for DIR in */;
     do
     echo "$DIR"
@@ -25,9 +35,6 @@ alias music-utils-album-cover="$MU_ROOT/tag.cover.album.sh"
 }
 
 export -f music-utils-bulk-glyrc-cover-photo
-
-
-
 
 
 
