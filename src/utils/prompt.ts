@@ -32,6 +32,11 @@ export const validate = (name: Question, value: string) => {
 
 const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>> => {
   json(release);
+
+  if (process.env.NO_PROMPT) {
+    return release;
+  }
+
   const response: Answers<string> = await prompts({
     type: 'text',
     name: 'value',
