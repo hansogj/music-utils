@@ -113,7 +113,10 @@ lib
 lib-esm
 _bundles
 test
-test-data
+*.flac
+*.mp3
+test-data/copy
+
 build.ci
 junit-TEST.xml
 .env.test

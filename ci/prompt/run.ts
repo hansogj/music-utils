@@ -4,8 +4,8 @@ import path from 'path';
 import { albumPrompt } from '../../src/utils/prompt';
 
 const MU_TEST_ZEP_1 = path.join(
-  process.env.PWD,
-  '/test-data/copy/Led Zeppelin/1976 The Song Remains the Same (disc 1)',
+  `${process.env.PWD}`,
+  '/test-data//copy/Led Zeppelin/1976 The Song Remains The Same (Disc 1∕2)',
 );
 process.chdir(MU_TEST_ZEP_1);
 
