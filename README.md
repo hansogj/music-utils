@@ -1,3 +1,5 @@
+[![example workflow](https://github.com/hansogj/music-utils/actions/workflows/webpack.yml/badge.svg)](https://github.com/hansogj/music-utils/actions/workflows/webpack.yml/badge.svg)
+
 # Dependencies
 
 id3v2
