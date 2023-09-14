@@ -1,15 +1,14 @@
 # .github/workflows/[your_workflow].yml
-
-
-name: NodeJS with Webpack
+name: npm bump version
 
 on:
   push:
-    branches: ['main'] 
+    branches: ['main']
 jobs:
   bump:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     strategy:
       matrix:
         node-version: [20.X]
@@ -22,10 +21,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name:  'Automated Version Bump'
-        uses:  'phips28/gh-action-bump-version@master'
+      - name: 'Automated Version Bump'
+        uses: 'phips28/gh-action-bump-version@master'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-            tag-prefix:  'v'
-            commit-message: 'CI: bumps version to {{version}}'
+          tag-prefix: 'v'
+          commit-message: 'CI: bumps version to {{version}}'

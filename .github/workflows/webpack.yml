@@ -1,4 +1,4 @@
-name: NodeJS with Webpack
+name: npm test & build
 
 on:
   push:
@@ -25,4 +25,4 @@ jobs:
       - name: Build
         run: |
           npm ci
-          npm run  precommit
+          npm run precommit
