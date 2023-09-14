@@ -9,8 +9,7 @@ cdparanoia
 # Installation
 
 ```
-npn ci && npm run build
-
+npm ci && npm run build
 ```
 
 # Features
