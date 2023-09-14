@@ -1,4 +1,4 @@
-[![example workflow](https://github.com/hansogj/music-utils/actions/workflows/webpack.yml/badge.svg)](https://github.com/hansogj/music-utils/actions/workflows/webpack.yml/badge.svg)
+[![example workflow](https://github.com/hansogj/music-utils/actions/workflows/build.yml/badge.svg)](https://github.com/hansogj/music-utils/actions/workflows/build.yml/badge.svg)
 
 # Dependencies
 
