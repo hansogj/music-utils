@@ -2,10 +2,13 @@
 name: npm bump version
 
 on:
-  push:
-    branches: ['main']
+  pull_request:
+    types:
+      - closed
+
 jobs:
   bump:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
