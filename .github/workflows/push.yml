@@ -3,12 +3,10 @@ name: npm bump version
 
 on:
   pull_request:
-    types:
-      - closed
+    branches: ['main']
 
 jobs:
   bump:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,4 +28,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag-prefix: 'v'
-          commit-message: 'CI: bumps version to {{version}}'
+          commit-message: 'bumps to version v{{version}}'
