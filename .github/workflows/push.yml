@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    uses: ./webpack.yml@v1
+    uses: ./github/workflows/webpack.yml
   bump:
     needs: [build]
     runs-on: ubuntu-latest
