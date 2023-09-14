@@ -96,4 +96,9 @@ where _A Band_ is actually the same band as _Band, A_ , similarities script will
 />  ./scripts/similarities.sh -A /path/to/origin/ -B /path/to/comparator/ -T 0.5  -Q > output.table
 ```
 
-Where -A is dir1, -B is dir2, T is threshold of equality and Q is quiet
+Where
+
+- **-A** is base directory
+- **-B** is comparing directory
+- **-T** is threshold of equality
+- **-Q** to quiet
