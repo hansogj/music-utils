@@ -3,12 +3,14 @@ name: npm bump version
 
 on:
   pull_request:
-    types:
-      - closed
+    branches: ['main']
+    types: [opened]
 
 jobs:
+  build:
+    uses: ./.github/workflows/webpack.yml
   bump:
-    if: github.event.pull_request.merged == true
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,5 +31,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag-prefix: 'v'
-          commit-message: 'CI: bumps version to {{version}}'
+          commit-message: 'bumps to version v{{version}}'
