@@ -4,6 +4,7 @@ name: npm bump version
 on:
   pull_request:
     branches: ['main']
+    if: 'opened'
 
 jobs:
   bump:
@@ -27,5 +28,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag-prefix: 'v'
           commit-message: 'bumps to version v{{version}}'
