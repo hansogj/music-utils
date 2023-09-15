@@ -1,8 +1,6 @@
-name: npm test & build
+name: test & build
 
 on:
-  push:
-    branches: ['main']
   pull_request:
     branches: ['main']
   workflow_call:
@@ -22,7 +20,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-
       - name: Build
         run: |
           npm ci
