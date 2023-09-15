@@ -1,35 +1,31 @@
-# .github/workflows/[your_workflow].yml
-name: npm bump version
+name: bump version
 
 on:
   pull_request:
     branches: ['main']
-    types: [opened]
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      version:
+        type: choice
+        description: Bump into new version
+        default: 'patch'
+        options:
+          - major
+          - minor
+          - patch
+          - premajor
+          - preminor
+          - prepatch
+          - prerelease
 
 jobs:
   build:
     uses: ./.github/workflows/build.yml
-  bump:
+  common-bump:
     needs: [build]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    strategy:
-      matrix:
-        node-version: [20.X]
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: 'Automated Version Bump'
-        uses: 'phips28/gh-action-bump-version@master'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          commit-message: 'bumps to version v{{version}}'
-          tag-prefix: 'v'
+    uses: hansogj/package-test-utils/.github/workflows/shared-bump.yml@main
+    with:
+      version: ${{ github.event.inputs.version }}
+    secrets:
+      deployKey: ${{ secrets.DEPLOY_KEY }}
