@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/build.yml
   common-bump:
     needs: [build]
-    uses: hansogj/package-test-utils/github/workflows/shared-bump.yml@main
+    uses: hansogj/package-test-utils/.github/workflows/shared-bump.yml@main
     with:
       version: ${{ github.event.inputs.version }}
     secrets:
