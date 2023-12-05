@@ -1,4 +1,6 @@
 {
   "upgrade": true,
-  "reject": []
+  "reject": [
+    "chalk"
+  ]
 }

@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "target": "esnext",
-        "module": "commonjs",
+        "module": "CommonJS",
         "lib": [
             "esnext",
             "es2015.promise",

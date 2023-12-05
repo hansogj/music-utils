@@ -1,6 +1,6 @@
 import './polyfills';
 
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 import prompts, { Answers } from 'prompts';
 
 import { Release } from '../types';

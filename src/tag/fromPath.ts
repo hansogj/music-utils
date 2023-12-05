@@ -1,4 +1,4 @@
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 
 import { Track } from '../types';
 import { capitalize } from '../utils/string';
