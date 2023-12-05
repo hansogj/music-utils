@@ -1,4 +1,4 @@
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 
 import { File, Track } from '../types';
 import { debugInfo } from '../utils/color.log';

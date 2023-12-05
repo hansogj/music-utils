@@ -1,4 +1,4 @@
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 
 import { File, FILETYPE, Track } from '../types';
 import { getFileType } from '../utils/path';

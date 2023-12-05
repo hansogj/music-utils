@@ -1,9 +1,7 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-param-reassign */
 
-import '@hansogj/array.utils';
-
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 
 import { BLACK_LIST_SIMILAR_WORD } from '../constants';
 import { Similarity } from './types';

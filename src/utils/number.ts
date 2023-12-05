@@ -2,7 +2,7 @@
 /* eslint-disable no-restricted-globals */
 import './polyfills';
 
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 import maybeOr from '@hansogj/maybe';
 
 export const maybe = (num: string | number) =>

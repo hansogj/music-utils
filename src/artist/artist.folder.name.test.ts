@@ -1,4 +1,4 @@
-import { defined } from '@hansogj/array.utils/lib/defined';
+import { defined } from '@hansogj/array.utils';
 
 import * as parsePath from '../album/parse.path';
 import { Release } from '../types';
