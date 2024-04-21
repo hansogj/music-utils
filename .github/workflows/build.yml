@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.X]
+        node-version: [18.x, 20.x , 21.x]
 
     steps:
       - uses: actions/checkout@v3
@@ -24,3 +24,14 @@ jobs:
         run: |
           npm ci
           npm run precommit
+        
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile]
+       
+      - name: Install dependencies
+        run: pnpm run precommit  
+
