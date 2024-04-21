@@ -1,0 +1,7 @@
+packages:
+  # include packages in subfolders (e.g. apps/ and packages/)
+  - "src/**"
+    # if required, exclude some directories
+  - '!ci/**'
+  - '!scripts/**'
+  - '!test-data/**'
