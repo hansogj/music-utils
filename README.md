@@ -2,9 +2,17 @@
 
 # Dependencies
 
-id3v2
-metaflac
-cdparanoia
+install following dependencies
+
+```bash
+sudo apt install \
+id3v2 \
+flac \
+cdparanoia \
+imagemagick \
+glyrc
+
+```
 
 # Installation
 
