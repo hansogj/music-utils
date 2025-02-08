@@ -39,8 +39,8 @@ export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<Re
           })),
         ),
     )
-    .catch((e) => {
+    .catch((e): unknown => {
       error(e);
       return undefined;
-    });
+    }) as Promise<ReleaseFiles>;
 };
