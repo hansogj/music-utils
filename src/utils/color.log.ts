@@ -24,8 +24,7 @@ export const info = (message: any) => logger(message, 'info');
 export const warning = (message: any) => logger(message, 'warning');
 export const success = (message: any) => logger(message, 'success');
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export const json = (message: Object) => {
+export const json = (message: object) => {
   logger(JSON.stringify(message, null, 4), 'info');
   return message;
 };

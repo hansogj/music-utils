@@ -10,7 +10,6 @@ const editDistance = (s1: string, s2: string) => {
   s1 = s1.toLowerCase().trim();
   s2 = s2.toLowerCase().trim();
 
-  // eslint-disable-next-line no-array-constructor
   const costs = [];
 
   for (let i = 0; i <= s1.length; i++) {
@@ -37,7 +36,6 @@ export const equalityLevel = (s1: string, s2: string) => {
     .sort((a, b) => a.length - b.length)
     .map((param) => param.split('/').pop());
   const longerLength = longer.length;
-  //  console.log(JSON.stringify({ s1, s2 }));
 
   if (longerLength === 0) {
     return 1.0;
@@ -50,7 +48,6 @@ export const equalityLevel = (s1: string, s2: string) => {
     }, 0) / longer.split(' ').length;
 
   const distance = (longerLength - editDistance(longer, shorter)) / parseFloat(`${longerLength}`);
-  //  console.log(JSON.stringify({ intersection, distance, max: Math.max(intersection, distance) }));
 
   return Math.max(intersection, distance);
 };

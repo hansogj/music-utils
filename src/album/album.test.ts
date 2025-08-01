@@ -1,12 +1,10 @@
 import * as tags from '../tag';
 import { File, Track } from '../types';
-/* eslint-disable no-template-curly-in-string */
 import { MockUtil } from '../utils/__mocks__/mockutils';
 import { mdkls, release } from '../utils/__mocks__/record.mock';
 import * as log from '../utils/color.log';
 import * as path from '../utils/path';
 import * as prompt from '../utils/prompt';
-// eslint-disable-next-line import/first
 import { tagAlbum } from './album';
 import * as parsePath from './parse.path';
 

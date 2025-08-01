@@ -30,7 +30,7 @@ const optionDefinitions = [
 export const getCommandLineArgs = (): Options => {
   try {
     return commandLineArgs(optionDefinitions) as Options;
-  } catch (e) {
+  } catch (_) {
     // eslint-disable-next-line no-console
     console.error('\x1b[30m\x1b[41m%s\x1b[0m', '\n\nWrong number of arguments. \n See Readme file for how to use\n');
     process.exit(0);

@@ -1,5 +1,4 @@
 import { File, Release } from '../types';
-// eslint-disable-next-line import/first
 import { mergeMetaData, sortable } from './merge-meta';
 
 type TestCase = { files: Array<File>; release: Partial<Release>; tracksFromFile: string[] };

@@ -5,7 +5,6 @@ import { Release } from '../types';
 import { MockUtil } from '../utils/__mocks__/mockutils';
 import * as pathUtils from '../utils/path';
 import * as utilPrompts from '../utils/prompt';
-// eslint-disable-next-line import/first
 import * as tagAlbum from './artist.folder.name';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,9 +1,5 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-plusplus */
-/* eslint-disable no-param-reassign */
 import { defined } from '@hansogj/array.utils';
-// eslint-disable-next-line import/order
 import fs from 'fs';
 
 import findSimilarArtists from '../similarities';
