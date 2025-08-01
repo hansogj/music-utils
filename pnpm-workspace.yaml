@@ -1,7 +1,11 @@
 packages:
-  # include packages in subfolders (e.g. apps/ and packages/)
-  - "src/**"
-    # if required, exclude some directories
+  - src/**
   - '!ci/**'
   - '!scripts/**'
   - '!test-data/**'
+
+ignoredBuiltDependencies:
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - '@hansogj/maybe'
