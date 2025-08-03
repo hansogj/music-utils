@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-console
 import fs from 'fs';
 import path from 'path';
 

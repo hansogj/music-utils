@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { parseAlbumInfo } from '../album/parse.path';
 import { COVER_FILE_NAME, COVER_FILE_RESOLUTION } from '../constants';
 import { Release } from '../types';

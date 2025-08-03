@@ -1,6 +1,5 @@
 import { defined } from '@hansogj/array.utils';
 import maybe from '@hansogj/maybe';
-// eslint-disable-next-line import/order
 import path from 'path';
 
 import { DEFINITE_ARTICLES, DISC_NO_SPLIT } from '../constants';

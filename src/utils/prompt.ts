@@ -71,7 +71,6 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
   return {
     ...release,
     ...Object.entries(response).reduce(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // eslint-disable-next-line
       (resu: any, [key, val]) => (defined(val) && (resu[key] = removeDoubleSpace(`${val}`)), resu),
       {} as Partial<Release>,

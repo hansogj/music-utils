@@ -33,22 +33,25 @@
       "always"
     ],
     "no-irregular-whitespace": "warn",
+    "@typescript-eslint/lines-between-class-members": 0,
+    "@typescript-eslint/no-throw-literal": 0,
     "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/ban-ts-comment": 0,
     "@typescript-eslint/no-unused-vars": [
       "error",
       {
         "varsIgnorePattern": "^_",
-        "argsIgnorePattern": "^_"
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
       }
     ],
     "prefer-promise-reject-errors": "warn",
-    "linebreak-style": "off",
-    "comma-dangle": "off",
-    "class-methods-use-this": "off",
-    "import/prefer-default-export": "off",
-    "default-param-last": "off",
-    "max-classes-per-file": "off",
+    "linebreak-style": 0,
+    "comma-dangle": 0,
+    "class-methods-use-this": 0,
+    "import/prefer-default-export": 0,
+    "default-param-last": 0,
+    "max-classes-per-file": 0,
     "simple-import-sort/imports": "error",
     "import/no-duplicates": [
       "error",

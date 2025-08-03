@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable @typescript-eslint/naming-convention */
 export const id3v1 = `
   id3v1 tag info for d1t1 track.wtf:
   Title  : Track Name                 Artist: Fun Band Name                  

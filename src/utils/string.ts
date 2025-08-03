@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-restricted-globals */
 import './polyfills';
 
 export const upperCase = (s: string) => s.slice(0, 1).toLocaleUpperCase() + s.slice(1);
