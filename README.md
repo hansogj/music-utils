@@ -9,15 +9,19 @@ sudo apt install \
 id3v2 \
 flac \
 cdparanoia \
-imagemagick \
-glyrc
-
 ```
 
 # Installation
 
 ```
 npm ci && npm run build
+```
+
+Add your discogs secret token to .env in this project's root folder (it is not comitted)
+
+```
+DISCOGS_TOKEN="###SUPER_DUPER_SECRET###"
+
 ```
 
 # Features
@@ -28,15 +32,12 @@ _Music Utils_ provides 5 scripts:
 - cover.photo.sh
 - tag.album.sh
 - tag.tracks.sh
-- glyrc.cover.photo.sh
 
 Bind them to your _.bashrc_ file by
 
 ```
     source /path/to/music-utils/scripts/index.sh
 ```
-
-Index.sh also creates an alias for bulk fetching cover photos with glyrc.
 
 ## cdrip
 
@@ -56,7 +57,7 @@ Creates a folder 'Album Name' from your current position (pwd), rips the cd in y
 Music/Artist/2020 Album $> music-utils-cover-photo
 ```
 
-Parse your current position (pwd) to extract artist and album information. Then, with help from _sacad_, searches the Internet for matching cover photos and places the resulting image in a 'cover.jpg' file
+Parse your current position (pwd) to extract artist and album information. Then, fetching matching cover photos from discogs.com and places the resulting image in a 'cover.jpg' file
 
 ## tag-album
 

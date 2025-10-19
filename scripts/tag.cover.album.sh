@@ -7,6 +7,6 @@
 
 
 BASEDIR=$(dirname "$0")
-node $BASEDIR/../build/run/glyrc.cover.photo.js "-Q" "$@" 
+node $BASEDIR/../build/run/cover.photo.js "-Q" "$@" 
 node $BASEDIR/../build/run/tag.album.js "$@"
 
