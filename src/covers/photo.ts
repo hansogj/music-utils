@@ -1,8 +1,11 @@
+import * as fs from 'node:fs';
+
+import { discogsMainCover } from '@hansogj/discogs-cover';
+
 import { parseAlbumInfo } from '../album/parse.path';
-import { COVER_FILE_NAME, COVER_FILE_RESOLUTION } from '../constants';
+import { COVER_FILE_NAME } from '../constants';
 import { Release } from '../types';
 import { error, info, success } from '../utils/color.log';
-import { execute } from '../utils/execute';
 import { albumPrompt } from '../utils/prompt';
 
 const getAlbumInfo = (dirName: string, noPrompt: boolean): Promise<Partial<Release>> => {
@@ -18,27 +21,19 @@ const log = (release: Partial<Release>) => {
   return release;
 };
 
-export const sacad = (dirName: string, noPrompt: boolean): Promise<unknown> =>
-  getAlbumInfo(dirName, noPrompt)
-    .then(log)
-    .then((release) =>
-      execute(`sacad "${release.artist}" "${release.album}" ${COVER_FILE_RESOLUTION} "${COVER_FILE_NAME}"`),
-    );
+export const coverFromDiscogs = async (dirName: string, noPrompt: boolean, token: string) => {
+  const release = await getAlbumInfo(dirName, noPrompt).then(log);
 
-export const glyrc = (dirName: string, noPrompt: boolean): Promise<unknown> =>
-  getAlbumInfo(dirName, noPrompt)
-    .then(log)
-    .then((release) => execute(`glyrc  cover --artist "${release.artist}"  --album "${release.album}" `))
-    .then(() =>
-      execute(
-        'for IMG in *.jpg *.jpeg *.png; do echo $IMG; rename \'s/.*cover.*\\.([0-9a-z]+)$/cover.$1/i\' "$IMG"; done ',
-      ),
-    )
-    .catch(error)
-    .then(() => execute('[ -e cover.png ] && convert cover.png cover.jpg ; [ -e cover.png ] && rm cover.png'))
-    .catch(() => ({}))
-    .then(() => execute('[ -e cover.jpeg ] && mv cover.jpeg cover.jpg'))
-    .catch(() => ({}))
-    .then(() => execute('ls -dl *cover*'))
-    .then(info)
-    .catch(error);
+  try {
+    const imageBuffer = await discogsMainCover({
+      artist: release.artist,
+      title: release.album,
+      strategy: 'prompt',
+      token,
+    });
+    fs.writeFileSync(COVER_FILE_NAME, imageBuffer);
+    info('Cover saved!');
+  } catch (e) {
+    error((e as Error).message);
+  }
+};
