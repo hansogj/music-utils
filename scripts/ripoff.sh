@@ -2,9 +2,11 @@
 
 ################################################################################  
 #   Usage : 
-#   Music/Artist/2020 Album>  cover.photo.sh 
+#   ./>  ripoff.sh rId 
+# creates folders Music/Artist/2020 Album  
 ################################################################################ 
 
 
 BASEDIR=$(dirname "$0")
-node $BASEDIR/../build/run/cover.photo.js "$@"
+node $BASEDIR/../build/run/ripoff.js "$@"
+

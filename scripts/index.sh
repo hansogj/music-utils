@@ -17,6 +17,7 @@ function __wget-cover-photo() {
 }
 
 alias music-utils-rip="__music_util_version && $MU_ROOT/cdrip.sh"
+alias music-utils-rip-off="__music_util_version && $MU_ROOT/ripoff.sh"
 alias music-utils-cover-photo="__music_util_version && $MU_ROOT/cover.photo.sh"
 alias music-utils-wget-cover-photo="__music_util_version && __wget-cover-photo"
 alias music-utils-album-tag="__music_util_version && $MU_ROOT/tag.album.sh"
@@ -25,7 +26,7 @@ alias music-utils-sync-tracks-names="__music_util_version && $MU_ROOT/sync.track
 alias music-utils-bulk-album-tag="__music_util_version && $MU_ROOT/tag.all.album.sh"
 alias music-utils-album-cover="__music_util_version && $MU_ROOT/tag.cover.album.sh"
 
-function music-utils-bulk-cover-cover-photo() {
+function music-utils-bulk-cover-photo() {
     __music_util_version
     for DIR in */; do
         echo "$DIR"
@@ -38,4 +39,4 @@ function music-utils-bulk-cover-cover-photo() {
 
 }
 
-export -f music-utils-bulk-cover-cover-photo
+export -f music-utils-bulk-cover-photo

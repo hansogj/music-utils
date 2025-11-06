@@ -21,16 +21,33 @@ const log = (release: Partial<Release>) => {
   return release;
 };
 
-export const coverFromDiscogs = async (dirName: string, noPrompt: boolean, token: string) => {
-  const release = await getAlbumInfo(dirName, noPrompt).then(log);
+export const coverFromDiscogs = async ({
+  dirName,
+  quiet,
+  releaseId,
+  token,
+}: {
+  dirName?: string;
+  releaseId?: string;
+  quiet: boolean;
+  token: string;
+}) => {
+  let imageBuffer: Buffer;
 
   try {
-    const imageBuffer = await discogsMainCover({
-      artist: release.artist,
-      title: release.album,
-      strategy: 'prompt',
-      token,
-    });
+    if (releaseId) {
+      imageBuffer = await discogsMainCover({ releaseId, strategy: 'prompt', token });
+    } else {
+      const release = await getAlbumInfo(dirName, quiet).then(log);
+
+      imageBuffer = await discogsMainCover({
+        artist: release.artist,
+        title: release.album,
+        strategy: 'prompt',
+        token,
+      });
+    }
+
     fs.writeFileSync(COVER_FILE_NAME, imageBuffer);
     info('Cover saved!');
   } catch (e) {
