@@ -13,6 +13,8 @@ export interface Options {
   ignore: string[];
   threshold: number;
   quiet: boolean;
+  releaseId: string;
+  disc: number;
 }
 
 const optionDefinitions = [
@@ -25,6 +27,8 @@ const optionDefinitions = [
   { name: 'ignore', alias: 'I', type: String, verbose: true, multiple: true },
   { name: 'threshold', alias: 'T', type: Number },
   { name: 'quiet', alias: 'Q', type: Boolean },
+  { name: 'releaseId', alias: 'r', type: String },
+  { name: 'disc', alias: 'd', type: Number },
 ];
 
 export const getCommandLineArgs = (): Options => {
