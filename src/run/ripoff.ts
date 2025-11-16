@@ -136,7 +136,12 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     chdir(fullPath);
     console.log(`   Current directory: ${process.cwd()}`);
 
-    await runCommand('cdparanoia', ['-B']);
+    try {
+      await runCommand('cdparanoia', ['-B']);
+    } catch (_error) {
+      console.log('\n🔀 Skipping cdparanoia step due to error.');
+    }
+
     await convertWavFilesToFlac();
 
     console.log('\n🏷️  Renaming .flac files...');
@@ -173,7 +178,7 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
 }
 
 const { disc, releaseId } = getCommandLineArgs();
-
+console.log(`${disc}`);
 main({ releaseId, disc }).catch((err) => {
   console.error(`\n❌ Fatal error: ${err.message}`);
   exit(1);

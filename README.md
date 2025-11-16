@@ -95,8 +95,9 @@ Parse your current position (pwd) to extract artist and album information. Then,
 
 ### Usage
 
-```
+``
 Music/Artist/2020 Album $> tag-tracks.sh -f /path/to/tracks.txt
+
 ```
 
 As _tag-album_ but fetches tracks info from provided tracks.txt file
@@ -106,10 +107,12 @@ As _tag-album_ but fetches tracks info from provided tracks.txt file
 If your catalog consist of ie
 
 ```
+
 | - A
-    | - A Band
+| - A Band
 | - B
-    | - Band, A
+| - Band, A
+
 ```
 
 where _A Band_ is actually the same band as _Band, A_ , similarities script will output as a table
@@ -117,7 +120,9 @@ where _A Band_ is actually the same band as _Band, A_ , similarities script will
 ### Usage
 
 ```
-/>  ./scripts/similarities.sh -A /path/to/origin/ -B /path/to/comparator/ -T 0.5  -Q > output.table
+
+/> ./scripts/similarities.sh -A /path/to/origin/ -B /path/to/comparator/ -T 0.5 -Q > output.table
+
 ```
 
 Where
@@ -126,3 +131,4 @@ Where
 - **-B** is comparing directory
 - **-T** is threshold of equality
 - **-Q** to quiet
+```
