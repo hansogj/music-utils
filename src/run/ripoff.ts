@@ -8,7 +8,7 @@
 
 // Node.js built-in modules
 import { spawn } from 'node:child_process';
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path, { join } from 'node:path';
 import { chdir, exit } from 'node:process';
 
@@ -47,6 +47,35 @@ function runCommand(command: string, args: string[] = []): Promise<void> {
 
     child.on('error', (err: Error) => {
       // Failed to start the command (e.g., command not found).
+      reject(new Error(`Failed to start command "${command}": ${err.message}`));
+    });
+  });
+}
+
+function runCommandWithOutput(command: string, args: string[] = []): Promise<string> {
+  return new Promise((resolve, reject) => {
+    console.log(`\n▶️  Running command: ${command} ${args.join(' ')}`);
+    const child = spawn(command, args);
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code: number | null) => {
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(new Error(`Command "${command}" exited with error code ${code}\n${stderr}`));
+      }
+    });
+
+    child.on('error', (err: Error) => {
       reject(new Error(`Failed to start command "${command}": ${err.message}`));
     });
   });
@@ -100,7 +129,29 @@ async function convertWavFilesToFlac(): Promise<void> {
   }
 
   for (const wavFile of wavFiles) {
-    await runCommand('flac', ['--keep-foreign-metadata', wavFile]);
+    try {
+      const output = await runCommandWithOutput('ffprobe', [
+        '-v',
+        'quiet',
+        '-print_format',
+        'json',
+        '-show_streams',
+        wavFile,
+      ]);
+      const streamsData = JSON.parse(output);
+      const duration = parseFloat(streamsData.streams[0]?.duration || '0');
+
+      if (duration < 1.0) {
+        console.log(`🗑️  Removing pre-gap or empty file (duration: ${duration}s): ${wavFile}`);
+        await rm(wavFile);
+      } else {
+        await runCommand('flac', ['--keep-foreign-metadata', wavFile]);
+      }
+    } catch (error) {
+      console.error(`Error processing ${wavFile}:`, error);
+      // Decide if you want to stop or continue. For now, let's continue.
+      console.log(`Skipping ${wavFile} due to error.`);
+    }
   }
 
   console.log('✅ Conversion to .flac complete.');
@@ -142,6 +193,8 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
       console.log('\n🔀 Skipping cdparanoia step due to error.');
     }
 
+    await runCommand('eject');
+
     await convertWavFilesToFlac();
 
     console.log('\n🏷️  Renaming .flac files...');
@@ -155,8 +208,6 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
 
     console.log(`\n🔀 Returning to starting directory: ${initialDir}`);
     chdir(initialDir);
-
-    await runCommand('eject');
 
     console.log('\n🎉 All tasks completed successfully!');
   } catch (error: unknown) {
