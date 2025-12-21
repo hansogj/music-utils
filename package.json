@@ -1,6 +1,6 @@
 {
   "name": "music-utils",
-  "version": "1.3.22",
+  "version": "1.3.23",
   "description": "music tools for my flac & mp3 collection",
   "main": "",
   "minimumReleaseAge": 10800,
