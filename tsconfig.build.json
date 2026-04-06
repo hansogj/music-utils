@@ -1,6 +1,6 @@
 {
     "extends": "./tsconfig.json",
-    "rootDir": "./",
+    "rootDir": "./src",
     "include": [
         "src/**/*",
         "lib.d.ts",

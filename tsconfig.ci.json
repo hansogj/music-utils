@@ -1,6 +1,24 @@
 {
-    "extends": "./tsconfig.json",
-    "rootDir": "./",
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "Node16",
+        "lib": [
+            "esnext",
+            "es2015.promise",
+            "dom"
+        ],
+        "outDir": "./build.ci",
+        "rootDir": "./",
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": false,
+        "moduleResolution": "node16",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "types": ["jest"],
+        "isolatedModules": true
+    },
     "include": [
         "ci/**/*",
         "lib.d.ts",
@@ -10,8 +28,5 @@
         "node_modules",
         "**/__mocks__",
         "**/*.test.ts"
-    ],
-    "compilerOptions": {
-        "outDir": "./build.ci"
-    }
+    ]
 }
