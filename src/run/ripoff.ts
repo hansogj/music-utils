@@ -193,7 +193,11 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
       console.log('\n🔀 Skipping cdparanoia step due to error.');
     }
 
-    await runCommand('eject');
+    try {
+      await runCommand('eject');
+    } catch (_error) {
+      console.log('not able to eject cd ');
+    }
 
     await convertWavFilesToFlac();
 

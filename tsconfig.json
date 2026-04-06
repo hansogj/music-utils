@@ -1,20 +1,23 @@
 {
     "compilerOptions": {
         "target": "esnext",
-        "module": "CommonJS",
+        "module": "Node16",
         "lib": [
             "esnext",
             "es2015.promise",
             "dom"
         ],
         "outDir": "./build",
+        "rootDir": "./src",
         "strict": true,
         "noImplicitAny": true,
         "strictNullChecks": false,
-        "moduleResolution": "node",
+        "moduleResolution": "node16",
         "esModuleInterop": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "types": ["jest"],
+        "isolatedModules": true
     },
     "include": [
         "src/**/*",

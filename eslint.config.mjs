@@ -10,6 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import { includeIgnoreFile } from "@eslint/compat";
+import globals from "globals";
 
 const gitignorePath = fileURLToPath(new URL(".gitignore", import.meta.url));
 const __filename = fileURLToPath(import.meta.url);
@@ -22,39 +23,69 @@ const compat = new FlatCompat({
 
 export default defineConfig([includeIgnoreFile(gitignorePath, "Imported .gitignore patterns"),
 {
-    extends: fixupConfigRules(compat.extends(
-        "airbnb-base",
-        "airbnb-typescript/base",
-        "eslint:recommended",
-        "plugin:@typescript-eslint/eslint-recommended",
-        "plugin:@typescript-eslint/recommended",
-        "prettier",
-        "./.eslint.rules.json"
-    )),
+    files: ["**/*.ts", "**/*.tsx"],
     plugins: {
         prettier,
         "simple-import-sort": simpleImportSort,
         "@typescript-eslint": fixupPluginRules(typescriptEslint),
         import: fixupPluginRules(_import),
     },
-
     languageOptions: {
         parser: tsParser,
-        ecmaVersion: 5,
-        sourceType: "script",
-
+        sourceType: "module",
         parserOptions: {
             project: "./tsconfig.eslint.json",
         },
+        globals: { ...globals.node, ...globals.jest, 'Hash': 'readonly' }
     },
     settings: {
-        'import/resolver': {
-            node: {
-                extensions: ['.js', '.jsx', '.ts', '.tsx', '.mjs']
-            }
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.mjs']
         }
+      }
     },
-    ignores: ["eslint.config.mjs", "jest.config.cjs"]
-
-},
+    rules: {
+        "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
+    }
+  },
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    extends: fixupConfigRules(compat.extends(
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier",
+        "./.eslint.rules.json"
+    )),
+    rules: {
+        // You might need to add specific rules here if they are not covered by the extended configs
+    }
+  },
+  // Configuration for JavaScript files
+  {
+    files: ["**/*.js", "**/*.mjs"], // Apply this config to JS files
+    extends: [
+        js.configs.recommended
+    ],
+    plugins: {
+        prettier,
+        "simple-import-sort": simpleImportSort,
+        import: fixupPluginRules(_import),
+    },
+    languageOptions: {
+        sourceType: "module",
+        globals: { ...globals.node }
+    },
+    settings: {
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.mjs']
+        }
+      }
+    }
+  },
+  // Top-level ignores for files that should never be linted by any config
+  {
+      ignores: ["eslint.config.mjs", "jest.config.cjs", "build.ci", "lib.d.ts"]
+  }
 ]);
