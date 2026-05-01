@@ -6,40 +6,44 @@ import * as flac from './flac';
 import * as fromPath from './fromPath';
 import * as mp3 from './mp3';
 
-const validateAndfallbackToFileName = (track: Partial<Track>, path: string) =>
-  [track, track?.trackName, track?.trackNo].every((e) => defined(e))
-    ? Promise.resolve(track)
-    : fromPath.read(path).then((trackFromFileName) => ({
-        ...trackFromFileName,
-        ...track,
-      }));
+const validateAndFallbackToFileName = async (track: Partial<Track>, path: string): Promise<Partial<Track>> => {
+  if ([track, track?.trackName, track?.trackNo].every((e) => defined(e))) {
+    return track;
+  }
 
-const readTrackTags = (path: string, fileType: FILETYPE = 'unknown'): Promise<File> =>
-  [
-    {
-      flac: () => flac.read(path).then((track) => validateAndfallbackToFileName(track, path)),
-      mp3: () => mp3.read(path).then((track) => validateAndfallbackToFileName(track, path)),
-      unknown: () => fromPath.read(path),
-      jpg: undefined,
-      text: undefined,
-      txt: undefined,
-    }[fileType],
-  ]
-    .defined()
-    // eslint-disable-next-line no-promise-executor-return
-    .onEmpty((o: unknown[]) => o.push(() => new Promise((resolve) => resolve({ path, fileType, track: {} }))) as never)
-    .map((read) => read().then((track: Partial<Track>) => ({ track, path, fileType })))
-    .shift();
+  const trackFromFileName = await fromPath.read(path);
+  return { ...trackFromFileName, ...track };
+};
 
-export const tagFile = (file: File): Promise<File> =>
-  // @ts-ignore
-  ({
-    flac: () => flac.write(file),
-    mp3: () => mp3.write(file),
-    unknown: () => Promise.reject(new Error(`Unable to write tags to to undefined filetype: ${file.path}`)),
-  })
-    [file.fileType]()
-    .then(() => file);
+const readers: Partial<Record<FILETYPE, (path: string) => Promise<Partial<Track>>>> = {
+  flac: (p) => flac.read(p).then((track) => validateAndFallbackToFileName(track, p)),
+  mp3: (p) => mp3.read(p).then((track) => validateAndFallbackToFileName(track, p)),
+  unknown: (p) => fromPath.read(p),
+};
 
-export const extractTags = (path: string): Promise<File> =>
-  getFileType(path).then((fileType) => readTrackTags(path, fileType));
+const readTrackTags = async (path: string, fileType: FILETYPE = 'unknown'): Promise<File> => {
+  const read = readers[fileType];
+  const track = read ? await read(path) : {};
+  return { track, path, fileType };
+};
+
+const writers: Record<string, (file: File) => Promise<unknown>> = {
+  flac: (file) => flac.write(file),
+  mp3: (file) => mp3.write(file),
+};
+
+export const tagFile = async (file: File): Promise<File> => {
+  const write = writers[file.fileType];
+
+  if (!write) {
+    throw new Error(`Unable to write tags to to undefined filetype: ${file.path}`);
+  }
+
+  await write(file);
+  return file;
+};
+
+export const extractTags = async (path: string): Promise<File> => {
+  const fileType = await getFileType(path);
+  return readTrackTags(path, fileType);
+};

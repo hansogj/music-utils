@@ -9,8 +9,7 @@ function __music_util_version() {
 }
 
 
-alias music-utils-rip="__music_util_version && $MU_ROOT/cdrip.sh"
-alias music-utils-rip-off="__music_util_version && $MU_ROOT/ripoff.sh"
+alias music-utils-rip="__music_util_version && $MU_ROOT/rip.sh"
 alias music-utils-cover-photo="__music_util_version && $MU_ROOT/cover.photo.sh"
 alias music-utils-album-tag="__music_util_version && $MU_ROOT/tag.album.sh"
 alias music-utils-tracks-tag="__music_util_version && $MU_ROOT/tag.tracks.sh"

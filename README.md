@@ -26,10 +26,9 @@ DISCOGS_TOKEN="###SUPER_DUPER_SECRET###"
 
 # Features
 
-_Music Utils_ provides 5 scripts:
+_Music Utils_ provides 4 scripts:
 
-- ripoff.sh
-- cdrip.sh
+- rip.sh
 - cover.photo.sh
 - tag.album.sh
 - tag.tracks.sh
@@ -40,26 +39,16 @@ Bind them to your _.bashrc_ file by
     source /path/to/music-utils/scripts/index.sh
 ```
 
-## rip-off
+## rip
 
 ### Usage
 
 ```
-Music/Artist $> music-utils-rip-of -r <releaseId> -d <disc-number?>
+Music/Artist $> music-utils-rip -r <releaseId> -d <disc-number?>
 ```
 
 <releaseId> refers to the Discogs item id, disc-number if there are more than 1 disc
 Creates a folder 'Artist/2020 Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./scripts/wav2flac.sh), setting tags "Album" and "Artist" according to values in current path, rename files and fetches cover photo. All based on the info stored on Discogs on this release.
-
-## cdrip [deprecated]
-
-### Usage
-
-```
-Music/Artist $> music-utils-cdrip Album\ Name
-```
-
-Creates a folder 'Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./scripts/wav2flac.sh) and setting tags "Album" and "Artist" according to values in current path
 
 ## cover.photo
 

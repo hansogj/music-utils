@@ -1,4 +1,5 @@
 import { defined } from '@hansogj/array.utils';
+import nodePath from 'path';
 
 import { Track } from '../types';
 import { capitalize } from '../utils/string';
@@ -17,35 +18,23 @@ const trackNameParser: Parser = {
 };
 
 const noOfDiscsParser: Parser = {
-  matcher: regExp(/d(\d*)t(\d*)/, dash, /\s*/, trackNoParser.matcher), // , ),
+  matcher: regExp(/d(\d*)t(\d*)/, dash, /\s*/, trackNoParser.matcher),
   select: [2, 6, 1],
 };
 
 export const read = (path = ''): Promise<Partial<Track>> => {
-  const unparasedTrackName: string = `/${path}`
-    .split('/')
-    .last()
-    .map((filePath) => filePath.split('.').filter((_, i, arr) => arr.length === 1 || i < arr.length - 1))
-    .map((filePaths) => filePaths.join('.'))
-    .defined()
-    .onEmpty((o: Array<string>) => o.push('') as never)
-    .shift() as string;
+  const ext = nodePath.extname(path);
+  const unparsedTrackName = nodePath.basename(path, ext) || '';
 
-  const [trackNo, trackName, noOfDiscs] = applyMatch(unparasedTrackName, [
+  const [trackNo, trackName, noOfDiscs] = applyMatch(unparsedTrackName, [
     trackNoParser,
     trackNameParser,
     noOfDiscsParser,
   ]).map(capitalize);
 
-  return new Promise((resolve) =>
-    // eslint-disable-next-line no-promise-executor-return
-    resolve({
-      ...(defined(trackNo) && { trackNo }),
-      ...(defined(trackName) && { trackName }),
-      ...(defined(noOfDiscs) && { noOfDiscs }),
-    }),
-  );
+  return Promise.resolve({
+    ...(defined(trackNo) && { trackNo }),
+    ...(defined(trackName) && { trackName }),
+    ...(defined(noOfDiscs) && { noOfDiscs }),
+  });
 };
-
-// eslint-disable-next-line no-promise-executor-return
-export const write = (track: Track) => new Promise((resolve) => resolve(track));

@@ -5,7 +5,7 @@ import { defined } from '@hansogj/array.utils';
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release } from '../types';
 import { debugInfo } from './color.log';
-import { precedingZero, wov } from './number';
+import { precedingZero, toIntOr } from './number';
 import { renameFile, renameFolder } from './path';
 import { toLowerCase } from './string';
 
@@ -16,7 +16,7 @@ export const syncReleaseFolder = (release: Release, dirName = ''): Promise<Relea
   const aux = release?.aux && `[${release.aux}]`;
   const disc =
     [discNumber, noOfDiscs].every(defined) &&
-    wov(noOfDiscs, 0) > 1 &&
+    toIntOr(noOfDiscs, 0) > 1 &&
     `(${DISC_LABEL} ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
   const target = [year, album, disc, aux].defined().join(' ');
 

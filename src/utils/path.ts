@@ -11,7 +11,7 @@ export const splits = (paths: string) =>
     .filter((split) => split.length)
     .map((split) => split.replace(/\n/, ''));
 
-export const getPwd = (): Promise<string[]> => execute('pwd').then((e) => splits(e as string));
+export const getPwd = (): Promise<string[]> => execute('pwd').then(splits);
 
 const isHidden = (fileName: string) => !/^\..*/.test(fileName);
 
@@ -22,22 +22,10 @@ export const getDirName = () => process.cwd();
 
 export const getFileType = (filePath: string): Promise<FILETYPE> =>
   execute(`file -i "${filePath}"`).then((stdout) => {
-    if (/\.mp3/.test(`${stdout}`)) {
-      return 'mp3';
-    }
-
-    if (/\.flac/.test(`${stdout}`)) {
-      return 'flac';
-    }
-
-    if (/\.jpe?g/.test(`${stdout}`)) {
-      return 'jpg';
-    }
-
-    if (/\.te?xt/.test(`${stdout}`)) {
-      return 'text';
-    }
-
+    if (/\.mp3/.test(stdout)) return 'mp3';
+    if (/\.flac/.test(stdout)) return 'flac';
+    if (/\.jpe?g/.test(stdout)) return 'jpg';
+    if (/\.te?xt/.test(stdout)) return 'text';
     return 'unknown';
   });
 

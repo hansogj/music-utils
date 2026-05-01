@@ -3,7 +3,7 @@ import { defined } from '@hansogj/array.utils';
 import { File, Track } from '../types';
 import { debugInfo } from '../utils/color.log';
 import { execute } from '../utils/execute';
-import { wov } from '../utils/number';
+import { toIntOr } from '../utils/number';
 import { replaceQuotes } from '../utils/path';
 import { applyMatch, Parser, regExp } from './parser';
 
@@ -33,14 +33,14 @@ const trackNoParser: Parser = {
 };
 
 export const id3v1 = (unparsed: string): Partial<Track> => {
-  const reduced = splitLines(unparsed).reduce((res: Hash<string>, line: string) => {
+  const reduced = splitLines(unparsed).reduce((res: Record<string, string>, line: string) => {
     const [trackName] = applyMatch(line, [trackNameParser]);
     const [trackNo] = applyMatch(line, [trackNoParser]);
 
     return {
       ...res,
       ...(defined(trackName) && { trackName }),
-      ...(wov(trackNo, undefined) && { trackNo }),
+      ...(toIntOr(trackNo, undefined) && { trackNo }),
     } as Partial<Track>;
   }, {});
 
@@ -48,7 +48,7 @@ export const id3v1 = (unparsed: string): Partial<Track> => {
 };
 
 export const id3v2 = (unparsed = ''): Partial<Track> => {
-  const reduced = splitLines(unparsed).reduce((res: Hash<string>, line: string) => {
+  const reduced = splitLines(unparsed).reduce((res: Record<string, string>, line: string) => {
     const [key, val] = line.split(/\(.*\):/).map((s) => s.trim());
     res[key] = val;
     return res;
@@ -57,7 +57,7 @@ export const id3v2 = (unparsed = ''): Partial<Track> => {
   const [trackNo, trackNoTotal] =
     reduced.TRCK?.split(/\//)
       .defined()
-      .filter((e) => wov(e, 0) !== 0) || [];
+      .filter((e) => toIntOr(e, 0) !== 0) || [];
 
   return {
     ...(reduced.TIT2 && { trackName: reduced.TIT2 }),
@@ -73,7 +73,7 @@ export const parseId3Output = (output: string) => ({
 
 export const read = (path = ''): Promise<Partial<Track>> =>
   execute(`id3v2 -l "${path}"`)
-    .then((output) => [output].join('').trim())
+    .then((output) => output.trim())
     .then(parseId3Output);
 
 const mp3Tag = (val: string, tag: string) => val && `--${tag} "${replaceQuotes(val)}"`;

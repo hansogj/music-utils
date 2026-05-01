@@ -1,25 +1,27 @@
-/* eslint-disable no-plusplus */
-/* eslint-disable no-param-reassign */
-
 import { defined } from '@hansogj/array.utils';
 
 import { BLACK_LIST_SIMILAR_WORD } from '../constants';
 import { Similarity } from './types';
 
-const editDistance = (s1: string, s2: string) => {
-  s1 = s1.toLowerCase().trim();
-  s2 = s2.toLowerCase().trim();
+const editDistance = (rawS1: string, rawS2: string) => {
+  const s1 = rawS1.toLowerCase().trim();
+  const s2 = rawS2.toLowerCase().trim();
 
-  const costs = [];
+  const costs: number[] = [];
 
   for (let i = 0; i <= s1.length; i++) {
     let lastValue = i;
 
     for (let j = 0; j <= s2.length; j++) {
-      if (i === 0) costs[j] = j;
-      else if (j > 0) {
+      if (i === 0) {
+        costs[j] = j;
+      } else if (j > 0) {
         let newValue = costs[j - 1];
-        if (s1.charAt(i - 1) !== s2.charAt(j - 1)) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+
+        if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+          newValue = Math.min(newValue, lastValue, costs[j]) + 1;
+        }
+
         costs[j - 1] = lastValue;
         lastValue = newValue;
       }
@@ -32,22 +34,19 @@ const editDistance = (s1: string, s2: string) => {
 };
 
 export const equalityLevel = (s1: string, s2: string) => {
-  const [longer, shorter] = [`${s1}`, `${s2}`]
-    .sort((a, b) => a.length - b.length)
-    .map((param) => param.split('/').pop());
+  const [longer, shorter] = [`${s1}`, `${s2}`].sort((a, b) => a.length - b.length).map((p) => p.split('/').pop());
   const longerLength = longer.length;
 
   if (longerLength === 0) {
     return 1.0;
   }
 
+  const longerWords = longer.split(' ');
+  const shorterWords = shorter.split(' ');
   const intersection =
-    longer.split(' ').reduce((curr, n) => {
-      curr = shorter.split(' ').includes(n) ? curr + 1 : curr;
-      return curr;
-    }, 0) / longer.split(' ').length;
+    longerWords.reduce((curr, word) => (shorterWords.includes(word) ? curr + 1 : curr), 0) / longerWords.length;
 
-  const distance = (longerLength - editDistance(longer, shorter)) / parseFloat(`${longerLength}`);
+  const distance = (longerLength - editDistance(longer, shorter)) / longerLength;
 
   return Math.max(intersection, distance);
 };
@@ -61,17 +60,18 @@ const permute = (arr: string[]) => {
       return;
     }
 
-    arr.forEach((_, i) => {
-      // so that we do not repeat the item, using an array here makes it           O(1) operation
+    for (let i = 0; i < arr.length; i++) {
       if (!existing[i]) {
         existing[i] = true;
         permutations(len - 1, [val, arr[i]].defined().join(' '), existing);
         existing[i] = false;
       }
-    });
+    }
   };
 
-  arr.forEach((_, i) => permutations(arr.length - i, '', []));
+  for (let i = 0; i < arr.length; i++) {
+    permutations(arr.length - i, '', []);
+  }
 
   return res.sort();
 };
@@ -96,7 +96,7 @@ export const getArtistCombination = (artist: string) => {
   return permute(splits).filter((permutation) => !BLACK_LIST_SIMILAR_WORD.includes(permutation.toLocaleLowerCase()));
 };
 
-const skipPrecedingFolders = (other: string) =>
+const getLastPathSegments = (other: string) =>
   other
     .split('/')
     .defined()
@@ -108,7 +108,7 @@ export const findSimToOther = (combination: string, fromDirectory: string[], thr
     .defined()
     .map((other) => ({
       combination,
-      other: skipPrecedingFolders(other),
+      other: getLastPathSegments(other),
       similarity: parseFloat(equalityLevel(combination, other).toFixed(2)),
     }))
     .filter(({ similarity }) => similarity > threshold);

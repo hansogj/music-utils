@@ -1,13 +1,13 @@
-import { File, MetaFlac, Track } from '../types';
+import { File, Track } from '../types';
 import { debugInfo, error } from '../utils/color.log';
 import { execute } from '../utils/execute';
 import { replaceQuotes } from '../utils/path';
 import { singleSpace } from './parser';
 
-const ARTIST = `ARTIST`;
-const ALBUMARTIST = `ALBUMARTIST`;
-const DISCID = `DISCID`;
-const DISCNUMBER = `DISCNUMBER`;
+const ARTIST = 'ARTIST';
+const ALBUMARTIST = 'ALBUMARTIST';
+const DISCID = 'DISCID';
+const DISCNUMBER = 'DISCNUMBER';
 const DATE = 'DATE';
 const ALBUM = 'ALBUM';
 const TRACKNUMBER = 'TRACKNUMBER';
@@ -16,24 +16,26 @@ const TITLE = 'TITLE';
 
 const harmless = (val: string): string => `"${replaceQuotes(val)}"`;
 
-export const read = (path = ''): Promise<Partial<Track>> =>
-  execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER "${path}"`).then((output) => {
-    const reduced: MetaFlac = `${output}`
-      .split(/\n/)
-      .map((split: string) => split.trim())
-      .defined()
-      .reduce((res: MetaFlac, line: string) => {
-        const [key, val] = line.split('=');
-        // @ts-ignore
-        res[key] = val && singleSpace(val);
-        return res;
-      }, {} as MetaFlac);
+export const read = async (path = ''): Promise<Partial<Track>> => {
+  const output = await execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER "${path}"`);
+  const tags: Record<string, string> = {};
 
-    return {
-      ...(reduced.TITLE && { trackName: reduced.TITLE }),
-      ...(reduced.TRACKNUMBER && { trackNo: reduced.TRACKNUMBER }),
-    } as Partial<Track>;
-  });
+  if (output) {
+    output
+      .split(/\n/)
+      .map((line) => line.trim())
+      .defined()
+      .forEach((line: string) => {
+        const [key, val] = line.split('=');
+        if (val) tags[key] = singleSpace(val);
+      });
+  }
+
+  return {
+    ...(tags.TITLE && { trackName: tags.TITLE }),
+    ...(tags.TRACKNUMBER && { trackNo: tags.TRACKNUMBER }),
+  };
+};
 
 const generateRemoveTagString = ({
   album,
@@ -56,10 +58,10 @@ const generateRemoveTagString = ({
     trackName && TITLE,
   ]
     .defined()
-    .map((param) => ['--remove-tag', param].join('='))
+    .map((param) => `--remove-tag=${param}`)
     .join(' ');
 
-const flacTag = (val: string, tag: string) => val && [tag, harmless(val)].join('=');
+const flacTag = (val: string, tag: string) => val && `${tag}=${harmless(val)}`;
 
 const generateSetTagString = ({
   album,
@@ -83,43 +85,20 @@ const generateSetTagString = ({
     flacTag([discNumber, noOfDiscs].defined().join('/'), DISCID),
   ]
     .defined()
-    .map((param) => ['--set-tag', param].join('='))
+    .map((param) => `--set-tag=${param}`)
     .join(' ');
 
-export const write = ({ path, track }: File) => {
+export const write = async ({ path, track }: File) => {
   debugInfo(`Tagging ${path.split('/').slice(-2).join('/')}`);
-  const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
-    .map((action) => action(track))
-    .map((tags) => ['metaflac', tags, harmless(path)].join(' '))
-    .map((exec) => exec.replace(/\s+/, ' ').trim());
 
-  return execute(executeRemoveTag)
-    .then(() => execute(executeSetTag))
-    .catch((e) => {
-      error(`Failed to tag ${path} : ${e}`);
-      return e;
-    });
+  const removeCmd = `metaflac ${generateRemoveTagString(track)} ${harmless(path)}`.replace(/\s+/, ' ').trim();
+  const setCmd = `metaflac ${generateSetTagString(track)} ${harmless(path)}`.replace(/\s+/, ' ').trim();
+
+  try {
+    await execute(removeCmd);
+    await execute(setCmd);
+  } catch (e) {
+    error(`Failed to tag ${path} : ${e}`);
+    throw e;
+  }
 };
-
-//  .then(e )> ;
-// metaflac --show-tag=TITLE --show-tag=ALBUM --show-tag=ARTIST d1t01.\ Led\ Zeppelin\ -\ Rock\ and\ Roll.flac
-// TITLE=Rock and Roll
-// ALBUM=The Song Remains the Same
-// ARTIST=Led Zeppelin____
-
-// ALBUM
-// ALBUMARTIST
-// ALBUMARTISTSORT
-// ARTIST
-// ARTISTSORT
-// COMPILATION
-// DATE
-// DISCID
-// GENRE
-// MUSICBRAINZ_ALBUMARTISTID
-// MUSICBRAINZ_ALBUMID
-// MUSICBRAINZ_ARTISTID
-// MUSICBRAINZ_DISCID
-// MUSICBRAINZ_TRACKID
-// TITLE
-// TRACKTOTAL
