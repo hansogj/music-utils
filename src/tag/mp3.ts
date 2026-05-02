@@ -2,9 +2,8 @@ import { defined } from '@hansogj/array.utils';
 
 import { File, Track } from '../types';
 import { debugInfo } from '../utils/color.log';
-import { execute } from '../utils/execute';
+import { executeFile } from '../utils/execute';
 import { toIntOr } from '../utils/number';
-import { replaceQuotes } from '../utils/path';
 import { applyMatch, Parser, regExp } from './parser';
 
 const ARTIST = `TPE1`;
@@ -72,13 +71,13 @@ export const parseId3Output = (output: string) => ({
 });
 
 export const read = (path = ''): Promise<Partial<Track>> =>
-  execute(`id3v2 -l "${path}"`)
+  executeFile('id3v2', ['-l', path])
     .then((output) => output.trim())
     .then(parseId3Output);
 
-const mp3Tag = (val: string, tag: string) => val && `--${tag} "${replaceQuotes(val)}"`;
+const mp3TagArgs = (val: string | undefined, tag: string): string[] | false => (val ? [`--${tag}`, val] : false);
 
-const generateTagString = ({
+const generateTagArgs = ({
   album,
   artist,
   trackName,
@@ -87,20 +86,22 @@ const generateTagString = ({
   discNumber,
   noOfDiscs,
   year,
-}: Partial<Track>) =>
-  [
-    mp3Tag(artist, ARTIST),
-    mp3Tag([discNumber, noOfDiscs].defined().join('/'), TPOS),
-    mp3Tag(year, YEAR),
-    mp3Tag(album, ALBUM),
-    mp3Tag([trackNo, trackNoTotal].defined().join('/'), TRACKNUMBER),
-    mp3Tag(trackName, TITLE),
-  ]
-    .defined()
-    .join(' ');
+}: Partial<Track>): string[] =>
+  (
+    [
+      mp3TagArgs(artist, ARTIST),
+      mp3TagArgs([discNumber, noOfDiscs].defined().join('/'), TPOS),
+      mp3TagArgs(year, YEAR),
+      mp3TagArgs(album, ALBUM),
+      mp3TagArgs([trackNo, trackNoTotal].defined().join('/'), TRACKNUMBER),
+      mp3TagArgs(trackName, TITLE),
+    ] as (string[] | false)[]
+  )
+    .filter((v): v is string[] => v !== false)
+    .flat();
 
 export const write = ({ path, track }: File) => {
   debugInfo(`Tagging ${path.split('/').slice(-2).join('/')}`);
 
-  return execute(`id3v2 -2 ${generateTagString(track)} "${path}"`.replace(/\s+/, ' ').trim());
+  return executeFile('id3v2', ['-2', ...generateTagArgs(track), path]);
 };

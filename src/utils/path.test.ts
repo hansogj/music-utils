@@ -11,7 +11,7 @@ const mocks = MockUtil<typeof execute>(jest).requireMocks('./execute');
 describe('path', () => {
   beforeEach(() => jest.resetAllMocks());
   beforeEach(() => jest.resetModules());
-  const setMockReturnValue = (val: string) => mocks.execute.mockReturnValue(Promise.resolve(val));
+  const setMockReturnValue = (val: string) => mocks.executeFile.mockReturnValue(Promise.resolve(val));
 
   describe.each([
     ['Rock and Roll.flac: audio/flac; charset=binary', 'flac' as FILETYPE],

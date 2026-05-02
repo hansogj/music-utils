@@ -64,7 +64,7 @@ const parseAlbumFolderName = (
   const { discNumber, noOfDiscs, album, aux } = parseDiscNumber(albumNameSplits.join(' '));
 
   return {
-    album: capitalize(album),
+    album: capitalize(album ?? ''),
     ...(year && { year }),
     ...(discNumber && { discNumber }),
     ...(noOfDiscs && { noOfDiscs }),
@@ -84,7 +84,9 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
     new RegExp(`${album}`, 'i').test(disc),
   ).length;
 
-  return toIntOr(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
+  return toIntOr(discNumber ?? 1, 1) > numberOfAlbumsWithSimilarNames
+    ? (discNumber ?? '1')
+    : `${numberOfAlbumsWithSimilarNames}`;
 };
 
 export const artistSortable = (artist: string) => {
@@ -101,10 +103,10 @@ export const parseAlbumInfo = (
   albumPath: string = __dirname,
 ): Pick<Release, 'artist' | 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
   const [artist, albumSplit] = getAlbumArtistInfoFromPath(albumPath);
-  const release = albumSplit && parseAlbumFolderName(albumSplit);
-  const noOfDiscs = release?.noOfDiscs ? release?.noOfDiscs : calcNoOfDiscsFromPath(albumPath, release);
+  const release = albumSplit ? parseAlbumFolderName(albumSplit) : undefined;
+  const noOfDiscs = release?.noOfDiscs ? release.noOfDiscs : calcNoOfDiscsFromPath(albumPath, release);
 
-  return { artist: artistSortable(artist), ...(release && release), ...(noOfDiscs && { noOfDiscs }) };
+  return { artist: artistSortable(artist), album: '', ...release, ...(noOfDiscs && { noOfDiscs }) };
 };
 
 export const getAlbumDirectory = () => {

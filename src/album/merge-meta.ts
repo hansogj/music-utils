@@ -17,11 +17,11 @@ export const sortable = (file: File): File => {
   if (defined(track) && defined(track.trackNo)) {
     const discNumber = maybe(track)
       .mapTo('discNumber')
-      .ifNothing(() => Math.floor(parseInt(track.trackNo, 10) / 100))
+      .ifNothing(() => Math.floor(parseInt(track!.trackNo!, 10) / 100))
       .map((it) => `${it}`)
       .valueOr('1');
 
-    const trackNumber = numOrNull(track?.trackNo, 0)
+    const trackNumber = numOrNull(track!.trackNo!, 0)
       .map((trNum) => (trNum > 100 ? toIntOr(trNum % 100, 0) : trNum))
       .shift();
 
@@ -41,7 +41,7 @@ export const mergeMetaData = (files: File[] = [], release: Partial<Release>, tra
       track: {
         ...track,
         ...release,
-        ...(defined(tracksFromFile) && defined(tracksFromFile[index]) && { trackName: tracksFromFile[index] }),
+        ...(defined(tracksFromFile) && defined(tracksFromFile![index]) && { trackName: tracksFromFile![index] }),
         trackNoTotal: totalNumberOfTracks(files, track),
       },
     }))

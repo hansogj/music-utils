@@ -1,7 +1,6 @@
 import { File, Track } from '../types';
 import { debugInfo, error } from '../utils/color.log';
-import { execute } from '../utils/execute';
-import { replaceQuotes } from '../utils/path';
+import { executeFile } from '../utils/execute';
 import { singleSpace } from './parser';
 
 const ARTIST = 'ARTIST';
@@ -14,10 +13,8 @@ const TRACKNUMBER = 'TRACKNUMBER';
 const TRACKTOTAL = 'TRACKTOTAL';
 const TITLE = 'TITLE';
 
-const harmless = (val: string): string => `"${replaceQuotes(val)}"`;
-
 export const read = async (path = ''): Promise<Partial<Track>> => {
-  const output = await execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER "${path}"`);
+  const output = await executeFile('metaflac', ['--show-tag=TITLE', '--show-tag=TRACKNUMBER', path]);
   const tags: Record<string, string> = {};
 
   if (output) {
@@ -37,7 +34,7 @@ export const read = async (path = ''): Promise<Partial<Track>> => {
   };
 };
 
-const generateRemoveTagString = ({
+const generateRemoveTagArgs = ({
   album,
   artist,
   trackName,
@@ -45,7 +42,7 @@ const generateRemoveTagString = ({
   trackNoTotal,
   discNumber,
   year,
-}: Partial<Track>) =>
+}: Partial<Track>): string[] =>
   [
     artist && ARTIST,
     artist && ALBUMARTIST,
@@ -58,12 +55,11 @@ const generateRemoveTagString = ({
     trackName && TITLE,
   ]
     .defined()
-    .map((param) => `--remove-tag=${param}`)
-    .join(' ');
+    .map((param) => `--remove-tag=${param}`);
 
-const flacTag = (val: string, tag: string) => val && `${tag}=${harmless(val)}`;
+const flacTag = (val: string | undefined, tag: string) => val && `${tag}=${val}`;
 
-const generateSetTagString = ({
+const generateSetTagArgs = ({
   album,
   artist,
   trackName,
@@ -72,7 +68,7 @@ const generateSetTagString = ({
   discNumber,
   noOfDiscs,
   year,
-}: Partial<Track>) =>
+}: Partial<Track>): string[] =>
   [
     flacTag(artist, ARTIST),
     flacTag(artist, ALBUMARTIST),
@@ -85,18 +81,14 @@ const generateSetTagString = ({
     flacTag([discNumber, noOfDiscs].defined().join('/'), DISCID),
   ]
     .defined()
-    .map((param) => `--set-tag=${param}`)
-    .join(' ');
+    .map((param) => `--set-tag=${param}`);
 
 export const write = async ({ path, track }: File) => {
   debugInfo(`Tagging ${path.split('/').slice(-2).join('/')}`);
 
-  const removeCmd = `metaflac ${generateRemoveTagString(track)} ${harmless(path)}`.replace(/\s+/, ' ').trim();
-  const setCmd = `metaflac ${generateSetTagString(track)} ${harmless(path)}`.replace(/\s+/, ' ').trim();
-
   try {
-    await execute(removeCmd);
-    await execute(setCmd);
+    await executeFile('metaflac', [...generateRemoveTagArgs(track), path]);
+    await executeFile('metaflac', [...generateSetTagArgs(track), path]);
   } catch (e) {
     error(`Failed to tag ${path} : ${e}`);
     throw e;

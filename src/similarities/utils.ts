@@ -34,7 +34,7 @@ const editDistance = (rawS1: string, rawS2: string) => {
 };
 
 export const equalityLevel = (s1: string, s2: string) => {
-  const [longer, shorter] = [`${s1}`, `${s2}`].sort((a, b) => a.length - b.length).map((p) => p.split('/').pop());
+  const [longer, shorter] = [`${s1}`, `${s2}`].sort((a, b) => a.length - b.length).map((p) => p.split('/').pop()!);
   const longerLength = longer.length;
 
   if (longerLength === 0) {
@@ -84,15 +84,15 @@ export const unify = (acc: Similarity[], current: Similarity) => {
 
   if (!defined(indexOfEqualOther)) {
     acc.push(current);
-  } else if (acc[indexOfEqualOther].similarity < current.similarity) {
-    acc.splice(indexOfEqualOther, 1, current);
+  } else if (acc[indexOfEqualOther!].similarity < current.similarity) {
+    acc.splice(indexOfEqualOther!, 1, current);
   }
 
   return acc;
 };
 
 export const getArtistCombination = (artist: string) => {
-  const splits: string[] = artist.split('/').pop().split(',').join(' ').split(' ').defined();
+  const splits: string[] = artist.split('/').pop()!.split(',').join(' ').split(' ').defined();
   return permute(splits).filter((permutation) => !BLACK_LIST_SIMILAR_WORD.includes(permutation.toLocaleLowerCase()));
 };
 

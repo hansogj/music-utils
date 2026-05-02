@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import '../utils/polyfills';
 
 import { tagAlbum } from '../album';

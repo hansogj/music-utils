@@ -1,7 +1,8 @@
 import './polyfills';
 
 import { defined } from '@hansogj/array.utils';
-import prompts, { Answers } from 'prompts';
+// @ts-expect-error TS1479: @inquirer/prompts is ESM-only but works at runtime via Node's interop
+import { confirm, input } from '@inquirer/prompts';
 
 import { Release } from '../types';
 import { exit, info, json } from './color.log';
@@ -35,19 +36,12 @@ const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>
     return release;
   }
 
-  const response: Answers<string> = await prompts({
-    type: 'text',
-    name: 'value',
-    message: 'Is this right info? Y/N?',
-    validate: (value: string) =>
-      ['y', 'n', 'yes', 'no'].includes(value.toLowerCase()) ? true : `You have to response YES or NO`,
+  const confirmed = await confirm({
+    message: 'Is this right info?',
+    default: true,
   });
 
-  if (response.value === undefined) {
-    exit();
-  }
-
-  if (/y/.test(response.value.toLowerCase())) {
+  if (confirmed) {
     return release;
   }
 
@@ -57,20 +51,21 @@ const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>
 export const userDefinedPrompt = async (release: Partial<Release>): Promise<Partial<Release>> => {
   info('Type new record data. Leave blank to keep data');
 
-  const response: Answers<string> = await prompts(
-    Object.entries({ ...questions, ...release }).map(([name, originalValue]) => ({
-      name,
-      message: `${name.toUpperCase()}: ${originalValue}`,
-      type: 'text',
-      validate: (value) => validate(name as Question, value),
-    })),
-  );
-
   const merged: Record<string, string> = {};
+  const entries = Object.entries({ ...questions, ...release });
 
-  for (const [key, val] of Object.entries(response)) {
-    if (defined(val)) {
-      merged[key] = removeDoubleSpace(`${val}`);
+  for (const [name, originalValue] of entries) {
+    try {
+      const value = await input({
+        message: `${name.toUpperCase()}: ${originalValue}`,
+        validate: (val) => validate(name as Question, val),
+      });
+
+      if (defined(value)) {
+        merged[name] = removeDoubleSpace(`${value}`);
+      }
+    } catch (_) {
+      exit();
     }
   }
 
@@ -94,9 +89,7 @@ export const albumPrompt = (album: Partial<Release>): Promise<Partial<Release>> 
   verifyPrompt(album).catch(() => userDefinedRelease(album));
 
 export const artistPrompt = (src: string, target: string): Promise<string> =>
-  prompts({
-    type: 'confirm',
-    name: 'value',
+  confirm({
     message: `Rename ${src} > ${target}?`,
-    initial: true,
-  }).then(({ value }) => (value ? Promise.resolve(value) : Promise.reject(value)));
+    default: true,
+  }).then((value) => (value ? Promise.resolve(`${value}`) : Promise.reject(`${value}`)));

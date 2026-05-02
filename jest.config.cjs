@@ -29,5 +29,8 @@ module.exports = {
     // testPathIgnorePatterns: ['/node_modules/', '<rootDir>/src/utils/__mocks__/mockutils.ts', '<rootDir>/.* /__mocks__'],
     // transformIgnorePatterns: ['../build/', '../build.ci/'],
     // coveragePathIgnorePatterns: ['../build/', '../build.ci/'],
-    transformIgnorePatterns: ['<rootDir>/node_modules/chalk/', '/chalk/'],
+    transformIgnorePatterns: ['node_modules/(?!(.pnpm|chalk)/)'],
+    moduleNameMapper: {
+        '@inquirer/prompts': '<rootDir>/../__mocks__/@inquirer/prompts.ts',
+    },
 };

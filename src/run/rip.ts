@@ -85,7 +85,7 @@ function formatTracklist(tracks: { position: string; title: string }[]): string 
 }
 
 function buildFolderName(release: Partial<Release>): string {
-  const safeTitle = sanitizePath(release.album);
+  const safeTitle = sanitizePath(release.album ?? '');
   const { discNumber, noOfDiscs, aux } = release;
   const discSuffix =
     noOfDiscs && parseInt(noOfDiscs, 10) > 1 ? ` (Disc ${discNumber}${DISC_NO_SPLIT}${noOfDiscs})` : '';
@@ -149,7 +149,7 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     };
 
     const confirmed = await albumPrompt(releaseInfo);
-    const safeArtist = sanitizePath(confirmed.artist);
+    const safeArtist = sanitizePath(confirmed.artist ?? '');
     const folderName = buildFolderName(confirmed);
     const fullPath = join(safeArtist, folderName);
 

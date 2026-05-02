@@ -32,7 +32,7 @@ describe('tag test', () => {
         extraction = await extractTags(path);
       });
       it('getFileType is called', () => expect(mocks.getFileType).toHaveBeenCalledTimes(1));
-      it('has not tried read tags from meta data', () => expect(mocks.execute).not.toHaveBeenCalled());
+      it('has not tried read tags from meta data', () => expect(mocks.executeFile).not.toHaveBeenCalled());
       it('should result expected', () =>
         expect(extraction).toStrictEqual({
           fileType: 'unknown',

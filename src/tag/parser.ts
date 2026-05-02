@@ -15,4 +15,4 @@ export const applyMatch = (unparsedTrackName: string, matchers: Parser[]) =>
   matchers
     .filter(({ matcher }) => defined(unparsedTrackName) && matcher.test(unparsedTrackName))
     .last()
-    .flatMap(({ matcher, select }: Parser) => selectFrom(unparsedTrackName.match(matcher), select));
+    .flatMap(({ matcher, select }: Parser) => selectFrom(unparsedTrackName.match(matcher)!, select));

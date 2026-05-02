@@ -1,9 +1,10 @@
-import fs from 'fs';
+import fs from 'node:fs';
+import { join } from 'node:path';
 
 import { DISC_NO_SPLIT } from '../constants';
 import { singleSpace } from '../tag/parser';
 import { FILETYPE } from '../types';
-import { execute } from './execute';
+import { executeFile } from './execute';
 
 export const splits = (paths: string) =>
   paths
@@ -11,7 +12,7 @@ export const splits = (paths: string) =>
     .filter((split) => split.length)
     .map((split) => split.replace(/\n/, ''));
 
-export const getPwd = (): Promise<string[]> => execute('pwd').then(splits);
+export const getPwd = (): Promise<string[]> => executeFile('pwd', []).then(splits);
 
 const isHidden = (fileName: string) => !/^\..*/.test(fileName);
 
@@ -21,7 +22,7 @@ export const readDir = (folder: string, filterHidden = true) =>
 export const getDirName = () => process.cwd();
 
 export const getFileType = (filePath: string): Promise<FILETYPE> =>
-  execute(`file -i "${filePath}"`).then((stdout) => {
+  executeFile('file', ['-i', filePath]).then((stdout) => {
     if (/\.mp3/.test(stdout)) return 'mp3';
     if (/\.flac/.test(stdout)) return 'flac';
     if (/\.jpe?g/.test(stdout)) return 'jpg';
@@ -30,9 +31,9 @@ export const getFileType = (filePath: string): Promise<FILETYPE> =>
   });
 
 export const renameFolder = (src: string, target: string, root = '../') =>
-  execute(`mv ${root}"${src}" ${root}"${target}"`);
+  executeFile('mv', [join(root, src), join(root, target)]);
 
-export const renameFile = (src: string, target: string) => execute(`mv "${src}" "${target}"`);
+export const renameFile = (src: string, target: string) => executeFile('mv', [src, target]);
 
 export const replaceQuotes = (str = '') => singleSpace(str).replace(/"/g, `'`);
 

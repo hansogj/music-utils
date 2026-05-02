@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { extractAlbumInfo } from '../album/album';
 import { getAlbumDirectory, parseAlbumInfo } from '../album/parse.path';
 import { File } from '../types';
