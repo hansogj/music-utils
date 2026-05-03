@@ -11,8 +11,8 @@ const selectFrom = (match: RegExpMatchArray, matches: number[]) =>
   match === null ? [] : matches.map((i) => singleSpace(match[i]));
 
 export const regExp = (...expressions: RegExp[]) => new RegExp(expressions.map((exp) => exp.source).join(''));
-export const applyMatch = (unparasedTrackName: string, matchers: Parser[]) =>
+export const applyMatch = (unparsedTrackName: string, matchers: Parser[]) =>
   matchers
-    .filter(({ matcher }) => defined(unparasedTrackName) && matcher.test(unparasedTrackName))
+    .filter(({ matcher }) => defined(unparsedTrackName) && matcher.test(unparsedTrackName))
     .last()
-    .flatMap(({ matcher, select }: Parser) => selectFrom(unparasedTrackName.match(matcher), select));
+    .flatMap(({ matcher, select }: Parser) => selectFrom(unparsedTrackName.match(matcher)!, select));

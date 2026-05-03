@@ -8,127 +8,133 @@ install following dependencies
 sudo apt install \
 id3v2 \
 flac \
-cdparanoia \
+cdparanoia
 ```
 
 # Installation
 
 ```
-npm ci && npm run build
+pnpm install && pnpm run build
 ```
 
-Add your discogs secret token to .env in this project's root folder (it is not comitted)
+Add your discogs secret token to .env in this project's root folder (it is not committed)
 
 ```
 DISCOGS_TOKEN="###SUPER_DUPER_SECRET###"
+```
+
+Link the CLI commands globally:
 
 ```
+pnpm link --global
+```
+
+This makes all `music-utils-*` commands available in your terminal.
 
 # Features
 
-_Music Utils_ provides 5 scripts:
-
-- ripoff.sh
-- cdrip.sh
-- cover.photo.sh
-- tag.album.sh
-- tag.tracks.sh
-
-Bind them to your _.bashrc_ file by
-
-```
-    source /path/to/music-utils/scripts/index.sh
-```
-
-## rip-off
+## rip
 
 ### Usage
 
 ```
-Music/Artist $> music-utils-rip-of -r <releaseId> -d <disc-number?>
+Music/Artist $> music-utils-rip -r <releaseId> -d <disc-number?>
 ```
 
-<releaseId> refers to the Discogs item id, disc-number if there are more than 1 disc
-Creates a folder 'Artist/2020 Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./scripts/wav2flac.sh), setting tags "Album" and "Artist" according to values in current path, rename files and fetches cover photo. All based on the info stored on Discogs on this release.
+`<releaseId>` refers to the Discogs item id, disc-number if there are more than 1 disc.
+Creates a folder `Artist/YYYY Album Name` from your current position, rips the CD (via _cdparanoia_), converts WAV to FLAC, renames files, sets tags and fetches cover photo. All based on info from Discogs.
 
-## cdrip [deprecated]
+## cover-photo
 
 ### Usage
 
 ```
-Music/Artist $> music-utils-cdrip Album\ Name
-```
-
-Creates a folder 'Album Name' from your current position (pwd), rips the cd in your cd-drive (with help from _cdparanoia_), converts all wav-files to flac-files [wav2flac](./scripts/wav2flac.sh) and setting tags "Album" and "Artist" according to values in current path
-
-## cover.photo
-
-### Usage
-
-```
-Music/Artist/2020 Album $> music-utils-cover-photo <releaseId>
+Music/Artist/2020 Album $> music-utils-cover-photo --releaseId <id>
 ```
 
 ```
 Music/Artist/2020 Album $> music-utils-cover-photo
 ```
 
-Parse your current position (pwd) to extract artist and album information. Then, fetching matching cover photos from Discogs and places the resulting image in a 'cover.jpg' file. Latter option deduce the item from current path and are less accurate.
+Parses your current directory to extract artist and album info, then fetches a matching cover photo from Discogs and saves it as `cover.jpg`. The `--releaseId` option is more accurate; without it, info is deduced from the path.
 
-## tag-album
-
-### Usage
-
-```
-Music/Artist/YYYY Album $> music-utils-tag-album
-Music/Artist $> music-utils-tag-album -a YYYY Album
-Music/Artist $> music-utils-tag-album --album YYYY Album
-```
-
-Parse your current position (pwd) to extract artist and album information. Then, for each file in current directory, extracts information either from flac, mp3 or file path, structurize these, rewrites tags and renames folder to match with standardized structure as follows:
-
-- Artist/YYYY Album name
-- Artist/YYYY Album name [extended info]
-- Artist/YYYY Album name (Disc 1∕2)
-
-## tag-tracks
-
-### Usage
-
-``
-Music/Artist/2020 Album $> tag-tracks.sh -f /path/to/tracks.txt
-
-```
-
-As _tag-album_ but fetches tracks info from provided tracks.txt file
-
-## Find similarities among music folders
-
-If your catalog consist of ie
-
-```
-
-| - A
-| - A Band
-| - B
-| - Band, A
-
-```
-
-where _A Band_ is actually the same band as _Band, A_ , similarities script will output as a table
+## album-tag
 
 ### Usage
 
 ```
-
-/> ./scripts/similarities.sh -A /path/to/origin/ -B /path/to/comparator/ -T 0.5 -Q > output.table
-
+Music/Artist/YYYY Album $> music-utils-album-tag
+Music/Artist $> music-utils-album-tag -a "YYYY Album"
 ```
 
-Where
+Parses directory structure to extract artist/album info, extracts tags from each file (FLAC, MP3, or filename), merges metadata, rewrites tags, and renames the folder to the standardized structure:
 
-- **-A** is base directory
-- **-B** is comparing directory
-- **-T** is threshold of equality
-- **-Q** to quiet
+- `Artist/YYYY Album name`
+- `Artist/YYYY Album name [extended info]`
+- `Artist/YYYY Album name (Disc 1∕2)`
+
+## tracks-tag
+
+### Usage
+
 ```
+Music/Artist/2020 Album $> music-utils-tracks-tag -f /path/to/tracks.txt
+```
+
+Like _album-tag_ but uses track names from the provided `tracks.txt` file.
+
+## album-cover (cover + tag combo)
+
+### Usage
+
+```
+Music/Artist/2020 Album $> music-utils-album-cover
+```
+
+Fetches album cover from Discogs then tags the album in one step.
+
+## bulk-album-tag
+
+### Usage
+
+```
+Music/Artist $> music-utils-bulk-album-tag
+Music $> music-utils-bulk-album-tag /path/to/artist/
+```
+
+Tags all album subdirectories in the given folder (or current directory).
+
+## bulk-cover-photo
+
+### Usage
+
+```
+Music/Artist $> music-utils-bulk-cover-photo
+```
+
+Fetches cover photos for all subdirectories that don't already have a `.jpg` file.
+
+## similarities
+
+Finds similar artist names across directories (e.g. `A Band` vs `Band, A`).
+
+### Usage
+
+```
+/> music-utils-similarities -A /path/to/origin/ -B /path/to/comparator/ -T 0.5 -Q
+```
+
+- **-A** base directory
+- **-B** comparing directory
+- **-T** threshold of equality
+- **-Q** quiet mode
+
+## sync-tracks
+
+### Usage
+
+```
+Music/Artist/2020 Album $> music-utils-sync-tracks
+```
+
+Synchronizes track filenames with parsed album metadata.

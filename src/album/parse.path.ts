@@ -7,7 +7,7 @@ import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
 import { exit } from '../utils/color.log';
-import { wov } from '../utils/number';
+import { toIntOr } from '../utils/number';
 import { getDirName, readDir, splits } from '../utils/path';
 import { capitalize, removeDoubleSpace } from '../utils/string';
 
@@ -21,41 +21,37 @@ const auxParser: Parser = {
   select: [1, 2, 3],
 };
 
-const discNrParserApplied = (album: string) => applyMatch(album, [discNrParser]);
-const auxParserApplied = (album: string) => applyMatch(album, [auxParser]);
+const cleanAuxInfo = (...aux: string[]) => removeDoubleSpace(aux.join(' ')).replace(/\[|\]/g, '');
 
-const prettyAux = (...aux: string[]) => removeDoubleSpace(aux.join(' ')).replace(/\[|\]/g, '');
-const splitParsedDiscNumber = (parsedDiscNumber: string) =>
-  `${parsedDiscNumber}`
+const splitParsedDiscNumber = (parsedDiscNumber: string): string[] => {
+  const parts = `${parsedDiscNumber}`
     .split(DISC_NO_SPLIT)
-    .map((n: string) => wov(n, undefined))
+    .map((n: string) => toIntOr(n, undefined))
     .defined()
-    .map((e) => `${e}`)
-    .onEmpty((o: string[]) => o.push('1') as never); // defaults to discNumber: 1
+    .map((e) => `${e}`);
 
-const parseDiscNumber = (parsedAlbum = ''): Partial<Release> =>
-  [parsedAlbum]
-    .map(discNrParserApplied)
-    .map(([albumTitle, parsedDiscNumber, ...aux]) => ({
-      aux: aux.join(' '),
-      parsedDiscNumber,
-      album: maybe(albumTitle).valueOr(parsedAlbum),
-    }))
-    .map(({ parsedDiscNumber, album, aux }) => {
-      const [albumTitle, parsedAux, rest] = auxParserApplied(album);
-      const [discNumber, noOfDiscs] = splitParsedDiscNumber(parsedDiscNumber);
-      return {
-        discNumber,
-        noOfDiscs,
-        ...((aux || parsedAux) && { aux: prettyAux(aux, parsedAux) }),
-        album: removeDoubleSpace(
-          maybe(albumTitle || album)
-            .map((it) => [it].concat([rest]).defined().join(' '))
-            .valueOr(parsedAlbum),
-        ),
-      };
-    })
-    .shift();
+  return parts.length > 0 ? parts : ['1']; // defaults to discNumber: 1
+};
+
+const parseDiscNumber = (parsedAlbum = ''): Partial<Release> => {
+  const [albumTitle, parsedDiscNumber, ...auxParts] = applyMatch(parsedAlbum, [discNrParser]);
+  const aux = auxParts.join(' ');
+  const album = maybe(albumTitle).valueOr(parsedAlbum);
+
+  const [cleanAlbumTitle, parsedAux, rest] = applyMatch(album, [auxParser]);
+  const [discNumber, noOfDiscs] = splitParsedDiscNumber(parsedDiscNumber);
+
+  return {
+    discNumber,
+    noOfDiscs,
+    ...((aux || parsedAux) && { aux: cleanAuxInfo(aux, parsedAux) }),
+    album: removeDoubleSpace(
+      maybe(cleanAlbumTitle || album)
+        .map((it) => [it].concat([rest]).defined().join(' '))
+        .valueOr(parsedAlbum),
+    ),
+  };
+};
 
 const parseAlbumFolderName = (
   albumPath: string,
@@ -68,7 +64,7 @@ const parseAlbumFolderName = (
   const { discNumber, noOfDiscs, album, aux } = parseDiscNumber(albumNameSplits.join(' '));
 
   return {
-    album: capitalize(album),
+    album: capitalize(album ?? ''),
     ...(year && { year }),
     ...(discNumber && { discNumber }),
     ...(noOfDiscs && { noOfDiscs }),
@@ -88,28 +84,29 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
     new RegExp(`${album}`, 'i').test(disc),
   ).length;
 
-  return wov(discNumber, 1) > numberOfAlbumsWithSimilarNames ? discNumber : `${numberOfAlbumsWithSimilarNames}`;
+  return toIntOr(discNumber ?? 1, 1) > numberOfAlbumsWithSimilarNames
+    ? (discNumber ?? '1')
+    : `${numberOfAlbumsWithSimilarNames}`;
 };
 
-export const artistSortable = (artist: string) =>
-  DEFINITE_ARTICLES.filter((prefix) => RegExp(`^${prefix} `, 'i').test(artist))
-    .map((prefix: string) =>
-      artist
-        .split(RegExp(`^${prefix} `, 'i'))
-        .reverse()
-        .join(`, ${prefix}`),
-    )
-    .onEmpty((o: string[]) => o.push(artist) as never)
-    .shift();
+export const artistSortable = (artist: string) => {
+  const matchingPrefix = DEFINITE_ARTICLES.find((prefix) => RegExp(`^${prefix} `, 'i').test(artist));
+  if (!matchingPrefix) return artist;
+
+  return artist
+    .split(RegExp(`^${matchingPrefix} `, 'i'))
+    .reverse()
+    .join(`, ${matchingPrefix}`);
+};
 
 export const parseAlbumInfo = (
   albumPath: string = __dirname,
 ): Pick<Release, 'artist' | 'album' | 'discNumber' | 'year' | 'noOfDiscs' | 'aux'> => {
   const [artist, albumSplit] = getAlbumArtistInfoFromPath(albumPath);
-  const release = albumSplit && parseAlbumFolderName(albumSplit);
-  const noOfDiscs = release?.noOfDiscs ? release?.noOfDiscs : calcNoOfDiscsFromPath(albumPath, release);
+  const release = albumSplit ? parseAlbumFolderName(albumSplit) : undefined;
+  const noOfDiscs = release?.noOfDiscs ? release.noOfDiscs : calcNoOfDiscsFromPath(albumPath, release);
 
-  return { ...{ artist: artistSortable(artist) }, ...(release && release), ...(noOfDiscs && { noOfDiscs }) };
+  return { artist: artistSortable(artist), album: '', ...release, ...(noOfDiscs && { noOfDiscs }) };
 };
 
 export const getAlbumDirectory = () => {

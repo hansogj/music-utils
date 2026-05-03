@@ -1,38 +1,28 @@
 #!/usr/bin/env node
-/* eslint-disable no-await-in-loop */
-/* eslint-disable no-restricted-syntax */
-/* eslint-disable no-console */
 
-// This is a TypeScript example script demonstrating how to use the 'discogs-lookup' library.
-// It can be run directly using `ts-node` or compiled to JavaScript first.
+import '../utils/polyfills';
 
-// Node.js built-in modules
 import { spawn } from 'node:child_process';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path, { join } from 'node:path';
 import { chdir, exit } from 'node:process';
 
-// Third-party modules
 import { DiscogsApiError, lookupRelease, LookupReleaseOptions, LookupResult } from '@hansogj/discogs-item-lookup';
 import * as dotenv from 'dotenv';
 
+import { tagAlbum } from '../album';
 import { DISC_NO_SPLIT } from '../constants';
+import { coverFromDiscogs } from '../covers/photo';
+import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
+import { replaceDangers } from '../utils/path';
+import { albumPrompt } from '../utils/prompt';
+import { syncTrackNames } from '../utils/sync.tag.path';
 
-// --- Core Helper Functions ---
-
-/**
- * A helper function to run shell commands and wait for them to complete.
- * It streams the command's output directly to the console.
- * @param command The command to execute (e.g., 'ls').
- * @param args An array of arguments for the command (e.g., ['-l']).
- * @returns A promise that resolves when the command finishes successfully.
- */
 function runCommand(command: string, args: string[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log(`\n▶️  Running command: ${command} ${args.join(' ')}`);
-
-    // Spawn the child process. 'inherit' connects the child's stdio to the parent's.
     const child = spawn(command, args, { stdio: 'inherit' });
 
     child.on('close', (code: number | null) => {
@@ -40,13 +30,11 @@ function runCommand(command: string, args: string[] = []): Promise<void> {
         console.log(`✅ Command finished successfully.`);
         resolve();
       } else {
-        // The command failed.
         reject(new Error(`Command "${command}" exited with error code ${code}`));
       }
     });
 
     child.on('error', (err: Error) => {
-      // Failed to start the command (e.g., command not found).
       reject(new Error(`Failed to start command "${command}": ${err.message}`));
     });
   });
@@ -81,21 +69,10 @@ function runCommandWithOutput(command: string, args: string[] = []): Promise<str
   });
 }
 
-/**
- * Replaces characters that are invalid in Windows/macOS/Linux file paths.
- * @param input The string to sanitize.
- * @returns A sanitized string safe for use as a file or folder name.
- */
 function sanitizePath(input: string): string {
-  // eslint-disable-next-line no-control-regex
   return input.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
 }
 
-/**
- * Sorts and formats the tracklist for the tracks.txt file.
- * @param tracks The tracklist array from the Discogs response.
- * @returns A formatted string of track titles, separated by newlines.
- */
 function formatTracklist(tracks: { position: string; title: string }[]): string {
   return tracks
     .slice()
@@ -114,11 +91,15 @@ function formatTracklist(tracks: { position: string; title: string }[]): string 
     .join('\n');
 }
 
-// --- Audio Processing Functions ---
+function buildFolderName(release: Partial<Release>): string {
+  const safeTitle = sanitizePath(release.album ?? '');
+  const { discNumber, noOfDiscs, aux } = release;
+  const discSuffix =
+    noOfDiscs && parseInt(noOfDiscs, 10) > 1 ? ` (Disc ${discNumber}${DISC_NO_SPLIT}${noOfDiscs})` : '';
+  const auxSuffix = aux ? ` [${aux}]` : '';
+  return `${release.year} ${safeTitle}${discSuffix}${auxSuffix}`;
+}
 
-/**
- * Converts WAV files in the current directory to FLAC format using the 'flac' CLI tool.
- */
 async function convertWavFilesToFlac(): Promise<void> {
   console.log('\n💿 Converting .wav to .flac...');
   const wavFiles = (await readdir('.')).filter((f) => f.endsWith('.wav'));
@@ -149,7 +130,6 @@ async function convertWavFilesToFlac(): Promise<void> {
       }
     } catch (error) {
       console.error(`Error processing ${wavFile}:`, error);
-      // Decide if you want to stop or continue. For now, let's continue.
       console.log(`Skipping ${wavFile} due to error.`);
     }
   }
@@ -157,11 +137,26 @@ async function convertWavFilesToFlac(): Promise<void> {
   console.log('✅ Conversion to .flac complete.');
 }
 
-// --- Main Orchestration ---
+async function renameFlacFiles(): Promise<void> {
+  console.log('\n🏷️  Renaming .flac files...');
+  const files = (await readdir('.')).filter((f) => f.endsWith('.flac'));
 
-/**
- * Main function to orchestrate the album lookup and ripping process.
- */
+  for (const file of files) {
+    let newName = file
+      .replace(/track(\d\d)\.cdda\.flac/, '$1 track.flac')
+      .replace(/Track\s(\d+)\.flac/, '$1 track.flac');
+
+    if (/^\d\s/.test(newName)) {
+      newName = `0${newName}`;
+    }
+
+    if (newName !== file) {
+      console.log(`   ${file} -> ${newName}`);
+      await rename(file, newName);
+    }
+  }
+}
+
 async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 'releaseId'>): Promise<void> {
   const initialDir = process.cwd();
   dotenv.config({ path: path.resolve(__dirname, '../..', '.env') });
@@ -170,9 +165,19 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     console.log(`🔍 Looking up Discogs release ID: ${releaseId}...`);
     const releaseData: LookupResult = await lookupRelease({ releaseId, disc, token: process.env.DISCOGS_TOKEN });
     console.log(`💿 Found: ${releaseData.artist} - ${releaseData.title}`);
-    const safeArtist = sanitizePath(releaseData.artist);
-    const safeTitle = sanitizePath(releaseData.title);
-    const folderName = `${releaseData.masterYear} ${safeTitle}${disc ? ` (Disc ${disc}${DISC_NO_SPLIT}${disc})` : ''}`;
+
+    const noOfDiscs = releaseData.discs.length;
+    const releaseInfo: Partial<Release> = {
+      artist: sanitizePath(releaseData.artist),
+      album: releaseData.title,
+      year: `${releaseData.masterYear}`,
+      discNumber: `${disc || 1}`,
+      noOfDiscs: `${noOfDiscs}`,
+    };
+
+    const confirmed = await albumPrompt(releaseInfo);
+    const safeArtist = sanitizePath(confirmed.artist ?? '');
+    const folderName = buildFolderName(confirmed);
     const fullPath = join(safeArtist, folderName);
 
     console.log(`\n📁 Creating directory: ${fullPath}`);
@@ -200,15 +205,16 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     }
 
     await convertWavFilesToFlac();
-
-    console.log('\n🏷️  Renaming .flac files...');
-    await runCommand(path.resolve(__dirname, '../../scripts/wav2flac.sh'));
+    await renameFlacFiles();
 
     console.log(`\n🖼️  Fetching album cover... `);
-    await runCommand(path.resolve(__dirname, '../../scripts/cover.photo.sh'), [`--releaseId`, releaseId]);
+    await coverFromDiscogs({ releaseId, quiet: true, token: process.env.DISCOGS_TOKEN ?? '' });
 
     console.log('\n✏️  Tagging tracks...');
-    await runCommand(path.resolve(__dirname, '../../scripts/tag.tracks.sh'), ['-f', '../../tracks.txt']);
+    const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');
+    const tracks = trackLines.split('\n').defined().map(replaceDangers);
+    const { files, release: taggedRelease } = await tagAlbum(process.cwd(), tracks);
+    await syncTrackNames(files, taggedRelease as Release);
 
     console.log(`\n🔀 Returning to starting directory: ${initialDir}`);
     chdir(initialDir);
@@ -233,7 +239,6 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
 }
 
 const { disc, releaseId } = getCommandLineArgs();
-console.log(`${disc}`);
 main({ releaseId, disc }).catch((err) => {
   console.error(`\n❌ Fatal error: ${err.message}`);
   exit(1);

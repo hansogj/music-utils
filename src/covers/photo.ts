@@ -38,7 +38,7 @@ export const coverFromDiscogs = async ({
     if (releaseId) {
       imageBuffer = await discogsMainCover({ releaseId, strategy: 'prompt', token });
     } else {
-      const release = await getAlbumInfo(dirName, quiet).then(log);
+      const release = await getAlbumInfo(dirName!, quiet).then(log);
 
       imageBuffer = await discogsMainCover({
         artist: release.artist,

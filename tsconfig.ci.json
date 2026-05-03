@@ -11,12 +11,12 @@
         "rootDir": "./",
         "strict": true,
         "noImplicitAny": true,
-        "strictNullChecks": false,
+        "strictNullChecks": true,
         "moduleResolution": "node16",
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "types": ["jest"],
+        "types": ["jest", "node"],
         "isolatedModules": true
     },
     "include": [

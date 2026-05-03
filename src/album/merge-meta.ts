@@ -4,13 +4,12 @@ import { defined } from '@hansogj/array.utils';
 import maybe from '@hansogj/maybe';
 
 import { File, Release, Track } from '../types';
-import { numOrNull, wov } from '../utils/number';
+import { numOrNull, toIntOr } from '../utils/number';
 
 export type ParsedValues = Pick<Track, 'artist' | 'album'>;
 
-// eslint-disable-next-line @typescript-eslint/default-param-last
-const totalNumberOfTracks = ({ trackNoTotal }: Partial<Track> = {} as Partial<Track>, files: File[]) =>
-  `${trackNoTotal !== undefined ? trackNoTotal : files.length}`;
+const totalNumberOfTracks = (files: File[], track: Partial<Track> = {}): string =>
+  `${track.trackNoTotal !== undefined ? track.trackNoTotal : files.length}`;
 
 export const sortable = (file: File): File => {
   let track = file?.track;
@@ -18,27 +17,22 @@ export const sortable = (file: File): File => {
   if (defined(track) && defined(track.trackNo)) {
     const discNumber = maybe(track)
       .mapTo('discNumber')
-      .ifNothing(() => Math.floor(parseInt(track.trackNo, 10) / 100))
+      .ifNothing(() => Math.floor(parseInt(track!.trackNo!, 10) / 100))
       .map((it) => `${it}`)
       .valueOr('1');
 
-    const trackNumber = numOrNull(track?.trackNo, 0)
-      .map((trNum) => (trNum > 100 ? wov(trNum % 100, 0) : trNum))
+    const trackNumber = numOrNull(track!.trackNo!, 0)
+      .map((trNum) => (trNum > 100 ? toIntOr(trNum % 100, 0) : trNum))
       .shift();
 
     const trackNo = [trackNumber].defined().join('');
-    track = { ...track, ...{ discNumber, trackNo } };
+    track = { ...track, discNumber, trackNo };
   }
 
   return { ...file, track };
 };
 
-export const mergeMetaData = (
-  // eslint-disable-next-line @typescript-eslint/default-param-last
-  files: Array<File> = [],
-  release: Partial<Release>,
-  tracksFromFile?: string[],
-): Array<File> =>
+export const mergeMetaData = (files: File[] = [], release: Partial<Release>, tracksFromFile?: string[]): File[] =>
   files
     .filter((file) => defined(file.path))
     .map(({ fileType, track, path }, index: number) => ({
@@ -47,8 +41,8 @@ export const mergeMetaData = (
       track: {
         ...track,
         ...release,
-        ...(defined(tracksFromFile) && defined(tracksFromFile[index]) && { trackName: tracksFromFile[index] }),
-        trackNoTotal: totalNumberOfTracks(track, files),
+        ...(defined(tracksFromFile) && defined(tracksFromFile![index]) && { trackName: tracksFromFile![index] }),
+        trackNoTotal: totalNumberOfTracks(files, track),
       },
     }))
     .map(sortable)

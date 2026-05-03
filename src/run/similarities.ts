@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { defined } from '@hansogj/array.utils';
 import fs from 'fs';
@@ -22,17 +23,14 @@ const appendArtistSimilarity = ({ artist, similarities }: ArtistSimilarity) =>
 
 if (fileName) fs.writeFileSync(fileName, '');
 writeToFile('[\n');
-Promise.all([
-  execute<string>(`find ${dirA} -maxdepth 1 -type d`),
-  execute<string>(`find  ${dirB} -maxdepth 2 -mindepth 2 -type d`),
-])
+Promise.all([execute(`find ${dirA} -maxdepth 1 -type d`), execute(`find  ${dirB} -maxdepth 2 -mindepth 2 -type d`)])
   .then((dirs: string[]) => dirs.map((dir) => dir.split(/\n/).defined()))
   .then(([lsDirA, lsDirB]: string[][]) => {
     findSimilarArtists(lsDirA, lsDirB, threshold, ignore, logger, fileName ? appendArtistSimilarity : undefined)
       .filter(({ similarities }) => defined(similarities))
       .forEach(({ artist, similarities }) => {
         info(artist);
-        // eslint-disable-next-line no-console
+
         console.table(similarities);
       });
   })

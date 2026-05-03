@@ -22,7 +22,7 @@ describe('artist sort', () => {
 });
 describe('parse.path', () => {
   describe.each([
-    ['artist', { artist: 'artist' }],
+    ['artist', { artist: 'artist', album: '', noOfDiscs: '1' }],
     ['artist/album', { artist: 'artist', album: 'Album', discNumber: '1', noOfDiscs: '1' }],
     [
       '/My Band / album   of the Year   ',

@@ -1,41 +1,40 @@
-import { File, MetaFlac, Track } from '../types';
+import { File, Track } from '../types';
 import { debugInfo, error } from '../utils/color.log';
-import { execute } from '../utils/execute';
-import { replaceQuotes } from '../utils/path';
+import { executeFile } from '../utils/execute';
 import { singleSpace } from './parser';
 
-const ARTIST = `ARTIST`;
-const ALBUMARTIST = `ALBUMARTIST`;
-const DISCID = `DISCID`;
-const DISCNUMBER = `DISCNUMBER`;
+const ARTIST = 'ARTIST';
+const ALBUMARTIST = 'ALBUMARTIST';
+const DISCID = 'DISCID';
+const DISCNUMBER = 'DISCNUMBER';
 const DATE = 'DATE';
 const ALBUM = 'ALBUM';
 const TRACKNUMBER = 'TRACKNUMBER';
 const TRACKTOTAL = 'TRACKTOTAL';
 const TITLE = 'TITLE';
 
-const harmless = (val: string): string => `"${replaceQuotes(val)}"`;
+export const read = async (path = ''): Promise<Partial<Track>> => {
+  const output = await executeFile('metaflac', ['--show-tag=TITLE', '--show-tag=TRACKNUMBER', path]);
+  const tags: Record<string, string> = {};
 
-export const read = (path = ''): Promise<Partial<Track>> =>
-  execute(`metaflac --show-tag=TITLE --show-tag=TRACKNUMBER "${path}"`).then((output) => {
-    const reduced: MetaFlac = `${output}`
+  if (output) {
+    output
       .split(/\n/)
-      .map((split: string) => split.trim())
+      .map((line) => line.trim())
       .defined()
-      .reduce((res: MetaFlac, line: string) => {
+      .forEach((line: string) => {
         const [key, val] = line.split('=');
-        // @ts-ignore
-        res[key] = val && singleSpace(val);
-        return res;
-      }, {} as MetaFlac);
+        if (val) tags[key] = singleSpace(val);
+      });
+  }
 
-    return {
-      ...(reduced.TITLE && { trackName: reduced.TITLE }),
-      ...(reduced.TRACKNUMBER && { trackNo: reduced.TRACKNUMBER }),
-    } as Partial<Track>;
-  });
+  return {
+    ...(tags.TITLE && { trackName: tags.TITLE }),
+    ...(tags.TRACKNUMBER && { trackNo: tags.TRACKNUMBER }),
+  };
+};
 
-const generateRemoveTagString = ({
+const generateRemoveTagArgs = ({
   album,
   artist,
   trackName,
@@ -43,7 +42,7 @@ const generateRemoveTagString = ({
   trackNoTotal,
   discNumber,
   year,
-}: Partial<Track>) =>
+}: Partial<Track>): string[] =>
   [
     artist && ARTIST,
     artist && ALBUMARTIST,
@@ -56,12 +55,11 @@ const generateRemoveTagString = ({
     trackName && TITLE,
   ]
     .defined()
-    .map((param) => ['--remove-tag', param].join('='))
-    .join(' ');
+    .map((param) => `--remove-tag=${param}`);
 
-const flacTag = (val: string, tag: string) => val && [tag, harmless(val)].join('=');
+const flacTag = (val: string | undefined, tag: string) => val && `${tag}=${val}`;
 
-const generateSetTagString = ({
+const generateSetTagArgs = ({
   album,
   artist,
   trackName,
@@ -70,7 +68,7 @@ const generateSetTagString = ({
   discNumber,
   noOfDiscs,
   year,
-}: Partial<Track>) =>
+}: Partial<Track>): string[] =>
   [
     flacTag(artist, ARTIST),
     flacTag(artist, ALBUMARTIST),
@@ -83,43 +81,16 @@ const generateSetTagString = ({
     flacTag([discNumber, noOfDiscs].defined().join('/'), DISCID),
   ]
     .defined()
-    .map((param) => ['--set-tag', param].join('='))
-    .join(' ');
+    .map((param) => `--set-tag=${param}`);
 
-export const write = ({ path, track }: File) => {
+export const write = async ({ path, track }: File) => {
   debugInfo(`Tagging ${path.split('/').slice(-2).join('/')}`);
-  const [executeRemoveTag, executeSetTag] = [generateRemoveTagString, generateSetTagString]
-    .map((action) => action(track))
-    .map((tags) => ['metaflac', tags, harmless(path)].join(' '))
-    .map((exec) => exec.replace(/\s+/, ' ').trim());
 
-  return execute(executeRemoveTag)
-    .then(() => execute(executeSetTag))
-    .catch((e) => {
-      error(`Failed to tag ${path} : ${e}`);
-      return e;
-    });
+  try {
+    await executeFile('metaflac', [...generateRemoveTagArgs(track), path]);
+    await executeFile('metaflac', [...generateSetTagArgs(track), path]);
+  } catch (e) {
+    error(`Failed to tag ${path} : ${e}`);
+    throw e;
+  }
 };
-
-//  .then(e )> ;
-// metaflac --show-tag=TITLE --show-tag=ALBUM --show-tag=ARTIST d1t01.\ Led\ Zeppelin\ -\ Rock\ and\ Roll.flac
-// TITLE=Rock and Roll
-// ALBUM=The Song Remains the Same
-// ARTIST=Led Zeppelin____
-
-// ALBUM
-// ALBUMARTIST
-// ALBUMARTISTSORT
-// ARTIST
-// ARTISTSORT
-// COMPILATION
-// DATE
-// DISCID
-// GENRE
-// MUSICBRAINZ_ALBUMARTISTID
-// MUSICBRAINZ_ALBUMID
-// MUSICBRAINZ_ARTISTID
-// MUSICBRAINZ_DISCID
-// MUSICBRAINZ_TRACKID
-// TITLE
-// TRACKTOTAL

@@ -1,4 +1,3 @@
-/* eslint-disable import/first */
 const mockPrompt = jest.fn();
 jest.mock('prompts', () => ({
   __esModule: true,

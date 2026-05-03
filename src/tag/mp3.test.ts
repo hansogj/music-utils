@@ -23,12 +23,13 @@ describe('mp3', () => {
     beforeEach(() => {
       jest.spyOn(mp3, 'id3v1');
       jest.spyOn(mp3, 'id3v2');
-      mocks.execute.mockResolvedValue('');
+      mocks.executeFile.mockResolvedValue('');
       mp3.read(path);
     });
 
-    it('should call execute', () => expect(mocks.execute).toHaveBeenCalledTimes(1));
-    it('should call execute with params ', () => expect(mocks.execute).toHaveBeenCalledWith(`id3v2 -l "${path}"`));
+    it('should call executeFile', () => expect(mocks.executeFile).toHaveBeenCalledTimes(1));
+    it('should call executeFile with args array', () =>
+      expect(mocks.executeFile).toHaveBeenCalledWith('id3v2', ['-l', path]));
 
     describe('extract and parse id3 data', () => {
       describe.each([
@@ -71,17 +72,33 @@ describe('mp3', () => {
 
     describe('write', () => {
       describe.each([
-        [{}, ''],
-        [{ album: albumTrack.album }, `--TALB "MDK"`],
-        [albumTrack, `--TPE1 "Magma" --TPOS "02/04" --TYER "1973" --TALB "MDK" --TRCK "01/12" --TIT2 "Tusen Takk"`],
-      ])('with track data %o ', (track: Partial<Track>, expected: string) => {
-        const callParams = `id3v2 -2 ${expected} "/Album/d1t1 track.wtf"`;
+        [{}, [] as string[]],
+        [{ album: albumTrack.album }, ['--TALB', 'MDK']],
+        [
+          albumTrack,
+          [
+            '--TPE1',
+            'Magma',
+            '--TPOS',
+            '02/04',
+            '--TYER',
+            '1973',
+            '--TALB',
+            'MDK',
+            '--TRCK',
+            '01/12',
+            '--TIT2',
+            'Tusen Takk',
+          ],
+        ],
+      ])('with track data %o ', (track: Partial<Track>, expectedArgs: string[]) => {
         beforeEach(async () => {
-          mocks.execute.mockResolvedValue('SUCCESS');
+          mocks.executeFile.mockResolvedValue('SUCCESS');
           await mp3.write({ path, fileType: 'mp3', track });
         });
-        it('has executed once', () => expect(mocks.execute).toHaveBeenCalledTimes(2));
-        it(`has executed once with ${callParams}`, () => expect(mocks.execute).toHaveBeenCalledWith(callParams));
+        it('has executed twice (read + write)', () => expect(mocks.executeFile).toHaveBeenCalledTimes(2));
+        it('has called write with args array', () =>
+          expect(mocks.executeFile).toHaveBeenCalledWith('id3v2', ['-2', ...expectedArgs, path]));
       });
     });
   });

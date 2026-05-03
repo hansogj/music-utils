@@ -5,7 +5,7 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, '__esModule', { value: true });
-/* eslint-disable no-console */
+
 const path_1 = __importDefault(require('path'));
 const prompt_1 = require('../../src/utils/prompt');
 const MU_TEST_ZEP_1 = path_1.default.join(

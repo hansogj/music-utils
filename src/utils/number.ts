@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import './polyfills';
 
 import { defined } from '@hansogj/array.utils';
@@ -10,19 +9,22 @@ export const maybe = (num: string | number) =>
     .map(parseInt)
     .nothingIf(isNaN);
 
-export const wov = (num: string | number, or: number | undefined): number =>
+export const toIntOr = (num: string | number, or: number | undefined): number =>
   maybeOr(num)
     .map((n) => `${n}`)
     .map(parseInt)
     .nothingIf(isNaN)
     .valueOr(or) as number;
 
-export const generator =
+export const toInts =
   (or: number | undefined) =>
   (...nums: Array<string | number>) =>
-    nums.map((num) => wov(num, or));
+    nums.map((num) => toIntOr(num, or));
 
-export const numOrNull = generator(0);
+export const numOrNull = toInts(0);
 
 export const precedingZero = (discNumber: number, trackNumber: number) =>
   defined(discNumber) && trackNumber < 10 ? 0 : trackNumber < 10 && 0;
+
+/** @deprecated Use toIntOr */
+export const wov = toIntOr;

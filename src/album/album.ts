@@ -3,7 +3,7 @@ import '../utils/polyfills';
 import { join } from 'path';
 
 import { extractTags, tagFile } from '../tag';
-import { File, MusicFileTypes, Release, Track } from '../types';
+import { File, MusicFileTypes, Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
 import { debugInfo, error } from '../utils/color.log';
 import { readDir } from '../utils/path';
@@ -12,35 +12,34 @@ import { syncReleaseFolder } from '../utils/sync.tag.path';
 import { mergeMetaData } from './merge-meta';
 import { parseAlbumInfo } from './parse.path';
 
-export type ParsedValues = Pick<Track, 'artist' | 'album'>;
+export type ParsedValues = Pick<File['track'], 'artist' | 'album'>;
 
 export type ReleaseFiles = { release: Release; files: File[] };
 
-export const extractAlbumInfo = (dirName: string): Promise<Array<File>> => {
+export const extractAlbumInfo = async (dirName: string): Promise<File[]> => {
   const fileList = readDir(dirName).map((file) => join(dirName, file));
-  return Promise.all(fileList.map((file) => extractTags(file)))
-    .then((files: Array<File>) => debugInfo(files))
-    .then((files: Array<File>) => files.filter((file) => MusicFileTypes.includes(file.fileType)));
+  const files = await Promise.all(fileList.map(extractTags));
+  debugInfo(files);
+  return files.filter((file) => MusicFileTypes.includes(file.fileType));
 };
 
-export const tagAlbum = (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
+export const tagAlbum = async (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
   const { tagOnly } = getCommandLineArgs();
 
-  return (tagOnly ? Promise.resolve(parseAlbumInfo(dirName)) : albumPrompt(parseAlbumInfo(dirName)))
-    .then((release) =>
-      extractAlbumInfo(dirName)
-        .then((files: Array<File>) => mergeMetaData(files, release, tracksFromFile))
-        .then((files: Array<File>) => debugInfo(files))
-        .then((files: Array<File>) => Promise.all(files.map(tagFile)))
-        .then((files: Array<File>) =>
-          (tagOnly ? Promise.resolve({}) : syncReleaseFolder(release as Release, dirName)).then(() => ({
-            files,
-            release,
-          })),
-        ),
-    )
-    .catch((e): unknown => {
-      error(e);
-      return undefined;
-    }) as Promise<ReleaseFiles>;
+  const release = tagOnly ? parseAlbumInfo(dirName) : await albumPrompt(parseAlbumInfo(dirName));
+
+  const extracted = await extractAlbumInfo(dirName);
+  const merged = mergeMetaData(extracted, release, tracksFromFile);
+  debugInfo(merged);
+  const files = await Promise.all(merged.map(tagFile));
+
+  try {
+    if (!tagOnly) {
+      await syncReleaseFolder(release as Release, dirName);
+    }
+  } catch (e) {
+    error(e);
+  }
+
+  return { files, release: release as Release };
 };

@@ -17,10 +17,8 @@ const questions: Release = {
 };
 export type Question = keyof typeof questions;
 
-const isNumeric = (name: Question) =>
-  Object.keys(questions)
-    .filter((_, i) => [2, 3, 4].includes(i))
-    .includes(name);
+const numericFields: Question[] = ['year', 'discNumber', 'noOfDiscs'];
+const isNumeric = (name: Question) => numericFields.includes(name);
 
 export const validate = (name: Question, value: string) => {
   if (isNumeric(name)) {
@@ -57,31 +55,40 @@ const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>
 };
 
 export const userDefinedPrompt = async (release: Partial<Release>): Promise<Partial<Release>> => {
-  info('Type new record data. Leave blanc to keep data');
+  info('Type new record data. Leave blank to keep data');
 
   const response: Answers<string> = await prompts(
     Object.entries({ ...questions, ...release }).map(([name, originalValue]) => ({
       name,
       message: `${name.toUpperCase()}: ${originalValue}`,
       type: 'text',
-      validate: (value) => validate(name as Question, value),
+      validate: (value: string) => validate(name as Question, value),
     })),
   );
 
-  return {
-    ...release,
-    ...Object.entries(response).reduce(
-      // eslint-disable-next-line
-      (resu: any, [key, val]) => (defined(val) && (resu[key] = removeDoubleSpace(`${val}`)), resu),
-      {} as Partial<Release>,
-    ),
-  };
+  const merged: Record<string, string> = {};
+
+  for (const [key, val] of Object.entries(response)) {
+    if (defined(val)) {
+      merged[key] = removeDoubleSpace(`${val}`);
+    }
+  }
+
+  return { ...release, ...merged };
 };
 
-export const userDefinedRelease = (release: Partial<Release>): Promise<Partial<Release>> =>
+const MAX_RETRIES = 5;
+
+export const userDefinedRelease = (release: Partial<Release>, retries = MAX_RETRIES): Promise<Partial<Release>> =>
   userDefinedPrompt(release)
     .then((udr) => verifyPrompt(udr))
-    .catch(() => userDefinedRelease(release));
+    .catch(() => {
+      if (retries <= 0) {
+        exit('Too many retries. Exiting.');
+      }
+
+      return userDefinedRelease(release, retries - 1);
+    });
 
 export const albumPrompt = (album: Partial<Release>): Promise<Partial<Release>> =>
   verifyPrompt(album).catch(() => userDefinedRelease(album));
