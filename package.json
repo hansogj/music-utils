@@ -8,6 +8,9 @@
     "music-utils-album-tag": "./build/run/tag.album.js",
     "music-utils-tracks-tag": "./build/run/tag.tracks.js",
     "music-utils-cover-photo": "./build/run/cover.photo.js",
+    "music-utils-album-cover": "./build/run/tag.cover.album.js",
+    "music-utils-bulk-album-tag": "./build/run/bulk.tag.album.js",
+    "music-utils-bulk-cover-photo": "./build/run/bulk.cover.photo.js",
     "music-utils-sync-tracks": "./build/run/sync.track.names.js",
     "music-utils-similarities": "./build/run/similarities.js"
   },
@@ -16,7 +19,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "run-s clear tsc -- --declaration",
     "clear": "rm -rf ./build  ./build.ci  ./test-data/copy ",
-    "format:check": "npx prettier  --check src/ scripts/ test-data/ ci/ ",
+    "format:check": "npx prettier  --check src/ test-data/ ci/ ",
     "format:fix": "pnpm run format:check --  --write",
     "format:lint:fix": "pnpm run lint -- --fix && pnpm run format:fix",
     "lint": "eslint .",
@@ -53,9 +56,9 @@
     "@hansogj/discogs-cover": "1.3.1",
     "@hansogj/discogs-item-lookup": "1.2.2",
     "@hansogj/maybe": "2.7.0",
-    "@inquirer/prompts": "^8.4.2",
     "chalk": "4.1.2",
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.3.1",
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.3",
@@ -63,6 +66,7 @@
     "@eslint/js": "^10.0.1",
     "@types/jest": "30.0.0",
     "@types/node": "25.5.0",
+    "@types/prompts": "^2.4.9",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
     "eslint": "^10.1.0",

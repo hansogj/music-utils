@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 
+import '../utils/polyfills';
+
 import { spawn } from 'node:child_process';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path, { join } from 'node:path';
 import { chdir, exit } from 'node:process';
 
 import { DiscogsApiError, lookupRelease, LookupReleaseOptions, LookupResult } from '@hansogj/discogs-item-lookup';
 import * as dotenv from 'dotenv';
 
+import { tagAlbum } from '../album';
 import { DISC_NO_SPLIT } from '../constants';
+import { coverFromDiscogs } from '../covers/photo';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
+import { replaceDangers } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
+import { syncTrackNames } from '../utils/sync.tag.path';
 
 function runCommand(command: string, args: string[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -130,6 +137,26 @@ async function convertWavFilesToFlac(): Promise<void> {
   console.log('✅ Conversion to .flac complete.');
 }
 
+async function renameFlacFiles(): Promise<void> {
+  console.log('\n🏷️  Renaming .flac files...');
+  const files = (await readdir('.')).filter((f) => f.endsWith('.flac'));
+
+  for (const file of files) {
+    let newName = file
+      .replace(/track(\d\d)\.cdda\.flac/, '$1 track.flac')
+      .replace(/Track\s(\d+)\.flac/, '$1 track.flac');
+
+    if (/^\d\s/.test(newName)) {
+      newName = `0${newName}`;
+    }
+
+    if (newName !== file) {
+      console.log(`   ${file} -> ${newName}`);
+      await rename(file, newName);
+    }
+  }
+}
+
 async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 'releaseId'>): Promise<void> {
   const initialDir = process.cwd();
   dotenv.config({ path: path.resolve(__dirname, '../..', '.env') });
@@ -178,15 +205,16 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     }
 
     await convertWavFilesToFlac();
-
-    console.log('\n🏷️  Renaming .flac files...');
-    await runCommand(path.resolve(__dirname, '../../scripts/wav2flac.sh'));
+    await renameFlacFiles();
 
     console.log(`\n🖼️  Fetching album cover... `);
-    await runCommand(path.resolve(__dirname, '../../scripts/cover.photo.sh'), [`--releaseId`, releaseId]);
+    await coverFromDiscogs({ releaseId, quiet: true, token: process.env.DISCOGS_TOKEN ?? '' });
 
     console.log('\n✏️  Tagging tracks...');
-    await runCommand(path.resolve(__dirname, '../../scripts/tag.tracks.sh'), ['-t', '-f', '../../tracks.txt']);
+    const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');
+    const tracks = trackLines.split('\n').defined().map(replaceDangers);
+    const { files, release: taggedRelease } = await tagAlbum(process.cwd(), tracks);
+    await syncTrackNames(files, taggedRelease as Release);
 
     console.log(`\n🔀 Returning to starting directory: ${initialDir}`);
     chdir(initialDir);

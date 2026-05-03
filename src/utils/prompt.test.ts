@@ -1,11 +1,12 @@
-import { confirm, input } from '@inquirer/prompts';
+const mockPrompt = jest.fn();
+jest.mock('prompts', () => ({
+  __esModule: true,
+  default: mockPrompt,
+}));
 
 jest.mock('./color.log');
 import { Release } from '../types';
 import { albumPrompt, Question, userDefinedPrompt, validate } from './prompt';
-
-const mockInput = input as jest.MockedFunction<typeof input>;
-const mockConfirm = confirm as jest.MockedFunction<typeof confirm>;
 
 describe('prompt', () => {
   const release: Partial<Release> = { artist: 'Magma' };
@@ -21,48 +22,30 @@ describe('prompt', () => {
 
   beforeEach(() => jest.resetAllMocks());
 
-  describe.each([true])('when user confirms positive', (value: boolean) => {
-    beforeEach(() => mockConfirm.mockResolvedValueOnce(value));
+  describe.each([['y'], ['Y'], ['yes'], ['YES']])('when user responds positive', (value: string) => {
+    beforeEach(() => mockPrompt.mockResolvedValueOnce({ value }));
     it(`albumPrompt should pass back release object`, () =>
       albumPrompt(release).then((res) => expect(res).toEqual(release)));
   });
 
-  describe('when user responds negative then provides new data', () => {
+  describe('when user responds negative', () => {
     let response: Partial<Release>;
     beforeEach(async () => {
-      // First confirm: reject
-      mockConfirm.mockResolvedValueOnce(false);
-      // userDefinedPrompt: input calls for each field
-      const fields = ['artist', 'album', 'year', 'discNumber', 'noOfDiscs', 'aux'];
-      const values: Record<string, string> = {
-        artist: 'Magma',
-        album: 'MDK',
-        year: '1973',
-        discNumber: '1',
-        noOfDiscs: '1',
-        aux: '',
-      };
-      fields.forEach((field) => mockInput.mockResolvedValueOnce(values[field] || ''));
-      // Second confirm: accept
-      mockConfirm.mockResolvedValueOnce(true);
+      mockPrompt.mockResolvedValueOnce({ value: 'n' });
+      mockPrompt.mockResolvedValueOnce(alteredRelease);
+      mockPrompt.mockResolvedValueOnce({ value: 'y' });
       response = await albumPrompt(release);
     });
     it(`albumPrompt should pass back altered release object`, () => expect(response).toEqual(alteredRelease));
   });
 
-  describe('userDefinedPrompt', () => {
+  describe('userDefaultPrompt', () => {
     let response: Partial<Release>;
     beforeEach(async () => {
-      // input is called for each field in the release + defaults
-      const inputValues = [
-        'Altered Artist    ', // artist
-        '    Album  with multiple space  ', // album
-        '', // year
-        '', // discNumber
-        '2', // noOfDiscs
-        '', // aux
-      ];
-      inputValues.forEach((val) => mockInput.mockResolvedValueOnce(val));
+      mockPrompt.mockResolvedValueOnce({
+        artist: 'Altered Artist    ',
+        album: '    Album  with multiple space  ',
+      });
       response = await userDefinedPrompt({
         artist: 'Artist',
         noOfDiscs: '2',

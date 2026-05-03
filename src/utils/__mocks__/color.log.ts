@@ -5,3 +5,4 @@ export const warning = (message: any) => message;
 export const success = (message: any) => message;
 export const json = (message: object) => message;
 export const debugInfo = (message: object) => message;
+export const exit = (message?: any) => message;
