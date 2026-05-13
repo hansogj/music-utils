@@ -127,6 +127,7 @@ async function convertWavFilesToFlac(): Promise<void> {
         await rm(wavFile);
       } else {
         await runCommand('flac', ['--keep-foreign-metadata', wavFile]);
+        await rm(wavFile);
       }
     } catch (error) {
       console.error(`Error processing ${wavFile}:`, error);
