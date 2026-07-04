@@ -25,20 +25,20 @@ importers:
         specifier: 4.1.2
         version: 4.1.2
       dotenv:
-        specifier: ^17.4.2
+        specifier: 17.4.2
         version: 17.4.2
       prompts:
-        specifier: ^2.4.2
+        specifier: 2.4.2
         version: 2.4.2
     devDependencies:
       '@eslint/compat':
-        specifier: ^2.1.0
+        specifier: 2.1.0
         version: 2.1.0(eslint@10.6.0)
       '@eslint/eslintrc':
-        specifier: ^3.3.5
+        specifier: 3.3.5
         version: 3.3.5
       '@eslint/js':
-        specifier: ^10.0.1
+        specifier: 10.0.1
         version: 10.0.1(eslint@10.6.0)
       '@types/jest':
         specifier: 30.0.0
@@ -47,19 +47,19 @@ importers:
         specifier: 25.9.4
         version: 25.9.4
       '@types/prompts':
-        specifier: ^2.4.9
+        specifier: 2.4.9
         version: 2.4.9
       '@typescript-eslint/eslint-plugin':
-        specifier: ^8.62.1
+        specifier: 8.62.1
         version: 8.62.1(@typescript-eslint/parser@8.62.1(eslint@10.6.0)(typescript@6.0.3))(eslint@10.6.0)(typescript@6.0.3)
       '@typescript-eslint/parser':
-        specifier: ^8.62.1
+        specifier: 8.62.1
         version: 8.62.1(eslint@10.6.0)(typescript@6.0.3)
       eslint:
-        specifier: ^10.6.0
+        specifier: 10.6.0
         version: 10.6.0
       eslint-config-airbnb-base:
-        specifier: ^15.0.0
+        specifier: 15.0.0
         version: 15.0.0(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.62.1(eslint@10.6.0)(typescript@6.0.3))(eslint@10.6.0))(eslint@10.6.0)
       eslint-config-prettier:
         specifier: 10.1.8
@@ -74,13 +74,13 @@ importers:
         specifier: 12.1.1
         version: 12.1.1(eslint@10.6.0)
       globals:
-        specifier: ^17.7.0
+        specifier: 17.7.0
         version: 17.7.0
       graceful-fs:
         specifier: 4.2.11
         version: 4.2.11
       husky:
-        specifier: ^9.1.7
+        specifier: 9.1.7
         version: 9.1.7
       jest:
         specifier: 30.4.2
@@ -92,7 +92,7 @@ importers:
         specifier: 3.1.14
         version: 3.1.14
       npm-run-all2:
-        specifier: ^8.0.4
+        specifier: 8.0.4
         version: 8.0.4
       prettier:
         specifier: 3.9.4
@@ -110,7 +110,7 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
       typescript-eslint:
-        specifier: ^8.62.1
+        specifier: 8.62.1
         version: 8.62.1(eslint@10.6.0)(typescript@6.0.3)
 
 packages:
@@ -3338,7 +3338,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.62.1
       debug: 4.4.3(supports-color@5.5.0)
       minimatch: 10.2.4
-      semver: 7.7.3
+      semver: 7.8.5
       tinyglobby: 0.2.15
       ts-api-utils: 2.5.0(typescript@6.0.3)
       typescript: 6.0.3
@@ -3421,10 +3421,6 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
-
-  acorn-jsx@5.3.2(acorn@8.15.0):
-    dependencies:
-      acorn: 8.15.0
 
   acorn-jsx@5.3.2(acorn@8.16.0):
     dependencies:
@@ -3998,8 +3994,8 @@ snapshots:
 
   espree@10.4.0:
     dependencies:
-      acorn: 8.15.0
-      acorn-jsx: 5.3.2(acorn@8.15.0)
+      acorn: 8.16.0
+      acorn-jsx: 5.3.2(acorn@8.16.0)
       eslint-visitor-keys: 4.2.1
 
   espree@11.2.0:
