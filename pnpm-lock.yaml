@@ -10,8 +10,8 @@ importers:
   .:
     dependencies:
       '@hansogj/array.utils':
-        specifier: 2.7.5
-        version: 2.7.5
+        specifier: 3.0.0
+        version: 3.0.0
       '@hansogj/discogs-cover':
         specifier: 1.3.1
         version: 1.3.1
@@ -345,8 +345,9 @@ packages:
     resolution: {integrity: sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@hansogj/array.utils@2.7.5':
-    resolution: {integrity: sha512-t8Hlr4arC6RxpuKWcucVTZe8kDdLo6VAaSybtUFKyeeJma+yJd746Y22kfcZFumbRdc4oOkf3yOcSPsbVP+qwA==}
+  '@hansogj/array.utils@3.0.0':
+    resolution: {integrity: sha512-15hdZQJ6fEHJfbMpHRI+EuCeNbqZAv9PjO6/clT4rV2vfY0v4xvPZtBIxmFSvOqNVMKWv3/aL5CGKOwIRNboGA==}
+    engines: {node: '>=18'}
 
   '@hansogj/discogs-cover@1.3.1':
     resolution: {integrity: sha512-kQYZxy9CYlP1Wk+fxNXg/g4dEex4TmSlmNdCiS6P94Kh5qyT4IdEKNFa+7O4yfe45hLP9thUJ3/b1RBgtSiuiQ==}
@@ -2896,7 +2897,7 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@hansogj/array.utils@2.7.5': {}
+  '@hansogj/array.utils@3.0.0': {}
 
   '@hansogj/discogs-cover@1.3.1':
     dependencies:
