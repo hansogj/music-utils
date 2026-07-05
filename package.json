@@ -81,7 +81,7 @@
     "jest": "30.4.2",
     "jest-junit": "17.0.0",
     "nodemon": "3.1.14",
-    "npm-run-all2": "8.0.4",
+    "npm-run-all2": "9.0.2",
     "prettier": "3.9.4",
     "reflect-metadata": "0.2.2",
     "ts-jest": "29.4.11",
@@ -90,6 +90,6 @@
     "typescript-eslint": "8.62.1"
   },
   "volta": {
-    "node": "25.1.0"
+    "node": "26.4.0"
   }
 }
