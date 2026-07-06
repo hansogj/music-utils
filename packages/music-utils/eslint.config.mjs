@@ -12,7 +12,7 @@ import simpleImportSort from "eslint-plugin-simple-import-sort";
 import { includeIgnoreFile } from "@eslint/compat";
 import globals from "globals";
 
-const gitignorePath = fileURLToPath(new URL(".gitignore", import.meta.url));
+const gitignorePath = fileURLToPath(new URL("../../.gitignore", import.meta.url));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const compat = new FlatCompat({
