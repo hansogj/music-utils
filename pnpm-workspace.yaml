@@ -1,8 +1,5 @@
 packages:
-  - src/**
-  - '!ci/**'
-  - '!scripts/**'
-  - '!test-data/**'
+  - 'packages/*'
 
 ignoredBuiltDependencies:
   - unrs-resolver
