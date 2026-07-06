@@ -2,10 +2,24 @@ import '../utils/polyfills';
 
 import { DISC_LABEL } from '../constants';
 import { Release } from '../types';
+import * as cmdOptions from '../utils/cmd.options';
+import * as colorLog from '../utils/color.log';
 import * as pathUtils from '../utils/path';
-import { artistSortable, parseAlbumInfo } from './parse.path';
+import { artistSortable, getAlbumDirectory, parseAlbumInfo } from './parse.path';
 
-jest.mock('../utils/color.log');
+jest.mock('../utils/color.log', () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+  success: jest.fn(),
+  json: jest.fn(),
+  debugInfo: jest.fn(),
+  exit: jest.fn(),
+  default: jest.fn(),
+}));
+jest.mock('../utils/cmd.options', () => ({
+  getCommandLineArgs: jest.fn(),
+}));
 
 describe('artist sort', () => {
   describe.each([
@@ -132,5 +146,43 @@ describe('parse.path', () => {
       pathUtils.readDir.mockReturnValue(lsDir);
     });
     it(`should return ${JSON.stringify({ expected })})`, () => expect(parseAlbumInfo(path)).toEqual(expected));
+  });
+});
+
+describe('getAlbumDirectory', () => {
+  const getCommandLineArgs = cmdOptions.getCommandLineArgs as jest.Mock;
+  const exit = colorLog.exit as jest.Mock;
+  let cwd: jest.SpyInstance;
+  let chdir: jest.SpyInstance;
+
+  beforeEach(() => {
+    cwd = jest.spyOn(process, 'cwd').mockReturnValue('/starting/dir');
+    chdir = jest.spyOn(process, 'chdir').mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    cwd.mockRestore();
+    chdir.mockRestore();
+  });
+
+  it('returns cwd when no --album arg is provided', () => {
+    getCommandLineArgs.mockReturnValue({});
+    expect(getAlbumDirectory()).toEqual('/starting/dir');
+    expect(chdir).not.toHaveBeenCalled();
+  });
+
+  it('chdirs into the album folder and returns the new cwd', () => {
+    getCommandLineArgs.mockReturnValue({ album: 'Some Album' });
+    cwd.mockReturnValueOnce('/starting/dir').mockReturnValue('/starting/dir/Some Album');
+    expect(getAlbumDirectory()).toEqual('/starting/dir/Some Album');
+    expect(chdir).toHaveBeenCalledWith('/starting/dir/Some Album');
+  });
+
+  it('calls exit when chdir throws', () => {
+    getCommandLineArgs.mockReturnValue({ album: 'missing' });
+    chdir.mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
+    getAlbumDirectory();
+    expect(exit).toHaveBeenCalledWith(expect.stringContaining('chdir'));
   });
 });

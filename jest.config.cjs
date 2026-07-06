@@ -7,7 +7,7 @@ module.exports = {
     reporters: ['default', ['jest-junit', { outputName: 'junit-TEST.xml' }]],
     coverageThreshold: {
         global: {
-            statements: 50,
+            statements: 90,
             branches: 80,
             functions: 90,
             lines: 90,
@@ -20,7 +20,8 @@ module.exports = {
         "!**/node_modules/**",
         "!**/prompt.ts",
         "!**/color.log.ts",
-        "!**/photo.ts"
+        "!**/photo.ts",
+        "!**/index.ts"
     ],
 
     rootDir: './src',
