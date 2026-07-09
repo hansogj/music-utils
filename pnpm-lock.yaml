@@ -42,6 +42,9 @@ importers:
       prompts:
         specifier: 2.4.2
         version: 2.4.2
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
     devDependencies:
       '@eslint/compat':
         specifier: 2.1.0
@@ -100,9 +103,6 @@ importers:
       prettier:
         specifier: 3.9.4
         version: 3.9.4
-      reflect-metadata:
-        specifier: 0.2.2
-        version: 0.2.2
       ts-node-dev:
         specifier: 2.0.0
         version: 2.0.0(@types/node@26.1.0)(typescript@6.0.3)
