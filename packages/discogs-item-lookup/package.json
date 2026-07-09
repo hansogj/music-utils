@@ -1,0 +1,71 @@
+{
+  "name": "@hansogj/discogs-item-lookup",
+  "version": "1.2.2",
+  "description": "A CLI and library to look up item details from the Discogs API.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "discogs-lookup": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsup",
+    "cli": "node dist/cli.js",
+    "test": "vitest run",
+    "prepack": "pnpm format:check && pnpm test &&  pnpm build",
+    "precommit": "pnpm prepack",
+    "prepublishOnly": "npm run build",
+    "test:watch": "vitest",
+    "format": "prettier --write . --ignore-path=../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path=../../.prettierignore",
+    "post:update": "rm -rfv node_modules && pnpm prune && pnpm i",
+    "update:majors": "npx npm-check-updates -i -t latest && pnpm run post:update",
+    "update": "npx npm-check-updates -i -t minor && pnpm run post:update"
+  },
+  "keywords": [
+    "discogs",
+    "api",
+    "cli",
+    "music",
+    "vinyl",
+    "lookup"
+  ],
+  "author": "Hans Ole Gjerdrem",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^14.0.3",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "msw": "^2.12.14",
+    "prettier": "^3.8.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hansogj/discogs-item-lookup.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hansogj/discogs-item-lookup/issues"
+  },
+  "homepage": "https://github.com/hansogj/discogs-item-lookup#readme"
+}
