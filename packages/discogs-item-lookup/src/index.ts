@@ -21,15 +21,11 @@ export interface LookupReleaseOptions {
   disc?: number;
 }
 
-export async function lookupRelease(
-  options: LookupReleaseOptions,
-): Promise<LookupResult> {
+export async function lookupRelease(options: LookupReleaseOptions): Promise<LookupResult> {
   const { releaseId, token: discogsToken, disc: discFilter } = options;
   const sanitizedId = sanitizeReleaseId(releaseId);
   if (!sanitizedId) {
-    throw new DiscogsApiError(
-      `Invalid Release ID format: "${releaseId}". Please provide a valid numeric ID.`,
-    );
+    throw new DiscogsApiError(`Invalid Release ID format: "${releaseId}". Please provide a valid numeric ID.`);
   }
 
   // Resolve provided arguments: support both lookupRelease(id, token) and lookupRelease(id, disc, token)
@@ -86,10 +82,7 @@ export async function lookupRelease(
   // If every disc only has one track and the number of discs equals the number of tracks,
   // treat as a single disc (common for single-disc releases with positions "1", "2", ...)
   const totalTracks = tracklist.filter(({ type_ }) => type_ === 'track').length;
-  if (
-    discs.length === totalTracks &&
-    discs.every((d) => d.tracks.length === 1)
-  ) {
+  if (discs.length === totalTracks && discs.every((d) => d.tracks.length === 1)) {
     discs = [{ disc: 1, tracks: discs.map((d) => d.tracks[0]) }];
   }
 

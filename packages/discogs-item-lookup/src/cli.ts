@@ -37,14 +37,9 @@ program
   .version(pkg.version, '-V, --version', 'output the version number')
   .description(pkg.description)
   .argument('<release-id>', 'The numeric ID of the Discogs release')
-  .option(
-    '--token <token>',
-    'Discogs personal access token (overrides DISCOGS_TOKEN from .env)',
-  )
-  .option(
-    '--disc <disc>',
-    'Return only the specified disc number (if multi-disc release)',
-    (value) => parseInt(value, 10),
+  .option('--token <token>', 'Discogs personal access token (overrides DISCOGS_TOKEN from .env)')
+  .option('--disc <disc>', 'Return only the specified disc number (if multi-disc release)', (value) =>
+    parseInt(value, 10),
   )
   .action(async (releaseId, options) => {
     // User instruction for missing releaseId (should not happen with .argument, but for safety)
@@ -87,9 +82,7 @@ program
       if (data.discs && data.discs.length > 0) {
         // If --disc is specified but not found, instruct user
         if (discOption && !data.discs.some((d) => d.disc === discOption)) {
-          console.error(
-            `❌ Error: Disc ${discOption} not found in this release.`,
-          );
+          console.error(`❌ Error: Disc ${discOption} not found in this release.`);
           const available = data.discs.map((d) => d.disc).join(', ');
           console.error(`   Available discs: ${available}`);
           console.error('\nKnown options:');

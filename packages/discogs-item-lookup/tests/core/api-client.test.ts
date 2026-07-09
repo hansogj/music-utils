@@ -13,9 +13,7 @@ describe('api-client', () => {
     });
 
     it('should throw DiscogsApiError on a 404 response', async () => {
-      await expect(fetchRelease('999999', token)).rejects.toThrow(
-        DiscogsApiError,
-      );
+      await expect(fetchRelease('999999', token)).rejects.toThrow(DiscogsApiError);
       await expect(fetchRelease('999999', token)).rejects.toThrow(
         'API request failed to https://api.discogs.com/releases/999999. Status: 404 - Release not found.',
       );

@@ -23,9 +23,7 @@ async function fetchDiscogsAPI<T>(url: string, token: string): Promise<T> {
     } catch (e) {
       // Ignore parsing error, use the raw text
     }
-    throw new DiscogsApiError(
-      `API request failed to ${url}. Status: ${response.status} - ${errorMessage}`,
-    );
+    throw new DiscogsApiError(`API request failed to ${url}. Status: ${response.status} - ${errorMessage}`);
   }
 
   return response.json() as Promise<T>;
@@ -37,14 +35,8 @@ async function fetchDiscogsAPI<T>(url: string, token: string): Promise<T> {
  * @param token The Discogs personal access token.
  * @returns A promise that resolves with the release data.
  */
-export function fetchRelease(
-  releaseId: string,
-  token: string,
-): Promise<DiscogsReleaseResponse> {
-  return fetchDiscogsAPI<DiscogsReleaseResponse>(
-    `${API_BASE_URL}/releases/${releaseId}`,
-    token,
-  );
+export function fetchRelease(releaseId: string, token: string): Promise<DiscogsReleaseResponse> {
+  return fetchDiscogsAPI<DiscogsReleaseResponse>(`${API_BASE_URL}/releases/${releaseId}`, token);
 }
 
 /**
@@ -53,12 +45,6 @@ export function fetchRelease(
  * @param token The Discogs personal access token.
  * @returns A promise that resolves with the master release data.
  */
-export function fetchMaster(
-  masterId: number,
-  token: string,
-): Promise<DiscogsMasterResponse> {
-  return fetchDiscogsAPI<DiscogsMasterResponse>(
-    `${API_BASE_URL}/masters/${masterId}`,
-    token,
-  );
+export function fetchMaster(masterId: number, token: string): Promise<DiscogsMasterResponse> {
+  return fetchDiscogsAPI<DiscogsMasterResponse>(`${API_BASE_URL}/masters/${masterId}`, token);
 }

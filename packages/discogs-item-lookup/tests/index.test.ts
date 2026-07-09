@@ -20,9 +20,7 @@ describe('lookupRelease', () => {
     // single-disc release in the mock: expect one disc with two tracks
     expect(result.discs.length).toBe(1);
     expect(result.discs[0].tracks.length).toBe(2);
-    expect(result.discs[0].tracks[0].title).toBe(
-      'One More Time (Short Radio Edit)',
-    );
+    expect(result.discs[0].tracks[0].title).toBe('One More Time (Short Radio Edit)');
     expect(result.discogsUrl).toBe('https://www.discogs.com/release/249504');
   });
 
@@ -35,32 +33,20 @@ describe('lookupRelease', () => {
   });
 
   it('should throw an error for an invalid release ID format', async () => {
-    await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow(
-      DiscogsApiError,
-    );
-    await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow(
-      'Invalid Release ID format: "invalid-id"',
-    );
+    await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow(DiscogsApiError);
+    await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow('Invalid Release ID format: "invalid-id"');
   });
 
   it('should throw an error if no token is provided', async () => {
     vi.stubEnv('DISCOGS_TOKEN', ''); // Unset the token
-    await expect(lookupRelease({ releaseId: '249504' })).rejects.toThrow(
-      DiscogsApiError,
-    );
-    await expect(lookupRelease({ releaseId: '249504' })).rejects.toThrow(
-      'Discogs token is not configured.',
-    );
+    await expect(lookupRelease({ releaseId: '249504' })).rejects.toThrow(DiscogsApiError);
+    await expect(lookupRelease({ releaseId: '249504' })).rejects.toThrow('Discogs token is not configured.');
     vi.stubEnv('DISCOGS_TOKEN', 'test-token-from-env'); // Reset for other tests
   });
 
   it('should throw an error if the release fetch fails', async () => {
-    await expect(lookupRelease({ releaseId: '999999' })).rejects.toThrow(
-      DiscogsApiError,
-    );
-    await expect(lookupRelease({ releaseId: '999999' })).rejects.toThrow(
-      /API request failed/,
-    );
+    await expect(lookupRelease({ releaseId: '999999' })).rejects.toThrow(DiscogsApiError);
+    await expect(lookupRelease({ releaseId: '999999' })).rejects.toThrow(/API request failed/);
   });
 
   it('should use a token passed as an argument over the environment variable', async () => {
