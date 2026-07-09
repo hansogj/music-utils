@@ -1,0 +1,5 @@
+{
+  "name": "Discogs Item Lookup",
+  "description": "A web application to look up information about a specific release from the Discogs API, including artist, title, tracklist, and the original master release year.",
+  "requestFramePermissions": []
+}
