@@ -1,5 +1,7 @@
 import '../utils/polyfills';
 
+import { type Mock, type MockInstance, vi } from 'vitest';
+
 import { DISC_LABEL } from '../constants';
 import { Release } from '../types';
 import * as cmdOptions from '../utils/cmd.options';
@@ -7,18 +9,18 @@ import * as colorLog from '../utils/color.log';
 import * as pathUtils from '../utils/path';
 import { artistSortable, getAlbumDirectory, parseAlbumInfo } from './parse.path';
 
-jest.mock('../utils/color.log', () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-  warning: jest.fn(),
-  success: jest.fn(),
-  json: jest.fn(),
-  debugInfo: jest.fn(),
-  exit: jest.fn(),
-  default: jest.fn(),
+vi.mock('../utils/color.log', () => ({
+  error: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+  success: vi.fn(),
+  json: vi.fn(),
+  debugInfo: vi.fn(),
+  exit: vi.fn(),
+  default: vi.fn(),
 }));
-jest.mock('../utils/cmd.options', () => ({
-  getCommandLineArgs: jest.fn(),
+vi.mock('../utils/cmd.options', () => ({
+  getCommandLineArgs: vi.fn(),
 }));
 
 describe('artist sort', () => {
@@ -99,7 +101,7 @@ describe('parse.path', () => {
     ],
   ])('parseAlbumInfo(%s)', (path: string, expected: Partial<Release>) => {
     beforeEach(() => {
-      jest.spyOn(pathUtils, 'readDir');
+      vi.spyOn(pathUtils, 'readDir');
       // @ts-ignore
       pathUtils.readDir.mockReturnValue([]);
     });
@@ -141,7 +143,7 @@ describe('parse.path', () => {
     ],
   ])('parseAlbumInfo(%s) and lsDir eq %p', (path: string, lsDir: string[], expected: Partial<Release>) => {
     beforeEach(() => {
-      jest.spyOn(pathUtils, 'readDir');
+      vi.spyOn(pathUtils, 'readDir');
       // @ts-ignore
       pathUtils.readDir.mockReturnValue(lsDir);
     });
@@ -150,14 +152,14 @@ describe('parse.path', () => {
 });
 
 describe('getAlbumDirectory', () => {
-  const getCommandLineArgs = cmdOptions.getCommandLineArgs as jest.Mock;
-  const exit = colorLog.exit as jest.Mock;
-  let cwd: jest.SpyInstance;
-  let chdir: jest.SpyInstance;
+  const getCommandLineArgs = cmdOptions.getCommandLineArgs as Mock;
+  const exit = colorLog.exit as Mock;
+  let cwd: MockInstance;
+  let chdir: MockInstance;
 
   beforeEach(() => {
-    cwd = jest.spyOn(process, 'cwd').mockReturnValue('/starting/dir');
-    chdir = jest.spyOn(process, 'chdir').mockImplementation(() => undefined);
+    cwd = vi.spyOn(process, 'cwd').mockReturnValue('/starting/dir');
+    chdir = vi.spyOn(process, 'chdir').mockImplementation(() => undefined);
   });
   afterEach(() => {
     cwd.mockRestore();

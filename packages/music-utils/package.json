@@ -33,11 +33,10 @@
     "ci:tag:acc": "run-s  ci:pre &&  ./ci/tag-album/run.acc.sh",
     "ci:prompt": "run-s  ci:pre && node ./build.ci/ci/prompt/run.js",
     "ci:run-all": "NO_PROMPT=TRUE run-s ci:tag:tracks ci:tag:zep1 ci:tag:zep2 ci:tag:acc ci:prompt",
-    "jest": "npx jest --runInBand --detectOpenHandles --colors --reporters=default",
-    "jest:ci": "npx jest --ci --runInBand --silent --colors --coverage",
-    "jest:clear": "pnpm run jest -- --clearCache && pnpm run jest",
-    "jest:watch": "pnpm run jest -- --watch",
-    "test": "run-s jest jest:ci ci:run-all",
+    "vitest": "vitest run",
+    "vitest:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=junit-TEST.xml",
+    "vitest:watch": "vitest watch",
+    "test": "run-s vitest vitest:ci ci:run-all",
     "precommit": "run-s test lint format:check tsc build"
   },
   "keywords": [
@@ -54,17 +53,18 @@
     "@hansogj/maybe": "2.7.1",
     "chalk": "4.1.2",
     "dotenv": "17.4.2",
-    "prompts": "2.4.2"
+    "prompts": "2.4.2",
+    "reflect-metadata": "0.2.2"
   },
   "devDependencies": {
     "@eslint/compat": "2.1.0",
     "@eslint/eslintrc": "3.3.5",
     "@eslint/js": "10.0.1",
-    "@types/jest": "30.0.0",
     "@types/node": "26.1.0",
     "@types/prompts": "2.4.9",
     "@typescript-eslint/eslint-plugin": "8.62.1",
     "@typescript-eslint/parser": "8.62.1",
+    "@vitest/coverage-v8": "3.2.7",
     "eslint": "10.6.0",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-config-prettier": "10.1.8",
@@ -73,14 +73,11 @@
     "eslint-plugin-simple-import-sort": "13.0.0",
     "globals": "17.7.0",
     "graceful-fs": "4.2.11",
-    "jest": "30.4.2",
-    "jest-junit": "17.0.0",
     "nodemon": "3.1.14",
     "npm-run-all2": "9.0.2",
     "prettier": "3.9.4",
-    "reflect-metadata": "0.2.2",
-    "ts-jest": "29.4.11",
     "ts-node-dev": "2.0.0",
-    "typescript-eslint": "8.62.1"
+    "typescript-eslint": "8.62.1",
+    "vitest": "3.2.7"
   }
 }

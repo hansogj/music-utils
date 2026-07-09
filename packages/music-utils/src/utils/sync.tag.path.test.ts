@@ -1,20 +1,21 @@
 import { defined } from '@hansogj/array.utils';
 import maybe from '@hansogj/maybe';
+import { vi } from 'vitest';
 
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import { File, Release, Track } from '../types';
-import { MockUtil } from './__mocks__/mockutils';
 import * as pathUtils from './path';
 import { syncReleaseFolder, syncTrackNames } from './sync.tag.path';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const might = (cond: any) => (defined(cond) ? 'should' : `shouldn't`);
 
-jest.mock('../utils/path').mock('../utils/color.log');
-const mocks = MockUtil<typeof pathUtils>(jest).requireMocks('../utils/path');
+vi.mock('../utils/path');
+vi.mock('../utils/color.log');
+const mocks = vi.mocked(pathUtils);
 type CallParams = { src: string; target: string };
 describe('sync.tag.path', () => {
-  afterEach(() => jest.resetAllMocks());
+  afterEach(() => vi.resetAllMocks());
 
   describe('syncReleaseFolder', () => {
     describe.each([
@@ -55,7 +56,7 @@ describe('sync.tag.path', () => {
         },
       ],
     ])('when release eq %o & dirName eq %s ', (release: Partial<Release>, dirName: string, expected: CallParams) => {
-      beforeEach(() => mocks.renameFolder.mockResolvedValueOnce(release));
+      beforeEach(() => void mocks.renameFolder.mockResolvedValueOnce(release));
       beforeEach(async () => syncReleaseFolder(release as Release, dirName));
       it(`${might(expected)} call renameFolder with params ${JSON.stringify(expected)}`, () => {
         if (defined(expected)) {
@@ -126,7 +127,7 @@ describe('sync.tag.path', () => {
       { artist: 'Magma', album: 'Attak' },
     ],
   ])('when files list is %o', (files: File[], expected: CallParams[], release = {} as Release) => {
-    beforeEach(() => mocks.renameFile.mockResolvedValue({}));
+    beforeEach(() => void mocks.renameFile.mockResolvedValue({}));
     beforeEach(async () => syncTrackNames(files, release));
     it(`${might(expected)} call renameFile with params ${JSON.stringify(expected)}`, () => {
       maybe(expected)

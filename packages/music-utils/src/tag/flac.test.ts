@@ -1,21 +1,24 @@
 import '../utils/polyfills';
 
+import { vi } from 'vitest';
+
 import { Track } from '../types';
-import { MockUtil } from '../utils/__mocks__/mockutils';
 import { albumTrack } from '../utils/__mocks__/record.mock';
 import * as execute from '../utils/execute';
 import { metaflac } from './__mocks__/flac.mocks';
 import * as flac from './flac';
 
-jest.mock('../utils/execute').mock('../utils/cmd.options').mock('../utils/color.log');
+vi.mock('../utils/execute');
+vi.mock('../utils/cmd.options');
+vi.mock('../utils/color.log');
 
-const mocks = MockUtil<typeof execute>(jest).requireMocks('../utils/execute');
+const mocks = vi.mocked(execute);
 const path = '/Album/d1t1 track.flac';
 
 describe('flac', () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.resetAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   describe('when path is read', () => {

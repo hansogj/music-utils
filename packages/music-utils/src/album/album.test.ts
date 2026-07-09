@@ -1,24 +1,21 @@
+import { vi } from 'vitest';
+
 import * as tags from '../tag';
 import { File, Track } from '../types';
-import { MockUtil } from '../utils/__mocks__/mockutils';
 import { mdkls, release } from '../utils/__mocks__/record.mock';
-import * as log from '../utils/color.log';
 import * as path from '../utils/path';
 import * as prompt from '../utils/prompt';
 import { tagAlbum } from './album';
 import * as parsePath from './parse.path';
 
-type Mocks = typeof prompt & typeof parsePath & typeof log & typeof tags & typeof path;
+vi.mock('./parse.path');
+vi.mock('../utils/prompt');
+vi.mock('../utils/cmd.options');
+vi.mock('../utils/path');
+vi.mock('../utils/color.log');
+vi.mock('../tag');
 
-jest
-  .mock('./parse.path')
-  .mock('../utils/prompt')
-  .mock('../utils/cmd.options')
-  .mock('../utils/path')
-  .mock('../utils/color.log')
-  .mock('../tag');
-
-const mocks = MockUtil<Mocks>(jest).requireMocks('./parse.path', '../utils/prompt', '../tag', '../utils/path');
+const mocks = { ...vi.mocked(parsePath), ...vi.mocked(prompt), ...vi.mocked(tags), ...vi.mocked(path) };
 
 const parsedAlbumFolderName = {
   album: release.album,
@@ -28,11 +25,11 @@ const parsedAlbumFolderName = {
 };
 const mockDirName = '/MyArtis/1973 MyAlbum';
 describe('tag album', () => {
-  afterEach(jest.clearAllMocks);
-  afterEach(jest.resetModules);
+  afterEach(vi.clearAllMocks);
+  afterEach(vi.resetModules);
 
   describe(`tagAlbum(${mockDirName})`, () => {
-    beforeEach(() => mocks.parseAlbumInfo.mockReturnValue(parsedAlbumFolderName));
+    beforeEach(() => void mocks.parseAlbumInfo.mockReturnValue(parsedAlbumFolderName));
     describe('is connected', () => {
       beforeEach(async () => {
         mocks.albumPrompt.mockResolvedValue({});

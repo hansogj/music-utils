@@ -1,28 +1,30 @@
 import '../utils/polyfills';
 
+import { vi } from 'vitest';
+
 import { Track } from '../types';
-import { MockUtil } from '../utils/__mocks__/mockutils';
 import { albumTrack } from '../utils/__mocks__/record.mock';
 import * as execute from '../utils/execute';
 import * as mp3mocks from './__mocks__/mp3.mocks';
 import * as mp3 from './mp3';
 
-jest.mock('../utils/execute').mock('../utils/color.log');
+vi.mock('../utils/execute');
+vi.mock('../utils/color.log');
 
 const path = '/Album/d1t1 track.wtf';
-const mocks = MockUtil<typeof execute>(jest).requireMocks('../utils/execute');
+const mocks = vi.mocked(execute);
 
 describe('mp3', () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('when path is read', () => {
     beforeEach(() => {
-      jest.spyOn(mp3, 'id3v1');
-      jest.spyOn(mp3, 'id3v2');
+      vi.spyOn(mp3, 'id3v1');
+      vi.spyOn(mp3, 'id3v2');
       mocks.executeFile.mockResolvedValue('');
       mp3.read(path);
     });

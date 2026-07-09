@@ -1,14 +1,17 @@
 import '../utils/polyfills';
 
+import { vi } from 'vitest';
+
 import { Track } from '../types';
 import { read } from './fromPath';
 
-jest.mock('../utils/execute').mock('../utils/path');
+vi.mock('../utils/execute');
+vi.mock('../utils/path');
 
 describe('fromPath', () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.resetAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   describe.each([

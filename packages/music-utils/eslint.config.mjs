@@ -36,7 +36,7 @@ export default defineConfig([includeIgnoreFile(gitignorePath, "Imported .gitigno
         parserOptions: {
             project: "./tsconfig.eslint.json",
         },
-        globals: { ...globals.node, ...globals.jest, 'Hash': 'readonly' }
+        globals: { ...globals.node, 'Hash': 'readonly' }
     },
     settings: {
       'import/resolver': {
