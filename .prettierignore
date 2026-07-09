@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/build
+**/build.ci
+**/coverage
+**/test-data/copy
+**/script
+**/*.tgz
+**/*.log
+pnpm-lock.yaml
+**/.cache
+**/.turbo
+**/.next
+.DS_Store
+.vscode
+.idea

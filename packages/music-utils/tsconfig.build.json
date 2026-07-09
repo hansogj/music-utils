@@ -1,18 +1,9 @@
 {
-    "extends": "./tsconfig.json",
-    "rootDir": "./src",
-    "include": [
-        "src/**/*",
-        "lib.d.ts",
-        "@hansogj/array.utils"
-    ],
-    "exclude": [
-        "node_modules",
-        "**/__mocks__",
-        "**/*.test.ts",
-        "ci"
-    ],
-    "compilerOptions": {
-        "outDir": "./build"
-    }
+  "extends": "./tsconfig.json",
+  "rootDir": "./src",
+  "include": ["src/**/*", "lib.d.ts", "@hansogj/array.utils"],
+  "exclude": ["node_modules", "**/__mocks__", "**/*.test.ts", "ci"],
+  "compilerOptions": {
+    "outDir": "./build"
+  }
 }

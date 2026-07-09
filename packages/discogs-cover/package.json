@@ -35,8 +35,8 @@
     "post:update": "rm -rfv node_modules && pnpm prune && pnpm i",
     "update:majors": "npx npm-check-updates -i -t latest && pnpm run post:update",
     "update": "npx npm-check-updates -i -t minor && pnpm run post:update",
-    "format": "pnpm prettier --write .",
-    "format:check": "pnpm prettier --check ."
+    "format": "prettier --write . --ignore-path=../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path=../../.prettierignore"
   },
   "keywords": [
     "discogs",

@@ -73,9 +73,7 @@ describe('discogs-client', () => {
 
       const url = 'https://img.discogs.com/image.jpg';
 
-      await expect(downloadImage(url)).rejects.toThrow(
-        'Failed to download image: 500 Server Error',
-      );
+      await expect(downloadImage(url)).rejects.toThrow('Failed to download image: 500 Server Error');
     });
   });
 });

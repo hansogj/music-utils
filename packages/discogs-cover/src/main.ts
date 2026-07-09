@@ -35,9 +35,7 @@ export async function discogsMainCover({
   token = process.env.DISCOGS_TOKEN,
 }: DiscogsCoverOptions): Promise<Buffer> {
   if (!token) {
-    throw new Error(
-      'Discogs token is missing. Please provide it via options or .env file (DISCOGS_TOKEN).',
-    );
+    throw new Error('Discogs token is missing. Please provide it via options or .env file (DISCOGS_TOKEN).');
   }
 
   if (releaseId) {
@@ -50,10 +48,7 @@ export async function discogsMainCover({
     const releaseData = await fetchDiscogs<DiscogsReleaseResponse>(releaseUrl, token);
 
     if (releaseData.master_id && releaseData.master_url) {
-      const masterData = await fetchDiscogs<DiscogsMasterReleaseResponse>(
-        releaseData.master_url,
-        token,
-      );
+      const masterData = await fetchDiscogs<DiscogsMasterReleaseResponse>(releaseData.master_url, token);
       const primaryImage = masterData.images?.find((img) => img.type === 'primary');
       const imageUri = primaryImage?.uri;
 
@@ -108,10 +103,7 @@ export async function discogsMainCover({
     throw new Error('Could not determine a release to fetch cover from.');
   }
 
-  const masterData = await fetchDiscogs<DiscogsMasterReleaseResponse>(
-    selectedRelease.resource_url,
-    token,
-  );
+  const masterData = await fetchDiscogs<DiscogsMasterReleaseResponse>(selectedRelease.resource_url, token);
   const primaryImage = masterData.images?.find((img) => img.type === 'primary');
 
   const imageUri = primaryImage?.uri || selectedRelease.cover_image;
