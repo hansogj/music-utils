@@ -18,7 +18,7 @@
   "scripts": {
     "build": "run-s clear tsc -- --declaration",
     "clear": "rm -rf ./build  ./build.ci  ./test-data/copy ",
-    "format:check": "npx prettier  --check src/ test-data/ ci/ ",
+    "format:check": "prettier --check src/ test-data/ ci/ --ignore-path=../../.prettierignore",
     "format:fix": "pnpm run format:check --  --write",
     "format:lint:fix": "pnpm run lint -- --fix && pnpm run format:fix",
     "lint": "eslint .",

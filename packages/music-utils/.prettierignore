@@ -1,7 +1,0 @@
-dist
-build
-build.ci
-coverage
-node_modules
-script
-test-data/copy

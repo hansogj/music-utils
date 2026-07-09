@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as discogsClient from './discogs-client';
 import * as readline from 'node:readline';
 import { discogsMainCover } from './main';
-import type {
-  DiscogsMasterReleaseResponse,
-  DiscogsReleaseResponse,
-  DiscogsSearchResponse,
-} from './types';
+import type { DiscogsMasterReleaseResponse, DiscogsReleaseResponse, DiscogsSearchResponse } from './types';
 
 // Mock the entire discogs-client module
 vi.mock('./discogs-client');
@@ -102,14 +98,8 @@ describe('discogsMainCover', () => {
       });
 
       expect(mockedFetchDiscogs).toHaveBeenCalledTimes(2);
-      expect(mockedFetchDiscogs).toHaveBeenCalledWith(
-        expect.stringContaining('database/search'),
-        'test',
-      );
-      expect(mockedFetchDiscogs).toHaveBeenCalledWith(
-        mockSearchResponse.results[0].resource_url,
-        'test',
-      );
+      expect(mockedFetchDiscogs).toHaveBeenCalledWith(expect.stringContaining('database/search'), 'test');
+      expect(mockedFetchDiscogs).toHaveBeenCalledWith(mockSearchResponse.results[0].resource_url, 'test');
       expect(mockedDownloadImage).toHaveBeenCalledWith(mockMasterReleaseWithPrimary.images[0].uri);
       expect(result).toEqual(mockImageBuffer);
     });
@@ -186,9 +176,7 @@ describe('discogsMainCover', () => {
       // Simulate user choosing the second option
       mockReadline.question.mockImplementation((_, cb) => cb('2'));
 
-      mockedFetchDiscogs
-        .mockResolvedValueOnce(mockSearchResponse)
-        .mockResolvedValueOnce(mockMasterReleaseWithPrimary);
+      mockedFetchDiscogs.mockResolvedValueOnce(mockSearchResponse).mockResolvedValueOnce(mockMasterReleaseWithPrimary);
 
       const result = await discogsMainCover({
         artist: 'A',
@@ -199,10 +187,7 @@ describe('discogsMainCover', () => {
 
       expect(mockedCreateInterface).toHaveBeenCalled();
       expect(mockReadline.question).toHaveBeenCalled();
-      expect(mockedFetchDiscogs).toHaveBeenCalledWith(
-        mockSearchResponse.results[1].resource_url,
-        'test',
-      );
+      expect(mockedFetchDiscogs).toHaveBeenCalledWith(mockSearchResponse.results[1].resource_url, 'test');
       expect(mockedDownloadImage).toHaveBeenCalledWith(mockMasterReleaseWithPrimary.images[0].uri);
       expect(result).toEqual(mockImageBuffer);
     });
@@ -248,10 +233,7 @@ describe('discogsMainCover', () => {
       });
 
       expect(mockedFetchDiscogs).toHaveBeenCalledTimes(2);
-      expect(mockedFetchDiscogs).toHaveBeenCalledWith(
-        expect.stringContaining('/releases/12345'),
-        'test',
-      );
+      expect(mockedFetchDiscogs).toHaveBeenCalledWith(expect.stringContaining('/releases/12345'), 'test');
       expect(mockedFetchDiscogs).toHaveBeenCalledWith(mockReleaseWithMaster.master_url, 'test');
       expect(mockedDownloadImage).toHaveBeenCalledWith(mockMasterReleaseWithPrimary.images[0].uri);
       expect(result).toEqual(mockImageBuffer);
@@ -266,10 +248,7 @@ describe('discogsMainCover', () => {
       });
 
       expect(mockedFetchDiscogs).toHaveBeenCalledTimes(1);
-      expect(mockedFetchDiscogs).toHaveBeenCalledWith(
-        expect.stringContaining('/releases/12345'),
-        'test',
-      );
+      expect(mockedFetchDiscogs).toHaveBeenCalledWith(expect.stringContaining('/releases/12345'), 'test');
       expect(mockedDownloadImage).toHaveBeenCalledWith(mockReleaseWithoutMaster.images[0].uri);
       expect(result).toEqual(mockImageBuffer);
     });

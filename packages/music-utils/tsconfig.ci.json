@@ -1,32 +1,20 @@
 {
-    "compilerOptions": {
-        "target": "esnext",
-        "module": "Node16",
-        "lib": [
-            "esnext",
-            "es2015.promise",
-            "dom"
-        ],
-        "outDir": "./build.ci",
-        "rootDir": "./",
-        "strict": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "moduleResolution": "node16",
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "types": ["node"],
-        "isolatedModules": true
-    },
-    "include": [
-        "ci/**/*",
-        "lib.d.ts",
-        "@hansogj/array.utils"
-    ],
-    "exclude": [
-        "node_modules",
-        "**/__mocks__",
-        "**/*.test.ts"
-    ]
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "Node16",
+    "lib": ["esnext", "es2015.promise", "dom"],
+    "outDir": "./build.ci",
+    "rootDir": "./",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "moduleResolution": "node16",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "isolatedModules": true
+  },
+  "include": ["ci/**/*", "lib.d.ts", "@hansogj/array.utils"],
+  "exclude": ["node_modules", "**/__mocks__", "**/*.test.ts"]
 }
