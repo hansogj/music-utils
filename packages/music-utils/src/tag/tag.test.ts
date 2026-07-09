@@ -1,24 +1,28 @@
 import '../utils/polyfills';
 
+import { type Mock, type MockInstance, vi } from 'vitest';
+
 import { File, Track } from '../types';
-import { MockUtil } from '../utils/__mocks__/mockutils';
 import * as execute from '../utils/execute';
 import * as pathUtils from '../utils/path';
 import * as flac from './flac';
 import * as mp3 from './mp3';
 import { extractTags, tagFile } from './tag';
 
-jest.mock('../utils/execute').mock('../utils/cmd.options').mock('../utils/path').mock('./mp3').mock('./flac');
+vi.mock('../utils/execute');
+vi.mock('../utils/cmd.options');
+vi.mock('../utils/path');
+vi.mock('./mp3');
+vi.mock('./flac');
 
-const mocks = MockUtil<typeof execute & typeof pathUtils>(jest).requireMocks('../utils/execute', '../utils/path');
-
-const mp3Mock = MockUtil<typeof mp3>(jest).requireMocks('./mp3');
-const flacMock = MockUtil<typeof flac>(jest).requireMocks('./flac');
+const mocks = { ...vi.mocked(execute), ...vi.mocked(pathUtils) };
+const mp3Mock = vi.mocked(mp3);
+const flacMock = vi.mocked(flac);
 
 describe('tag test', () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.resetAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   describe('getTrackTags', () => {
@@ -87,18 +91,18 @@ describe('tag test', () => {
   });
 
   describe('tagFile', () => {
-    let mp3Spy: jest.SpyInstance;
-    let flacSpy: jest.SpyInstance;
-    let thenSpy: jest.Mock;
+    let mp3Spy: MockInstance;
+    let flacSpy: MockInstance;
+    let thenSpy: Mock;
     let file: File;
 
     beforeEach(() => {
-      flacSpy = jest.spyOn(flac, 'write').mockResolvedValueOnce(undefined);
-      mp3Spy = jest.spyOn(mp3, 'write').mockResolvedValueOnce(undefined);
-      thenSpy = jest.fn();
+      flacSpy = vi.spyOn(flac, 'write').mockResolvedValueOnce(undefined);
+      mp3Spy = vi.spyOn(mp3, 'write').mockResolvedValueOnce(undefined);
+      thenSpy = vi.fn();
     });
 
-    afterEach(() => jest.resetAllMocks());
+    afterEach(() => vi.resetAllMocks());
 
     describe('with filetype unknown', () => {
       beforeEach(() => {

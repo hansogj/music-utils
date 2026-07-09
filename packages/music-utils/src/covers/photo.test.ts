@@ -1,42 +1,43 @@
 import * as fs from 'node:fs';
 
 import * as discogsCover from '@hansogj/discogs-cover';
+import { type Mocked, vi } from 'vitest';
 
 import { COVER_FILE_NAME } from '../constants';
+import * as colorLog from '../utils/color.log';
 import * as prompt from '../utils/prompt';
 import { coverFromDiscogs } from './photo';
 
-jest.mock('node:fs');
-jest.mock('@hansogj/discogs-cover');
-jest.mock('../utils/color.log', () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-  success: jest.fn(),
-  warning: jest.fn(),
-  json: jest.fn(),
-  debugInfo: jest.fn(),
-  exit: jest.fn(),
+vi.mock('node:fs');
+vi.mock('@hansogj/discogs-cover');
+vi.mock('../utils/color.log', () => ({
+  error: vi.fn(),
+  info: vi.fn(),
+  success: vi.fn(),
+  warning: vi.fn(),
+  json: vi.fn(),
+  debugInfo: vi.fn(),
+  exit: vi.fn(),
 }));
-jest.mock('../utils/prompt');
-jest.mock('../album/parse.path', () => ({
-  parseAlbumInfo: jest.fn().mockReturnValue({
+vi.mock('../utils/prompt');
+vi.mock('../album/parse.path', () => ({
+  parseAlbumInfo: vi.fn().mockReturnValue({
     artist: 'Led Zeppelin',
     album: 'The Song Remains The Same',
     year: '1976',
   }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const mockLog = require('../utils/color.log') as Record<string, jest.Mock>;
-const mockFs = fs as jest.Mocked<typeof fs>;
-const mockDiscogs = discogsCover as jest.Mocked<typeof discogsCover>;
-const mockPrompt = prompt as jest.Mocked<typeof prompt>;
+const mockLog = vi.mocked(colorLog);
+const mockFs = fs as Mocked<typeof fs>;
+const mockDiscogs = discogsCover as Mocked<typeof discogsCover>;
+const mockPrompt = prompt as Mocked<typeof prompt>;
 
 describe('coverFromDiscogs', () => {
   const token = 'test-token';
   const imageBuffer = Buffer.from('fake-image-data');
 
-  afterEach(jest.clearAllMocks);
+  afterEach(vi.clearAllMocks);
 
   describe('with releaseId', () => {
     it('fetches cover by releaseId and writes to file', async () => {

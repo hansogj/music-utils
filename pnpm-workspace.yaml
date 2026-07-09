@@ -6,3 +6,5 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - '@hansogj/maybe'
+  - esbuild
+  - '@vitest/coverage-v8'

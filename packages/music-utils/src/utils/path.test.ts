@@ -2,9 +2,10 @@ import './polyfills';
 
 import fs from 'node:fs';
 
+import { type MockInstance, vi } from 'vitest';
+
 import { DISC_NO_SPLIT } from '../constants';
 import { FILETYPE } from '../types';
-import { MockUtil } from './__mocks__/mockutils';
 import * as execute from './execute';
 import {
   getDirName,
@@ -17,12 +18,12 @@ import {
   replaceQuotes,
 } from './path';
 
-jest.mock('./execute');
-const mocks = MockUtil<typeof execute>(jest).requireMocks('./execute');
+vi.mock('./execute');
+const mocks = vi.mocked(execute);
 
 describe('path', () => {
-  beforeEach(() => jest.resetAllMocks());
-  beforeEach(() => jest.resetModules());
+  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => vi.resetModules());
   const setMockReturnValue = (val: string) => mocks.executeFile.mockReturnValue(Promise.resolve(val));
 
   describe.each([
@@ -49,10 +50,10 @@ describe('path', () => {
 
   describe('readDir', () => {
     const entries = ['a.flac', '.hidden', 'b.mp3', '.DS_Store', 'cover.jpg'];
-    let readdirSync: jest.SpyInstance;
+    let readdirSync: MockInstance;
 
     beforeEach(() => {
-      readdirSync = jest.spyOn(fs, 'readdirSync').mockReturnValue(entries as unknown as fs.Dirent[]);
+      readdirSync = vi.spyOn(fs, 'readdirSync').mockReturnValue(entries as unknown as fs.Dirent[]);
     });
     afterEach(() => readdirSync.mockRestore());
 
@@ -67,7 +68,7 @@ describe('path', () => {
 
   describe('getDirName', () => {
     it('returns process.cwd()', () => {
-      const cwd = jest.spyOn(process, 'cwd').mockReturnValue('/tmp/music');
+      const cwd = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/music');
       expect(getDirName()).toEqual('/tmp/music');
       cwd.mockRestore();
     });

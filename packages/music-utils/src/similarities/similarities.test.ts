@@ -1,10 +1,12 @@
+import { vi } from 'vitest';
+
 import { findSimilaritiesAmongArtists } from './similarities';
 import { ArtistSimilarity, Similarity } from './types';
 import { getArtistCombination, unify } from './utils';
 
-jest.mock('../utils/cmd.options');
+vi.mock('../utils/cmd.options');
 
-const mockedLogger: typeof console = { ...global.console, time: jest.fn(), timeLog: jest.fn() };
+const mockedLogger: typeof console = { ...global.console, time: vi.fn(), timeLog: vi.fn() };
 
 const dirB = ['A/Artist', 'B/The Balad', 'M/Magma', '/lib/music/M/MAGMA'];
 describe('similarities', () => {

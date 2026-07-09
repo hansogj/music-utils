@@ -1,12 +1,14 @@
-const mockPrompt = jest.fn();
-jest.mock('prompts', () => ({
+import { vi } from 'vitest';
+
+import { Release } from '../types';
+import { albumPrompt, Question, userDefinedPrompt, validate } from './prompt';
+
+const { mockPrompt } = vi.hoisted(() => ({ mockPrompt: vi.fn() }));
+vi.mock('prompts', () => ({
   __esModule: true,
   default: mockPrompt,
 }));
-
-jest.mock('./color.log');
-import { Release } from '../types';
-import { albumPrompt, Question, userDefinedPrompt, validate } from './prompt';
+vi.mock('./color.log');
 
 describe('prompt', () => {
   const release: Partial<Release> = { artist: 'Magma' };
@@ -20,10 +22,10 @@ describe('prompt', () => {
     },
   };
 
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   describe.each([['y'], ['Y'], ['yes'], ['YES']])('when user responds positive', (value: string) => {
-    beforeEach(() => mockPrompt.mockResolvedValueOnce({ value }));
+    beforeEach(() => void mockPrompt.mockResolvedValueOnce({ value }));
     it(`albumPrompt should pass back release object`, () =>
       albumPrompt(release).then((res) => expect(res).toEqual(release)));
   });
