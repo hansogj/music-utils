@@ -53,7 +53,6 @@
     }
   ],
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "dotenv": "17.3.1"
   },
