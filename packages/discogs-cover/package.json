@@ -1,0 +1,66 @@
+{
+  "name": "@hansogj/discogs-cover",
+  "version": "1.3.1",
+  "description": "A library and CLI to find and download album cover art from Discogs.",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "bin": {
+    "discogs-cover": "./dist/cjs/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "cli": "node dist/cjs/cli.js",
+    "build": "pnpm clean && tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist *.tgz",
+    "prepack": "pnpm format:check && pnpm test &&  pnpm build",
+    "precommit": "pnpm prepack",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "post:update": "rm -rfv node_modules && pnpm prune && pnpm i",
+    "update:majors": "npx npm-check-updates -i -t latest && pnpm run post:update",
+    "update": "npx npm-check-updates -i -t minor && pnpm run post:update",
+    "format": "pnpm prettier --write .",
+    "format:check": "pnpm prettier --check ."
+  },
+  "keywords": [
+    "discogs",
+    "album",
+    "cover",
+    "art",
+    "cli"
+  ],
+  "author": " hansogj",
+  "contributors": [
+    {
+      "name": "Hans Ole Gjerdrum",
+      "email": "hansogj@gmail.com"
+    }
+  ],
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "dotenv": "17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "typescript": "6.0.2",
+    "vitest": "4.1.2",
+    "prettier": "3.8.1"
+  }
+}

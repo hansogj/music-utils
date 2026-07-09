@@ -1,0 +1,5 @@
+{
+  "name": "discogs-cover",
+  "description": "Fetch master cover photos",
+  "requestFramePermissions": []
+}

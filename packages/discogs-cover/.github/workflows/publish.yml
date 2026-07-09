@@ -1,0 +1,29 @@
+name: publish to npmjs
+on:
+  release:
+    types: [published]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '21.x'
+          registry-url: 'https://registry.npmjs.org'
+          # 🚨 FIX: Pass the secret token directly to setup-node
+          # This automatically writes the token to the runner's .npmrc file
+          token: ${{ secrets.NPM_TOKEN }}
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - run: pnpm i --frozen-lockfile
+
+      # The publish command should now be authorized via the .npmrc file
+      - run: pnpm publish --access public --no-git-checks
+        # NOTE: The env block below is now redundant but harmless,
+        # as the auth is handled by the .npmrc file setup above.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
