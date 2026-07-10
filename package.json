@@ -10,6 +10,9 @@
     "lint": "pnpm -r --sequential --if-present lint",
     "format:check": "pnpm -r --sequential --if-present format:check",
     "precommit": "pnpm -r --sequential --if-present precommit",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm -r build && changeset publish",
     "update": "npx npm-check-updates -i -t minor --deep && pnpm run post:update",
     "update:majors": "npx npm-check-updates -i -t latest --deep && pnpm run post:update",
     "post:update": "rm -rfv node_modules && pnpm prune && pnpm i"
@@ -17,6 +20,7 @@
   "author": "hansogj@gmail.com",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@changesets/cli": "2.31.0",
     "husky": "9.1.7",
     "npm-run-all2": "9.0.2",
     "typescript": "6.0.3"
