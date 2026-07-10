@@ -1,6 +1,10 @@
 packages:
   - 'packages/*'
 
+# Keep in sync with the value baked into pnpm-lock.yaml (settings.injectWorkspacePackages).
+# Without this, pnpm 10's frozen install in CI fails with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH.
+injectWorkspacePackages: true
+
 ignoredBuiltDependencies:
   - unrs-resolver
 
