@@ -2,48 +2,65 @@ import './polyfills';
 
 import { defined } from '@hansogj/array.utils';
 
-import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
+import { getConfig, renderAlbumFolder, renderTrackName } from '../config';
 import { File, Release } from '../types';
 import { debugInfo } from './color.log';
-import { precedingZero, toIntOr } from './number';
+import { precedingZero } from './number';
 import { renameFile, renameFolder } from './path';
 import { toLowerCase } from './string';
 
 export const syncReleaseFolder = (release: Release, dirName = ''): Promise<Release> => {
-  const { discNumber, noOfDiscs, year, album } = release || ({} as Release);
   const src = dirName.split('/').pop();
-
-  const aux = release?.aux && `[${release.aux}]`;
-  const disc =
-    [discNumber, noOfDiscs].every(defined) &&
-    toIntOr(noOfDiscs ?? '0', 0) > 1 &&
-    `(${DISC_LABEL} ${[discNumber, noOfDiscs].defined().join(DISC_NO_SPLIT)})`;
-  const target = [year, album, disc, aux].defined().join(' ');
+  const target = renderAlbumFolder(release ?? {}, getConfig());
 
   const shouldRename = defined(src) && toLowerCase(target) !== toLowerCase(src);
   debugInfo({ msg: shouldRename ? 'rename album folder name' : 'keeping', src, target });
   return shouldRename ? renameFolder(src!, target).then(() => release) : Promise.resolve(release);
 };
 
+interface NormalizedTrack {
+  disc?: string;
+  trackNo?: string;
+  trackName?: string;
+}
+
+/**
+ * Split a 3+-digit trackNo into its encoded disc + track components, and
+ * left-pad the track number when it would look better with a leading zero.
+ */
+const normalizeTrack = (
+  trackNo: string | undefined,
+  trackDisc: string | undefined,
+  releaseDisc: string | undefined,
+): NormalizedTrack => {
+  const disc = trackDisc || releaseDisc;
+
+  if ((trackNo?.length ?? 0) > 2) {
+    const [encodedDisc, ...rest] = trackNo!.split('');
+    return { disc: trackDisc ?? encodedDisc, trackNo: rest.join('') };
+  }
+
+  // Pad only in the multi-disc branch and only if trackNo is < 2 chars — matches pre-refactor behavior.
+  const needsPad =
+    disc !== undefined &&
+    (trackNo?.length ?? 0) < 2 &&
+    precedingZero(parseInt(disc, 10), parseInt(trackNo ?? '0', 10)) === 0;
+  return { disc, trackNo: trackNo ? `${needsPad ? '0' : ''}${trackNo}` : trackNo };
+};
+
 export const syncTrackNames = (files: File[] = [], release?: Release) =>
   Promise.all(
-    files.map(({ path, fileType, track: { trackName, trackNo, discNumber } = {} }) => {
+    files.map(({ path, fileType, track = {} }) => {
       const src = `${path}`.split('/').pop();
-      const discNr = discNumber || release?.discNumber;
-      const zero = precedingZero(parseInt(discNr ?? '0', 10), parseInt(trackNo ?? '0', 10)) === 0 ? '0' : '';
-      const artistSection = release?.artist ? ` ${release?.artist} - ` : ' ';
-      let sortableTrackNumber: string | undefined = discNr ? `d${discNr}t${zero}${trackNo}.` : trackNo;
-
-      if ((trackNo?.length ?? 0) > 2) {
-        const [discNoFromTrack, ...rest] = trackNo!.split('');
-        sortableTrackNumber = discNr ? `d${discNr}t${rest.join('')}.` : `d${discNoFromTrack}t${rest.join('')}.`;
-      }
+      const { disc, trackNo } = normalizeTrack(track.trackNo, track.discNumber, release?.discNumber);
+      const trackName = track.trackName;
 
       const target =
-        [trackName, sortableTrackNumber].every((e) => defined(e)) &&
-        `${sortableTrackNumber}${artistSection}${trackName}.${fileType}`;
+        defined(trackName) && defined(trackNo)
+          ? `${renderTrackName({ trackName, trackNo, discNumber: disc }, release ?? {}, getConfig())}.${fileType}`
+          : undefined;
 
-      debugInfo({ trackName, trackNo, sortableTrackNumber, discNr });
+      debugInfo({ trackName, trackNo, disc });
       debugInfo(`mv  ${src}  ${target}`);
       return defined(target) && target !== src
         ? renameFile(src!, `${target}`).then(() => files)

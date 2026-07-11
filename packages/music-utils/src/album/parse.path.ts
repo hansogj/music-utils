@@ -2,7 +2,8 @@ import { defined } from '@hansogj/array.utils';
 import maybe from '@hansogj/maybe';
 import path from 'path';
 
-import { DEFINITE_ARTICLES, DISC_NO_SPLIT } from '../constants';
+import { getConfig } from '../config';
+import { DISC_NO_SPLIT } from '../constants';
 import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
@@ -90,7 +91,10 @@ const calcNoOfDiscsFromPath = (dirName: string, { album, discNumber }: Partial<R
 };
 
 export const artistSortable = (artist: string) => {
-  const matchingPrefix = DEFINITE_ARTICLES.find((prefix) => RegExp(`^${prefix} `, 'i').test(artist));
+  const { sortArticles, articles } = getConfig().artist;
+  if (!sortArticles) return artist;
+
+  const matchingPrefix = articles.find((prefix) => RegExp(`^${prefix} `, 'i').test(artist));
   if (!matchingPrefix) return artist;
 
   return artist
