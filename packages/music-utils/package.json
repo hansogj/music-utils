@@ -39,6 +39,9 @@
     "test": "run-s vitest vitest:ci ci:run-all",
     "precommit": "run-s test lint format:check tsc build"
   },
+  "files": [
+    "build"
+  ],
   "keywords": [
     "music",
     "flac",
