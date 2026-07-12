@@ -60,6 +60,7 @@ Every key is optional; anything you omit falls back to the default.
 ```json
 {
   "libraryRoot": "~/Music",
+  "tracksFile": "tracks.txt",
   "patterns": {
     "artistFolder": "{artist}",
     "albumFolder": "{year} {album}{discSuffix}{auxSuffix}",
@@ -79,6 +80,10 @@ Every key is optional; anything you omit falls back to the default.
 ### `libraryRoot`
 
 Base directory for `music-utils-rip`. When set (tildes are expanded), rips land here regardless of your current working directory — you can run `music-utils-rip -r <id>` from anywhere. When unset, rips land relative to `process.cwd()`.
+
+### `tracksFile`
+
+Default path used by `music-utils-tracks-tag` when `-f` is not supplied. Relative paths are resolved against `process.cwd()`; an absolute path is used as-is. Precedence: CLI `-f` > this key > default `"tracks.txt"`.
 
 ### `patterns.*`
 
@@ -138,9 +143,16 @@ Parses directory structure to extract artist/album info, extracts tags from each
 
 ```
 Music/Artist/2020 Album $> music-utils-tracks-tag -f /path/to/tracks.txt
+Music/Artist/2020 Album $> music-utils-tracks-tag                          # uses config.tracksFile
 ```
 
-Like _album-tag_ but uses track names from the provided `tracks.txt` file.
+Like _album-tag_ but reads track names from an external file (one title per line) instead of relying on tags already present. Path resolution:
+
+1. `-f <file>` CLI flag (highest priority)
+2. `tracksFile` from your config (`music-utils.config.json` / `~/.music-utilsrc.json`)
+3. Default `tracks.txt` in the current working directory
+
+Handy after `music-utils-rip`, which writes a `tracks.txt` for the album at rip time and then chdirs into the album folder — running `music-utils-tracks-tag` there with the default resolution just works.
 
 ## album-cover (cover + tag combo)
 
@@ -175,18 +187,23 @@ Fetches cover photos for all subdirectories that don't already have a `.jpg` fil
 
 ## similarities
 
-Finds similar artist names across directories (e.g. `A Band` vs `Band, A`).
+Fuzzy-matches artist directory names across two roots so you can spot duplicates when merging or comparing music libraries. Typical use: you kept a backup on one drive and a working library on another, and the same artist has drifted into `A Band` in one place and `Band, A` in the other. `similarities` surfaces those pairs.
+
+It scans `-A` one level deep for artist directories and `-B` two levels deep (assuming `Artist/Album` layout), strips a configurable set of ignore-words from each name (definite articles, "and", "band", etc.), then compares via string similarity. Pairs scoring above `-T` are reported.
 
 ### Usage
 
 ```
-$> music-utils-similarities -A /path/to/origin/ -B /path/to/comparator/ -T 0.5 -Q
+$> music-utils-similarities -A /path/to/library-A/ -B /path/to/library-B/ -T 0.5 -Q
+$> music-utils-similarities -A ./ -B /mnt/backup/Music/ -T 0.7 -F matches.json
 ```
 
-- **-A** base directory
-- **-B** comparing directory
-- **-T** threshold of equality
-- **-Q** quiet mode
+- **`-A <path>`** base directory (artist folders directly under this)
+- **`-B <path>`** comparison directory (searched two levels deep for `Artist/Album`)
+- **`-T <0..1>`** similarity threshold; higher is stricter (0.5 = loose, 0.8 = tight)
+- **`-F <file>`** optional; write results to `<file>` as JSON in addition to logging them
+- **`--ignore <word>`** words to strip before comparing (repeatable); merged with the built-in list
+- **`-Q`** quiet mode; suppress timing/progress logs
 
 ## sync-tracks
 
@@ -196,4 +213,6 @@ $> music-utils-similarities -A /path/to/origin/ -B /path/to/comparator/ -T 0.5 -
 Music/Artist/2020 Album $> music-utils-sync-tracks
 ```
 
-Synchronizes track filenames with parsed album metadata.
+Renames audio files in the current album folder to reflect the tags already on them. Reads each file's tags, parses the folder path for artist/album/year context, then applies the configured `patterns.track` / `patterns.trackMultiDisc` templates to compute the target filename. The tags themselves are not rewritten — this is filename-only.
+
+Useful when the tags are already correct (e.g. from another program) but the filenames don't match, or when you've changed your `patterns.*` config and want existing files to catch up.

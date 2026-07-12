@@ -21,6 +21,13 @@ describe('loadConfig', () => {
     expect(cfg.patterns.albumFolder).toBe(DEFAULT_CONFIG.patterns.albumFolder);
     expect(cfg.artist.sortArticles).toBe(true);
     expect(cfg.libraryRoot).toBeUndefined();
+    expect(cfg.tracksFile).toBe(DEFAULT_CONFIG.tracksFile);
+  });
+
+  it('overrides tracksFile from config file', () => {
+    writeFileSync(join(tempDir, 'music-utils.config.json'), JSON.stringify({ tracksFile: 'my.tracks.txt' }));
+    const cfg = loadConfig(tempDir);
+    expect(cfg.tracksFile).toBe('my.tracks.txt');
   });
 
   it('picks up ./music-utils.config.json in cwd', () => {

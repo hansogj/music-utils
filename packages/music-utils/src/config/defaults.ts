@@ -1,7 +1,8 @@
-import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
+import { DISC_LABEL, DISC_NO_SPLIT, TRACKS_FILE_NAME } from '../constants';
 import type { Config } from './schema';
 
 export const DEFAULT_CONFIG: Config = {
+  tracksFile: TRACKS_FILE_NAME,
   patterns: {
     artistFolder: '{artist}',
     albumFolder: '{year} {album}{discSuffix}{auxSuffix}',

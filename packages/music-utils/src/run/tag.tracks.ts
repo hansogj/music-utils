@@ -4,7 +4,7 @@ import path from 'path';
 
 import { tagAlbum } from '../album';
 import { getAlbumDirectory } from '../album/parse.path';
-import { TRACKS_FILE_NAME } from '../constants';
+import { getConfig } from '../config';
 import { getCommandLineArgs } from '../utils/cmd.options';
 import { error, exit, info, json } from '../utils/color.log';
 import { replaceDangers } from '../utils/path';
@@ -13,7 +13,7 @@ import { syncTrackNames } from '../utils/sync.tag.path';
 const { fileName } = getCommandLineArgs();
 let tracks;
 
-const tracksFile = fileName || path.resolve(__dirname, '../..', TRACKS_FILE_NAME);
+const tracksFile = fileName || path.resolve(process.cwd(), getConfig().tracksFile);
 
 try {
   tracks = fs.readFileSync(tracksFile, 'utf8').toString().split('\n').defined().map(replaceDangers);
