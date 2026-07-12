@@ -20,6 +20,7 @@ const merge = (base: Config, override: PartialConfig | null): Config => {
   if (!override) return base;
   return {
     ...((override.libraryRoot ?? base.libraryRoot) ? { libraryRoot: override.libraryRoot ?? base.libraryRoot } : {}),
+    tracksFile: override.tracksFile ?? base.tracksFile,
     patterns: { ...base.patterns, ...(override.patterns ?? {}) },
     artist: {
       sortArticles: override.artist?.sortArticles ?? base.artist.sortArticles,
