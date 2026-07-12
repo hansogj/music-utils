@@ -4,15 +4,15 @@
   "description": "music tools for my flac & mp3 collection",
   "main": "",
   "bin": {
-    "music-utils-rip": "./build/run/rip.js",
-    "music-utils-album-tag": "./build/run/tag.album.js",
-    "music-utils-tracks-tag": "./build/run/tag.tracks.js",
-    "music-utils-cover-photo": "./build/run/cover.photo.js",
-    "music-utils-album-cover": "./build/run/tag.cover.album.js",
-    "music-utils-bulk-album-tag": "./build/run/bulk.tag.album.js",
-    "music-utils-bulk-cover-photo": "./build/run/bulk.cover.photo.js",
-    "music-utils-sync-tracks": "./build/run/sync.track.names.js",
-    "music-utils-similarities": "./build/run/similarities.js"
+    "music-utils-rip": "build/run/rip.js",
+    "music-utils-album-tag": "build/run/tag.album.js",
+    "music-utils-tracks-tag": "build/run/tag.tracks.js",
+    "music-utils-cover-photo": "build/run/cover.photo.js",
+    "music-utils-album-cover": "build/run/tag.cover.album.js",
+    "music-utils-bulk-album-tag": "build/run/bulk.tag.album.js",
+    "music-utils-bulk-cover-photo": "build/run/bulk.cover.photo.js",
+    "music-utils-sync-tracks": "build/run/sync.track.names.js",
+    "music-utils-similarities": "build/run/similarities.js"
   },
   "minimumReleaseAge": 10800,
   "scripts": {
