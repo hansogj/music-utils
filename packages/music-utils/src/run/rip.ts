@@ -189,6 +189,11 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     chdir(fullPath);
     console.log(`   Current directory: ${process.cwd()}`);
 
+    console.log(`\n🖼️  Fetching album cover in background...`);
+    const coverPromise = coverFromDiscogs({ releaseId, quiet: true, token: process.env.DISCOGS_TOKEN ?? '' }).catch(
+      (err: unknown) => console.error('Cover fetch failed (rip continues):', err),
+    );
+
     try {
       await runCommand('cdparanoia', ['-B']);
     } catch (_error) {
@@ -204,8 +209,7 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     await convertWavFilesToFlac();
     await renameFlacFiles();
 
-    console.log(`\n🖼️  Fetching album cover... `);
-    await coverFromDiscogs({ releaseId, quiet: true, token: process.env.DISCOGS_TOKEN ?? '' });
+    await coverPromise;
 
     console.log('\n✏️  Tagging tracks...');
     const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');
