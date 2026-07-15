@@ -31,13 +31,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Create Release PR or publish
+      # No `publish` input: the action only manages the "Version Packages"
+      # PR (bumps versions, updates CHANGELOG, deletes consumed changesets).
+      # Actual `npm publish` is done manually from the maintainer's laptop
+      # for now:  cd packages/<pkg> && npm publish --access public
+      # Re-enable automated publish by putting the `publish: pnpm run release`
+      # input back and either setting `NPM_TOKEN` in repo secrets or wiring
+      # OIDC via npm Trusted Publisher.
+      - name: Create Release PR
         uses: changesets/action@v1
         with:
-          publish: pnpm run release
           version: pnpm run version-packages
           commit: 'chore: version packages'
           title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
