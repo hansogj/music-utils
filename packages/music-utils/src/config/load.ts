@@ -26,6 +26,9 @@ const merge = (base: Config, override: PartialConfig | null): Config => {
       sortArticles: override.artist?.sortArticles ?? base.artist.sortArticles,
       articles: override.artist?.articles ?? base.artist.articles,
     },
+    cover: { ...base.cover, ...(override.cover ?? {}) },
+    disc: { ...base.disc, ...(override.disc ?? {}) },
+    flac: { ...base.flac, ...(override.flac ?? {}) },
   };
 };
 

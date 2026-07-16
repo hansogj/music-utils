@@ -22,12 +22,32 @@ describe('loadConfig', () => {
     expect(cfg.artist.sortArticles).toBe(true);
     expect(cfg.libraryRoot).toBeUndefined();
     expect(cfg.tracksFile).toBe(DEFAULT_CONFIG.tracksFile);
+    expect(cfg.cover.filename).toBe('cover.jpg');
+    expect(cfg.disc.separator).toBe('∕');
+    expect(cfg.flac.compressionLevel).toBe(5);
   });
 
   it('overrides tracksFile from config file', () => {
     writeFileSync(join(tempDir, 'music-utils.config.json'), JSON.stringify({ tracksFile: 'my.tracks.txt' }));
     const cfg = loadConfig(tempDir);
     expect(cfg.tracksFile).toBe('my.tracks.txt');
+  });
+
+  it('merges cover/disc/flac partially without dropping other keys', () => {
+    writeFileSync(
+      join(tempDir, 'music-utils.config.json'),
+      JSON.stringify({
+        cover: { filename: 'folder.jpg' },
+        disc: { separator: '-' },
+        flac: { compressionLevel: 8 },
+      }),
+    );
+    const cfg = loadConfig(tempDir);
+    expect(cfg.cover.filename).toBe('folder.jpg');
+    expect(cfg.disc.separator).toBe('-');
+    expect(cfg.flac.compressionLevel).toBe(8);
+    // Untouched:
+    expect(cfg.artist.sortArticles).toBe(true);
   });
 
   it('picks up ./music-utils.config.json in cwd', () => {

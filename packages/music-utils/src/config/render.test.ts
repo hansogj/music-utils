@@ -47,6 +47,11 @@ describe('renderAlbumFolder', () => {
     };
     expect(renderAlbumFolder(release, cfg)).toBe('IV - 1971');
   });
+
+  it('honors an overridden disc.separator via the {discSep} token', () => {
+    const cfg: Config = { ...DEFAULT_CONFIG, disc: { separator: '-' } };
+    expect(renderAlbumFolder({ ...release, discNumber: '1', noOfDiscs: '2' }, cfg)).toBe(`1971 IV (${DISC_LABEL} 1-2)`);
+  });
 });
 
 describe('renderArtistFolder', () => {
