@@ -23,10 +23,15 @@ export const extractAlbumInfo = async (dirName: string): Promise<File[]> => {
   return files.filter((file) => MusicFileTypes.includes(file.fileType));
 };
 
-export const tagAlbum = async (dirName: string, tracksFromFile?: string[]): Promise<ReleaseFiles> => {
+export const tagAlbum = async (
+  dirName: string,
+  tracksFromFile?: string[],
+  preConfirmedRelease?: Partial<Release>,
+): Promise<ReleaseFiles> => {
   const { tagOnly } = getCommandLineArgs();
 
-  const release = tagOnly ? parseAlbumInfo(dirName) : await albumPrompt(parseAlbumInfo(dirName));
+  const release =
+    preConfirmedRelease ?? (tagOnly ? parseAlbumInfo(dirName) : await albumPrompt(parseAlbumInfo(dirName)));
 
   const extracted = await extractAlbumInfo(dirName);
   const merged = mergeMetaData(extracted, release, tracksFromFile);

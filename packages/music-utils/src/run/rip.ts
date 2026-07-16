@@ -214,7 +214,7 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     console.log('\n✏️  Tagging tracks...');
     const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');
     const tracks = trackLines.split('\n').defined().map(replaceDangers);
-    const { files, release: taggedRelease } = await tagAlbum(process.cwd(), tracks);
+    const { files, release: taggedRelease } = await tagAlbum(process.cwd(), tracks, safeRelease);
     await syncTrackNames(files, taggedRelease as Release);
 
     console.log(`\n🔀 Returning to starting directory: ${initialDir}`);
