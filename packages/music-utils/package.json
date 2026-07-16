@@ -12,7 +12,8 @@
     "music-utils-bulk-album-tag": "build/run/bulk.tag.album.js",
     "music-utils-bulk-cover-photo": "build/run/bulk.cover.photo.js",
     "music-utils-sync-tracks": "build/run/sync.track.names.js",
-    "music-utils-similarities": "build/run/similarities.js"
+    "music-utils-similarities": "build/run/similarities.js",
+    "music-utils-completion": "build/run/completion.js"
   },
   "minimumReleaseAge": 10800,
   "scripts": {

@@ -195,15 +195,15 @@ It scans `-A` one level deep for artist directories and `-B` two levels deep (as
 
 ```
 $> music-utils-similarities -A /path/to/library-A/ -B /path/to/library-B/ -T 0.5 -Q
-$> music-utils-similarities -A ./ -B /mnt/backup/Music/ -T 0.7 -F matches.json
+$> music-utils-similarities -A ./ -B /mnt/backup/Music/ -T 0.7 -f matches.json
 ```
 
-- **`-A <path>`** base directory (artist folders directly under this)
-- **`-B <path>`** comparison directory (searched two levels deep for `Artist/Album`)
-- **`-T <0..1>`** similarity threshold; higher is stricter (0.5 = loose, 0.8 = tight)
-- **`-F <file>`** optional; write results to `<file>` as JSON in addition to logging them
-- **`--ignore <word>`** words to strip before comparing (repeatable); merged with the built-in list
-- **`-Q`** quiet mode; suppress timing/progress logs
+- **`-A <path>`** / **`--dirA <path>`** base directory (artist folders directly under this)
+- **`-B <path>`** / **`--dirB <path>`** comparison directory (searched two levels deep for `Artist/Album`)
+- **`-T <0..1>`** / **`--threshold`** similarity threshold; higher is stricter (0.5 = loose, 0.8 = tight)
+- **`-f <file>`** / **`--fileName`** optional; write results to `<file>` as JSON in addition to logging them
+- **`-I <word>`** / **`--ignore <word>`** words to strip before comparing (repeatable); merged with the built-in list
+- **`-Q`** / **`--quiet`** quiet mode; suppress timing/progress logs
 
 ## sync-tracks
 
@@ -216,3 +216,23 @@ Music/Artist/2020 Album $> music-utils-sync-tracks
 Renames audio files in the current album folder to reflect the tags already on them. Reads each file's tags, parses the folder path for artist/album/year context, then applies the configured `patterns.track` / `patterns.trackMultiDisc` templates to compute the target filename. The tags themselves are not rewritten — this is filename-only.
 
 Useful when the tags are already correct (e.g. from another program) but the filenames don't match, or when you've changed your `patterns.*` config and want existing files to catch up.
+
+## completion
+
+Shell tab-completion for every `music-utils-*` command's flags (and file/directory completion for path-valued flags like `-f`, `-A`, `-B`).
+
+### Install (bash)
+
+Session-only:
+
+```
+source <(music-utils-completion bash)
+```
+
+Persistent (per-user, no root):
+
+```
+music-utils-completion bash > ~/.local/share/bash-completion/completions/music-utils
+```
+
+Now `music-utils-rip -<TAB>` shows `-r`, `--releaseId`, `-d`, `--disc`; `music-utils-similarities -A <TAB>` completes directories; and so on. Zsh support is on the backlog.
