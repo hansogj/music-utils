@@ -117,7 +117,7 @@ async function convertWavFilesToFlac(): Promise<void> {
         console.log(`🗑️  Removing pre-gap or empty file (duration: ${duration}s): ${wavFile}`);
         await rm(wavFile);
       } else {
-        await runCommand('flac', ['--keep-foreign-metadata', wavFile]);
+        await runCommand('flac', [`-${getConfig().flac.compressionLevel}`, '--keep-foreign-metadata', wavFile]);
         await rm(wavFile);
       }
     } catch (error) {

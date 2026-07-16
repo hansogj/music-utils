@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { join } from 'node:path';
 
-import { DISC_NO_SPLIT } from '../constants';
+import { getConfig } from '../config';
 import { singleSpace } from '../tag/parser';
 import { FILETYPE } from '../types';
 import { executeFile } from './execute';
@@ -37,4 +37,4 @@ export const renameFile = (src: string, target: string) => executeFile('mv', [sr
 
 export const replaceQuotes = (str = '') => singleSpace(str).replace(/"/g, `'`);
 
-export const replaceDangers = (str = '') => replaceQuotes(str).replace(/\//g, DISC_NO_SPLIT);
+export const replaceDangers = (str = '') => replaceQuotes(str).replace(/\//g, getConfig().disc.separator);

@@ -1,4 +1,4 @@
-import { DISC_LABEL, DISC_NO_SPLIT, TRACKS_FILE_NAME } from '../constants';
+import { COVER_FILE_NAME, DISC_LABEL, DISC_NO_SPLIT, TRACKS_FILE_NAME } from '../constants';
 import type { Config } from './schema';
 
 export const DEFAULT_CONFIG: Config = {
@@ -9,11 +9,21 @@ export const DEFAULT_CONFIG: Config = {
     track: '{trackNo}{artistPrefix}{title}',
     trackMultiDisc: 'd{disc}t{trackNo}.{artistPrefix}{title}',
     artistPrefix: ' {artist} - ',
-    discSuffix: ` (${DISC_LABEL} {disc}${DISC_NO_SPLIT}{total})`,
+    // {discSep} resolves from `config.disc.separator` at render time.
+    discSuffix: ` (${DISC_LABEL} {disc}{discSep}{total})`,
     auxSuffix: ' [{aux}]',
   },
   artist: {
     sortArticles: true,
     articles: ['the', 'los', 'il', 'la', 'el', 'le'],
+  },
+  cover: {
+    filename: COVER_FILE_NAME,
+  },
+  disc: {
+    separator: DISC_NO_SPLIT,
+  },
+  flac: {
+    compressionLevel: 5,
   },
 };

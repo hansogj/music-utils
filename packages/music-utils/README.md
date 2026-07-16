@@ -67,12 +67,21 @@ Every key is optional; anything you omit falls back to the default.
     "track": "{trackNo}{artistPrefix}{title}",
     "trackMultiDisc": "d{disc}t{trackNo}.{artistPrefix}{title}",
     "artistPrefix": " {artist} - ",
-    "discSuffix": " (Disc {disc}∕{total})",
+    "discSuffix": " (Disc {disc}{discSep}{total})",
     "auxSuffix": " [{aux}]"
   },
   "artist": {
     "sortArticles": true,
     "articles": ["the", "los", "il", "la", "el", "le"]
+  },
+  "cover": {
+    "filename": "cover.jpg"
+  },
+  "disc": {
+    "separator": "∕"
+  },
+  "flac": {
+    "compressionLevel": 5
   }
 }
 ```
@@ -87,17 +96,31 @@ Default path used by `music-utils-tracks-tag` when `-f` is not supplied. Relativ
 
 ### `patterns.*`
 
-Templates use `{token}` substitution. Available tokens: `{artist}`, `{album}`, `{year}`, `{disc}`, `{total}`, `{trackNo}`, `{title}`, `{aux}`, `{discSuffix}`, `{auxSuffix}`, `{artistPrefix}`. Missing tokens resolve to empty and surrounding whitespace collapses.
+Templates use `{token}` substitution. Available tokens: `{artist}`, `{album}`, `{year}`, `{disc}`, `{total}`, `{trackNo}`, `{title}`, `{aux}`, `{discSep}`, `{discSuffix}`, `{auxSuffix}`, `{artistPrefix}`. Missing tokens resolve to empty and surrounding whitespace collapses.
 
 - `artistFolder` / `albumFolder` — the two path segments `music-utils-*` writes into.
 - `track` / `trackMultiDisc` — filename (without extension) for single-disc vs multi-disc releases.
 - `artistPrefix` — inserted before `{title}` when the release has an artist; renders to `' '` otherwise.
-- `discSuffix` — appended to `albumFolder` when `noOfDiscs > 1`. Note: the character between disc/total is `∕` (U+2215 division slash), not `/`, because filesystems reject `/` in path segments.
+- `discSuffix` — appended to `albumFolder` when `noOfDiscs > 1`. Includes a `{discSep}` token which resolves to `disc.separator` at render time.
 - `auxSuffix` — appended when the album has aux info (e.g. `[remaster]`).
 
 ### `artist.sortArticles` / `artist.articles`
 
 When `true`, definite articles listed in `articles` move to the end during folder naming: `"The Beatles" → "Beatles, The"`. Set `false` to keep the article in place, or replace `articles` with your own list.
+
+### `cover.filename`
+
+Filename `music-utils-rip` and `music-utils-cover-photo` write for album art. Default `"cover.jpg"`. Change to `"folder.jpg"` for the Windows convention, or `"AlbumArt.jpg"` if that's what your player expects.
+
+### `disc.separator`
+
+Character inserted between disc-number and total in multi-disc folder names, e.g. `Disc 1∕2`. Default is `∕` (U+2215 division slash). It **cannot be `/`** — filesystems reject that character in path segments. Common alternates: `-`, `_`, or a full-width `／`. Also used when sanitizing user-supplied strings that contain `/` (via `replaceDangers`).
+
+Changing this after your library already contains multi-disc folders means old folders parse under the old separator and new folders use the new one — safest to pick a value at library setup and leave it alone.
+
+### `flac.compressionLevel`
+
+Passed to the `flac` CLI as `-<level>` during `music-utils-rip`'s WAV→FLAC step. Range `0` (fast/large) through `8` (slow/small). Default `5` matches the `flac` CLI's own default.
 
 # Features
 

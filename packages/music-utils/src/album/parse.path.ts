@@ -3,7 +3,6 @@ import maybe from '@hansogj/maybe';
 import path from 'path';
 
 import { getConfig } from '../config';
-import { DISC_NO_SPLIT } from '../constants';
 import { applyMatch, Parser, regExp } from '../tag/parser';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
@@ -26,7 +25,7 @@ const cleanAuxInfo = (...aux: string[]) => removeDoubleSpace(aux.join(' ')).repl
 
 const splitParsedDiscNumber = (parsedDiscNumber: string): string[] => {
   const parts = `${parsedDiscNumber}`
-    .split(DISC_NO_SPLIT)
+    .split(getConfig().disc.separator)
     .map((n: string) => toIntOr(n, undefined))
     .defined()
     .map((e) => `${e}`);

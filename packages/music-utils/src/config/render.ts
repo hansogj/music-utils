@@ -14,7 +14,11 @@ const isMultiDisc = (release: Partial<Release>): boolean => {
 export const renderAlbumFolder = (release: Partial<Release>, config: Config): string => {
   const { patterns } = config;
   const discSuffix = isMultiDisc(release)
-    ? renderTemplate(patterns.discSuffix, { disc: release.discNumber, total: release.noOfDiscs })
+    ? renderTemplate(patterns.discSuffix, {
+        disc: release.discNumber,
+        total: release.noOfDiscs,
+        discSep: config.disc.separator,
+      })
     : '';
   const auxSuffix = release.aux ? renderTemplate(patterns.auxSuffix, { aux: release.aux }) : '';
   return renderTemplate(patterns.albumFolder, {

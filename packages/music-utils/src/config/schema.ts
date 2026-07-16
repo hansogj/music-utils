@@ -25,6 +25,22 @@ export interface Config {
     /** Which words to treat as definite articles for the sort. */
     articles: string[];
   };
+  cover: {
+    /** Filename `music-utils-rip` / `music-utils-cover-photo` write for album art (default: "cover.jpg"). */
+    filename: string;
+  };
+  disc: {
+    /**
+     * Character between disc-number and total in folder names (default: `∕` U+2215).
+     * Cannot be `/` (filesystem restriction). Applied to both `patterns.discSuffix`
+     * (via `{discSep}` token) and `replaceDangers` when sanitizing user-supplied strings.
+     */
+    separator: string;
+  };
+  flac: {
+    /** Passed to the `flac` CLI as `-<level>`. Range 0–8; higher = smaller file, slower encode. Default: 5. */
+    compressionLevel: number;
+  };
 }
 
 export type PartialConfig = {
@@ -32,4 +48,7 @@ export type PartialConfig = {
   tracksFile?: string;
   patterns?: Partial<Config['patterns']>;
   artist?: Partial<Config['artist']>;
+  cover?: Partial<Config['cover']>;
+  disc?: Partial<Config['disc']>;
+  flac?: Partial<Config['flac']>;
 };

@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { discogsMainCover } from '@hansogj/discogs-cover';
 
 import { parseAlbumInfo } from '../album/parse.path';
-import { COVER_FILE_NAME } from '../constants';
+import { getConfig } from '../config';
 import { Release } from '../types';
 import { error, info, success } from '../utils/color.log';
 import { albumPrompt } from '../utils/prompt';
@@ -48,7 +48,7 @@ export const coverFromDiscogs = async ({
       });
     }
 
-    fs.writeFileSync(COVER_FILE_NAME, imageBuffer);
+    fs.writeFileSync(getConfig().cover.filename, imageBuffer);
     info('Cover saved!');
   } catch (e) {
     error((e as Error).message);
