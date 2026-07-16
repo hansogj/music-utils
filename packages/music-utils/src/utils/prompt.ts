@@ -28,6 +28,31 @@ export const validate = (name: Question, value: string) => {
   return true;
 };
 
+/**
+ * Cross-field check for the disc-info prompt: `noOfDiscs` (total) must be ≥ `discNumber`
+ * (the disc currently being ripped/tagged). Blank inputs are treated as "keep original"
+ * and fall back to the pre-prompt release values.
+ */
+export const validateCrossField = (
+  name: Question,
+  value: string,
+  currentAnswers: Record<string, unknown> | undefined,
+  original: Partial<Release>,
+): true | string => {
+  if (name !== 'noOfDiscs' || value === '') return true;
+
+  const answerDisc = currentAnswers?.discNumber != null ? `${currentAnswers.discNumber}`.trim() : '';
+  const rawDisc = answerDisc || original.discNumber || '';
+  const disc = parseInt(rawDisc, 10);
+  const total = parseInt(value, 10);
+
+  if (Number.isFinite(disc) && Number.isFinite(total) && total < disc) {
+    return `Total discs (${total}) must be ≥ current disc number (${disc})`;
+  }
+
+  return true;
+};
+
 const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>> => {
   json(release);
 
@@ -62,7 +87,11 @@ export const userDefinedPrompt = async (release: Partial<Release>): Promise<Part
       name,
       message: `${name.toUpperCase()}: ${originalValue}`,
       type: 'text',
-      validate: (value: string) => validate(name as Question, value),
+      validate: (value: string, answers: Record<string, unknown>) => {
+        const single = validate(name as Question, value);
+        if (single !== true) return single;
+        return validateCrossField(name as Question, value, answers, release);
+      },
     })),
   );
 

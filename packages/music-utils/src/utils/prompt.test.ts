@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
 import { Release } from '../types';
-import { albumPrompt, Question, userDefinedPrompt, validate } from './prompt';
+import { albumPrompt, Question, userDefinedPrompt, validate, validateCrossField } from './prompt';
 
 const { mockPrompt } = vi.hoisted(() => ({ mockPrompt: vi.fn() }));
 vi.mock('prompts', () => ({
@@ -89,5 +89,34 @@ describe('prompt', () => {
     [{ name: 'aux', value: '1' }, true],
   ] as Array<[{ name: Question; value: string }, boolean]>)('with user input %p', (response, expected) => {
     it(`should validate into ${expected}`, () => expect(validate(response.name, response.value)).toEqual(expected));
+  });
+
+  describe('validateCrossField (noOfDiscs >= discNumber)', () => {
+    it('accepts when total equals current disc', () => {
+      expect(validateCrossField('noOfDiscs', '2', { discNumber: '2' }, {})).toBe(true);
+    });
+
+    it('accepts when total exceeds current disc', () => {
+      expect(validateCrossField('noOfDiscs', '3', { discNumber: '1' }, {})).toBe(true);
+    });
+
+    it('rejects when total < current disc typed in the same session', () => {
+      expect(validateCrossField('noOfDiscs', '1', { discNumber: '2' }, {})).toMatch(/must be ≥/);
+    });
+
+    it('falls back to original release.discNumber when discNumber is left blank', () => {
+      expect(validateCrossField('noOfDiscs', '1', { discNumber: '' }, { discNumber: '2' })).toMatch(
+        /must be ≥ current disc number \(2\)/,
+      );
+    });
+
+    it('skips the check when noOfDiscs value is blank (means: keep original)', () => {
+      expect(validateCrossField('noOfDiscs', '', { discNumber: '5' }, {})).toBe(true);
+    });
+
+    it('is a no-op for non-noOfDiscs fields', () => {
+      expect(validateCrossField('discNumber', '2', {}, {})).toBe(true);
+      expect(validateCrossField('year', '1971', {}, {})).toBe(true);
+    });
   });
 });
