@@ -33,6 +33,11 @@ describe('loadConfig', () => {
     expect(cfg.tracksFile).toBe('my.tracks.txt');
   });
 
+  it('throws ConfigError when a value has the wrong type', () => {
+    writeFileSync(join(tempDir, 'music-utils.config.json'), JSON.stringify({ flac: { compressionLevel: 'banana' } }));
+    expect(() => loadConfig(tempDir)).toThrow(/flac\.compressionLevel/);
+  });
+
   it('merges cover/disc/flac partially without dropping other keys', () => {
     writeFileSync(
       join(tempDir, 'music-utils.config.json'),

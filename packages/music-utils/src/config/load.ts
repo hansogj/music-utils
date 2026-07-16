@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 import { DEFAULT_CONFIG } from './defaults';
 import type { Config, PartialConfig } from './schema';
+import { validateConfig } from './validate';
 
 const CONFIG_FILE_NAME = 'music-utils.config.json';
 const HOME_CONFIG_FILE_NAME = '.music-utilsrc.json';
@@ -45,5 +46,7 @@ export const loadConfig = (cwd: string = process.cwd()): Config => {
   const home = readIfExists(resolve(homedir(), HOME_CONFIG_FILE_NAME));
   const project = readIfExists(resolve(cwd, CONFIG_FILE_NAME));
   const merged = merge(merge(DEFAULT_CONFIG, home), project);
-  return merged.libraryRoot ? { ...merged, libraryRoot: expandHome(merged.libraryRoot) } : merged;
+  const resolved = merged.libraryRoot ? { ...merged, libraryRoot: expandHome(merged.libraryRoot) } : merged;
+  validateConfig(resolved);
+  return resolved;
 };

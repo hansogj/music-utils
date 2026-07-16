@@ -53,7 +53,7 @@ Folder naming, track filenames, and the library root are configurable via a JSON
 2. `~/.music-utilsrc.json` in your home directory (user-global)
 3. Built-in defaults
 
-Every key is optional; anything you omit falls back to the default.
+Every key is optional; anything you omit falls back to the default. Types and ranges are checked at load time — a bad value (e.g. `flac.compressionLevel: "banana"` or `disc.separator: "a/b"`) throws a `ConfigError` naming the offending path so you can fix it, rather than silently corrupting a rip.
 
 ## Schema
 
