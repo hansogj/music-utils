@@ -43,6 +43,17 @@ describe('tag album', () => {
       });
     });
 
+    describe('when preConfirmedRelease is supplied (rip flow)', () => {
+      beforeEach(async () => {
+        mocks.readDir.mockReturnValue([]);
+        await tagAlbum(mockDirName, undefined, release);
+      });
+      it('skips both parseAlbumInfo and albumPrompt', () => {
+        expect(mocks.parseAlbumInfo).not.toHaveBeenCalled();
+        expect(mocks.albumPrompt).not.toHaveBeenCalled();
+      });
+    });
+
     describe('with response from prompt', () => {
       const extractedTagsDefault: Partial<Track> = {
         album: 'MDK',
