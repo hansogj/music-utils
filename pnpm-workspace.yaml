@@ -12,3 +12,9 @@ onlyBuiltDependencies:
   - '@hansogj/maybe'
   - esbuild
   - '@vitest/coverage-v8'
+
+# Patch transitive vulnerabilities without waiting on upstream chains.
+# See GHSA advisories on `flatted` <3.4.2 (Prototype Pollution, DoS in parse).
+# Comes into the tree via eslint 10 -> file-entry-cache 8 -> flat-cache 4.0.1.
+overrides:
+  flatted: '^3.4.2'
