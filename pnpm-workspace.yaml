@@ -14,7 +14,24 @@ onlyBuiltDependencies:
   - '@vitest/coverage-v8'
 
 # Patch transitive vulnerabilities without waiting on upstream chains.
-# See GHSA advisories on `flatted` <3.4.2 (Prototype Pollution, DoS in parse).
-# Comes into the tree via eslint 10 -> file-entry-cache 8 -> flat-cache 4.0.1.
+# All entries below target open GHSA advisories on dev-time transitives.
+# Prefer same-major patches (safe); skip cross-major forces where the
+# exploit surface is nil (parsing our own YAML/build files, not attacker input).
 overrides:
+  # flatted <3.4.2: Prototype Pollution + DoS in parse().
+  # Via: eslint 10 -> file-entry-cache 8 -> flat-cache 4.0.1.
   flatted: '^3.4.2'
+  # brace-expansion 1.x <1.1.13: zero-step sequence hangs process.
+  # brace-expansion 5.x <5.0.6: numeric range defeats `max` DoS guard.
+  # Both come via eslint's minimatch chain; 2.x resolution is unaffected.
+  'brace-expansion@1': '1.1.13'
+  'brace-expansion@5': '5.0.6'
+  # picomatch 2.x <2.3.2 and 4.x <4.0.4: method injection in POSIX classes.
+  # Via tsc/eslint tinyglobby chains.
+  'picomatch@2': '2.3.2'
+  'picomatch@4': '4.0.4'
+  # js-yaml 4.x <4.2.0: quadratic DoS in merge-key handling.
+  # (3.x is separately advisory'd but requires cross-major upgrade — see backlog.)
+  'js-yaml@4': '4.2.0'
+  # diff <4.0.4: DoS in parsePatch/applyPatch. Via ts-node -> diff.
+  diff: '4.0.4'
