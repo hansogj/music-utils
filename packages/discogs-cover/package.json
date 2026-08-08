@@ -23,6 +23,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "cli": "node dist/cli.js",
     "build": "pnpm clean && tsup",

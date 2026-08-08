@@ -43,6 +43,9 @@
   "files": [
     "build"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "music",
     "flac",

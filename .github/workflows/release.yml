@@ -31,18 +31,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # No `publish` input: the action only manages the "Version Packages"
-      # PR (bumps versions, updates CHANGELOG, deletes consumed changesets).
-      # Actual `npm publish` is done manually from the maintainer's laptop
-      # for now:  cd packages/<pkg> && npm publish --access public
-      # Re-enable automated publish by putting the `publish: pnpm run release`
-      # input back and either setting `NPM_TOKEN` in repo secrets or wiring
-      # OIDC via npm Trusted Publisher.
-      - name: Create Release PR
+      # OIDC-based publishing via npm Trusted Publisher requires npm >= 11.5.1.
+      - name: Ensure npm supports OIDC
+        run: npm install -g npm@latest
+
+      - name: Create Release PR / Publish
         uses: changesets/action@v1
         with:
           version: pnpm run version-packages
+          publish: pnpm run release
           commit: 'chore: version packages'
           title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
