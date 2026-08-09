@@ -1,6 +1,6 @@
 # music-utils monorepo
 
-TypeScript toolkit for managing a personal FLAC/MP3 music collection. Three packages, published independently to npm:
+TypeScript toolkit for managing a personal FLAC/MP3 music collection. Three packages, published independently to npm via OIDC Trusted Publisher:
 
 | Package | Description |
 |---------|-------------|
