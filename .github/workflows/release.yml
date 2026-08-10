@@ -32,10 +32,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # OIDC-based publishing via npm Trusted Publisher requires npm >= 11.5.1.
-      - name: Ensure npm supports OIDC
-        run: npm install -g npm@latest
-
       - name: Create Release PR / Publish
         uses: changesets/action@v1
         with:
