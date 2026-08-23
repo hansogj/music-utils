@@ -22,6 +22,24 @@ pnpm --filter @hansogj/music-utils run precommit
 
 Per-package scripts live in each `packages/*/package.json`; the workspace root has a monorepo-wide `precommit` that runs each package's `precommit` sequentially (via `pnpm -r`).
 
+### Bash completion
+
+`@hansogj/music-utils` ships a completion script for all `music-utils-*` commands (flag names, directory/file arguments).
+
+```bash
+# Create the completions directory if it doesn't exist yet
+mkdir -p ~/.local/share/bash-completion/completions
+
+# Generate and install
+music-utils-completion bash > ~/.local/share/bash-completion/completions/music-utils
+```
+
+Or source it just for the current session:
+
+```bash
+source <(music-utils-completion bash)
+```
+
 ### Releases
 
 Managed via [Changesets](https://github.com/changesets/changesets). Adding a changeset:

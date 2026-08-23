@@ -3,14 +3,12 @@
     "workbench.colorTheme": "Darktooth",
     "workbench.colorCustomizations": {
         "[Darktooth]": {
-            "activityBar.background": "#66999D",
-            "statusBar.background": "#66999D",
-            "titleBar.activeBackground": "#66999D",
-            "titleBar.inactiveBackground": "#66999D",
-            "scrollbar.shadow": "#66999D",
-            "scrollbarSlider.background": "#66999D",
-            "editor.background": "#002528",
-            "sideBar.background": "#002528"
+            "activityBar.background": "#3a5a1c",
+            "statusBar.background": "#3a5a1c",
+            "titleBar.activeBackground": "#1d2f14",
+            "titleBar.inactiveBackground": "#182710",
+            "editor.background": "#1d2f14",
+            "sideBar.background": "#162610"
         }
     },
     "jestrunner.jestCommand": "npm run test --"
