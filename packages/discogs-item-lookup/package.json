@@ -62,10 +62,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hansogj/discogs-item-lookup.git"
+    "url": "https://github.com/hansogj/music-utils",
+    "directory": "packages/discogs-item-lookup"
   },
   "bugs": {
-    "url": "https://github.com/hansogj/discogs-item-lookup/issues"
+    "url": "https://github.com/hansogj/music-utils/issues"
   },
-  "homepage": "https://github.com/hansogj/discogs-item-lookup#readme"
+  "homepage": "https://github.com/hansogj/music-utils/tree/main/packages/discogs-item-lookup#readme"
 }

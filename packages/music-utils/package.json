@@ -51,6 +51,11 @@
     "flac",
     "mp3"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hansogj/music-utils",
+    "directory": "packages/music-utils"
+  },
   "author": "hansogj@gmail.com",
   "license": "UNLICENSED",
   "dependencies": {

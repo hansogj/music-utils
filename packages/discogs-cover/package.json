@@ -48,6 +48,11 @@
     "art",
     "cli"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hansogj/music-utils",
+    "directory": "packages/discogs-cover"
+  },
   "author": " hansogj",
   "contributors": [
     {
