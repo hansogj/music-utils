@@ -1,5 +1,17 @@
 # @hansogj/music-utils
 
+## 1.6.0
+
+### Minor Changes
+
+- efec5fb: chore: update dependencies to latest minor versions
+
+### Patch Changes
+
+- Updated dependencies [efec5fb]
+  - @hansogj/discogs-cover@1.4.0
+  - @hansogj/discogs-item-lookup@1.3.0
+
 ## 1.5.2
 
 ### Patch Changes
