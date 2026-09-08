@@ -4,6 +4,7 @@ import * as process from 'node:process';
 import { fetchDiscogs, downloadImage, DISCOGS_API_URL } from './discogs-client';
 import type {
   DiscogsCoverOptions,
+  DiscogsImage,
   DiscogsSearchResponse,
   DiscogsSearchResult,
   DiscogsMasterReleaseResponse,
@@ -27,6 +28,9 @@ function parseReleaseId(releaseId: string): string | undefined {
   return releaseId.match(/\d+/)?.[0];
 }
 
+const getPrimaryImageUri = (images: DiscogsImage[]): string | undefined =>
+  images.find((img) => img.type === 'primary')?.uri;
+
 export async function discogsMainCover({
   artist,
   title,
@@ -49,18 +53,14 @@ export async function discogsMainCover({
 
     if (releaseData.master_id && releaseData.master_url) {
       const masterData = await fetchDiscogs<DiscogsMasterReleaseResponse>(releaseData.master_url, token);
-      const primaryImage = masterData.images?.find((img) => img.type === 'primary');
-      const imageUri = primaryImage?.uri;
-
+      const imageUri = getPrimaryImageUri(masterData.images);
       if (!imageUri) {
         throw new Error(`No primary image found for master release of release ${parsedId}.`);
       }
       return downloadImage(imageUri);
     }
 
-    const primaryImage = releaseData.images?.find((img) => img.type === 'primary');
-    const imageUri = primaryImage?.uri;
-
+    const imageUri = getPrimaryImageUri(releaseData.images);
     if (!imageUri) {
       throw new Error(`No primary image found for release ${parsedId}.`);
     }
@@ -104,9 +104,7 @@ export async function discogsMainCover({
   }
 
   const masterData = await fetchDiscogs<DiscogsMasterReleaseResponse>(selectedRelease.resource_url, token);
-  const primaryImage = masterData.images?.find((img) => img.type === 'primary');
-
-  const imageUri = primaryImage?.uri || selectedRelease.cover_image;
+  const imageUri = getPrimaryImageUri(masterData.images) || selectedRelease.cover_image;
 
   if (imageUri) {
     return downloadImage(imageUri);

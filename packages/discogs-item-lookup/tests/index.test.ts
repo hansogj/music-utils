@@ -58,4 +58,27 @@ describe('lookupRelease', () => {
     });
     expect(result.artist).toBe('Daft Punk');
   });
+
+  it('should strip numbered disambiguation suffix from artist name', async () => {
+    const result = await lookupRelease({ releaseId: '1961624' });
+    expect(result.artist).toBe('Area');
+  });
+
+  it('should report totalDiscs from a 2-disc release', async () => {
+    const result = await lookupRelease({ releaseId: '2000001' });
+    expect(result.totalDiscs).toBe(2);
+    expect(result.discs.length).toBe(2);
+  });
+
+  it('should report totalDiscs=2 even when disc filter returns only 1 disc', async () => {
+    const result = await lookupRelease({ releaseId: '2000001', disc: 1 });
+    expect(result.totalDiscs).toBe(2);
+    expect(result.discs.length).toBe(1);
+    expect(result.discs[0].disc).toBe(1);
+  });
+
+  it('should set totalDiscs=1 for a single-disc release', async () => {
+    const result = await lookupRelease({ releaseId: 'r249504' });
+    expect(result.totalDiscs).toBe(1);
+  });
 });

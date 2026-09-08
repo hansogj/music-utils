@@ -75,7 +75,8 @@ export const read = (path = ''): Promise<Partial<Track>> =>
     .then((output) => output.trim())
     .then(parseId3Output);
 
-const mp3TagArgs = (val: string | undefined, tag: string): string[] | false => (val ? [`--${tag}`, val] : false);
+const mp3TagArgs = (val: string | undefined, tag: string): string[] | undefined =>
+  val ? [`--${tag}`, val] : undefined;
 
 const generateTagArgs = ({
   album,
@@ -87,17 +88,15 @@ const generateTagArgs = ({
   noOfDiscs,
   year,
 }: Partial<Track>): string[] =>
-  (
-    [
-      mp3TagArgs(artist, ARTIST),
-      mp3TagArgs([discNumber, noOfDiscs].defined().join('/'), TPOS),
-      mp3TagArgs(year, YEAR),
-      mp3TagArgs(album, ALBUM),
-      mp3TagArgs([trackNo, trackNoTotal].defined().join('/'), TRACKNUMBER),
-      mp3TagArgs(trackName, TITLE),
-    ] as (string[] | false)[]
-  )
-    .filter((v): v is string[] => v !== false)
+  [
+    mp3TagArgs(artist, ARTIST),
+    mp3TagArgs([discNumber, noOfDiscs].defined().join('/'), TPOS),
+    mp3TagArgs(year, YEAR),
+    mp3TagArgs(album, ALBUM),
+    mp3TagArgs([trackNo, trackNoTotal].defined().join('/'), TRACKNUMBER),
+    mp3TagArgs(trackName, TITLE),
+  ]
+    .filter((v): v is string[] => v !== undefined)
     .flat();
 
 export const write = ({ path, track }: File) => {

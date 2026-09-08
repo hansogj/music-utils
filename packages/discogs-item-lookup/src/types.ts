@@ -29,6 +29,7 @@ export interface DiscogsMasterResponse {
 export interface LookupResult {
   artist: string;
   title: string;
+  totalDiscs: number;
   discs: {
     disc: number;
     tracks: { position: string; title: string }[];
