@@ -28,7 +28,7 @@ _music_audit() {
 
   # Flag completion — offer flags without trailing '=' so nospace isn't needed
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=($(compgen -W "--root --token --no-discogs --json --help" -- "$cur"))
+    COMPREPLY=($(compgen -W "--root --token --no-discogs --repair --json --help" -- "$cur"))
     return
   fi
 

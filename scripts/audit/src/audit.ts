@@ -11,6 +11,7 @@ import { checkNameTagMatch } from './checks/names.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { searchDiscogs } from './discogs.js';
 import { printReport } from './report.js';
+import { runRepair } from './repair.js';
 import type { AlbumAudit, AlbumLayout, AuditReport, Issue, Severity, TrackInfo } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -116,14 +117,19 @@ Options:
   --root=<path>       Root of music library (default: cwd)
   --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env)
   --no-discogs        Skip Discogs API calls entirely
-  --json              Output raw JSON instead of formatted report
+  --repair            Interactive repair mode — step through issues and fix them
+  --json              Output raw JSON instead of formatted report (incompatible with --repair)
   --help, -h          Show this help
 
-Example (against test data, no Discogs):
+Examples:
+  # Audit only (no Discogs):
   pnpm audit -- --root=../../packages/music-utils/test-data/raw --no-discogs
 
-Example (real library with Discogs suggestions):
-  pnpm audit -- --root=/mnt/music --token=YOUR_TOKEN
+  # Audit with Discogs suggestions:
+  music-audit --root ~/Music --token YOUR_TOKEN
+
+  # Interactive repair (run as sudo if files are root-owned):
+  sudo $(which pnpm) --filter @music/audit run audit -- --repair --root /mnt/music --token YOUR_TOKEN
 `);
     return;
   }
@@ -131,7 +137,8 @@ Example (real library with Discogs suggestions):
   const root = path.resolve(getArg(args, 'root') ?? process.cwd());
   const token = getArg(args, 'token') ?? process.env['DISCOGS_TOKEN'];
   const skipDiscogs = hasFlag(args, 'no-discogs') || !token;
-  const jsonOutput = hasFlag(args, 'json');
+  const repairMode = hasFlag(args, 'repair');
+  const jsonOutput = hasFlag(args, 'json') && !repairMode;
 
   try {
     await fs.access(root);
@@ -164,7 +171,10 @@ Example (real library with Discogs suggestions):
     summary: buildSummary(audits),
   };
 
-  if (jsonOutput) {
+  if (repairMode) {
+    printReport(report);
+    await runRepair(audits, token);
+  } else if (jsonOutput) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     printReport(report);
