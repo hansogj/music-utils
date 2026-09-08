@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# music-audit — real executable wrapper so `sudo music-audit` works.
+# Install: sudo ln -sf "$(realpath "$(dirname "$0")")/music-audit" /usr/local/bin/music-audit
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+TSX="$REPO_ROOT/scripts/audit/node_modules/.bin/tsx"
+AUDIT="$REPO_ROOT/scripts/audit/src/audit.ts"
+
+if [[ ! -x "$TSX" ]]; then
+  echo "music-audit: tsx not found at $TSX" >&2
+  echo "Run: cd $REPO_ROOT && pnpm install" >&2
+  exit 1
+fi
+
+exec "$TSX" "$AUDIT" "$@"

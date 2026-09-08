@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { mockRelease, mockMaster } from './data';
+import { mockRelease, mockMaster, mockReleaseWithNumberedArtist, mockTwoDiscRelease } from './data';
 
 const API_BASE_URL = 'https://api.discogs.com';
 
@@ -23,6 +23,16 @@ export const handlers = [
       year: 2005,
     };
     return HttpResponse.json(releaseWithoutMaster);
+  }),
+
+  // Handler for release with numbered artist suffix, e.g. "Area (6)"
+  http.get(`${API_BASE_URL}/releases/1961624`, () => {
+    return HttpResponse.json(mockReleaseWithNumberedArtist);
+  }),
+
+  // Handler for a 2-disc release
+  http.get(`${API_BASE_URL}/releases/2000001`, () => {
+    return HttpResponse.json(mockTwoDiscRelease);
   }),
 
   // Handler for a not found error
