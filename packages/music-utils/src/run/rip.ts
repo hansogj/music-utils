@@ -27,6 +27,7 @@ async function checkForUpdates(): Promise<void> {
     const res = await fetch(`https://registry.npmjs.org/${pkg.name}/latest`);
     if (!res.ok) return;
     const latest = (await res.json()) as { version: string };
+
     if (latest.version && latest.version !== pkg.version) {
       console.log(`\n⚠️  Update available: ${pkg.name}@${latest.version} (installed: ${pkg.version})`);
       console.log(`   Run: npm install -g ${pkg.name}@latest\n`);
