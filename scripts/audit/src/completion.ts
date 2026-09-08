@@ -39,7 +39,7 @@ _music_audit() {
 complete -F _music_audit music-audit
 
 # Convenience alias so 'music-audit' works from anywhere in this repo
-alias music-audit="pnpm --filter @music/audit run audit --"
+alias music-audit="/git/music/music-utils/scripts/audit/bin/music-audit"
 `;
 
 const SUPPORTED = ['bash'] as const;
