@@ -1,5 +1,13 @@
 # @hansogj/music-utils
 
+## 1.6.1
+
+### Patch Changes
+
+- 13736c7: Strip Discogs disambiguation numbers from artist names (e.g. "Area (6)" → "Area"), expose `totalDiscs` on `LookupResult` so multi-disc releases report the correct disc count even when a disc filter is applied, and add a startup version check to `music-utils-rip` that warns when a newer version is available on npm.
+- Updated dependencies [13736c7]
+  - @hansogj/discogs-item-lookup@1.4.0
+
 ## 1.6.0
 
 ### Minor Changes
