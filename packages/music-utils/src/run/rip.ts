@@ -20,6 +20,22 @@ import { replaceDangers } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
 import { syncTrackNames } from '../utils/sync.tag.path';
 
+async function checkForUpdates(): Promise<void> {
+  try {
+    const pkgPath = join(__dirname, '../../package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { name: string; version: string };
+    const res = await fetch(`https://registry.npmjs.org/${pkg.name}/latest`);
+    if (!res.ok) return;
+    const latest = (await res.json()) as { version: string };
+    if (latest.version && latest.version !== pkg.version) {
+      console.log(`\n⚠️  Update available: ${pkg.name}@${latest.version} (installed: ${pkg.version})`);
+      console.log(`   Run: npm install -g ${pkg.name}@latest\n`);
+    }
+  } catch {
+    // non-critical
+  }
+}
+
 function runCommand(command: string, args: string[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log(`\n▶️  Running command: ${command} ${args.join(' ')}`);
@@ -153,12 +169,14 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
   const initialDir = process.cwd();
   dotenv.config({ path: path.resolve(__dirname, '../..', '.env') });
 
+  checkForUpdates();
+
   try {
     console.log(`🔍 Looking up Discogs release ID: ${releaseId}...`);
     const releaseData: LookupResult = await lookupRelease({ releaseId, disc, token: process.env.DISCOGS_TOKEN });
     console.log(`💿 Found: ${releaseData.artist} - ${releaseData.title}`);
 
-    const noOfDiscs = releaseData.discs.length;
+    const noOfDiscs = releaseData.totalDiscs;
     const releaseInfo: Partial<Release> = {
       artist: sanitizePath(releaseData.artist),
       album: releaseData.title,

@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import maybe from '@hansogj/maybe';
 import { fetchRelease, fetchMaster } from './core/api-client';
 import { sanitizeReleaseId } from './core/sanitizer';
 import { getToken } from './core/config';
@@ -33,14 +34,7 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
 
   const release = await fetchRelease(sanitizedId, token);
 
-  let masterYear: number;
-  if (release.master_id) {
-    const master = await fetchMaster(release.master_id, token);
-    masterYear = master.year;
-  } else {
-    // If no master_id, this is the original release, so use its year.
-    masterYear = release.year;
-  }
+  const masterYear = release.master_id ? (await fetchMaster(release.master_id, token)).year : release.year;
   // Heuristic: determine the disc number for each track from its position string.
   // Common patterns:
   // - "1-1" or "2-03" => prefix before '-' indicates disc number
@@ -86,6 +80,8 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
     discs = [{ disc: 1, tracks: discs.map((d) => d.tracks[0]) }];
   }
 
+  const totalDiscs = discs.length;
+
   // If a disc filter was provided, return only that disc (if present).
   if (typeof discFilter === 'number') {
     discs = discs.filter((d) => d.disc === discFilter);
@@ -93,8 +89,11 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
 
   // Format the final data structure
   return {
-    artist: release.artists?.map((a) => a.name).join(', ') || 'Unknown Artist',
+    artist: maybe(release.artists)
+      .map((artists) => artists.map((a) => a.name.replace(/\s*\(\d+\)\s*$/, '').trim()).join(', '))
+      .valueOr('Unknown Artist'),
     title: release.title,
+    totalDiscs,
     discs,
     masterYear: masterYear,
     releaseYear: release.year,
