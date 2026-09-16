@@ -68,6 +68,42 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 - ESNext target, Node16 module resolution
 - `tsconfig.build.json` excludes tests and mocks; `tsconfig.ci.json` is used for CI integration test compilation
 
+## `scripts/audit/` — music-audit
+
+Private, unpublished audit + repair CLI. Run with `pnpm --filter @music/audit run audit -- [options]` or via the installed `music-audit` binary.
+
+### Architecture
+
+```
+scripts/audit/src/
+  audit.ts        — CLI entry: arg parsing, walk → audit → report/repair/ui/json
+  walk.ts         — walkLibrary(): detects letter-layer, artist, album structure;
+                    also handles --root pointing directly at an album folder
+  tags.ts         — readFlacTags() / readMp3Tags() via metaflac / id3v2 -l
+  discogs.ts      — searchDiscogs(), fetchRelease(); all HTTP through discogsGet()
+                    which retries 429/500 with exponential backoff
+  similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
+  repair.ts       — runRepair(); buildDiscogsAction(); interactive issue loop
+  report.ts       — printReport(); terminal-formatted severity sections
+  server.ts       — serveReport(): HTML UI mode (--ui flag)
+  checks/
+    folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR,
+                    WRONG_AUX_BRACKETS
+    tags.ts       — NO_TAGS, MISSING_TAGS, TAG_READ_ERROR
+    names.ts      — NAME_TAG_MISMATCH; parseNameFromFilename()
+    duplicates.ts — DUPLICATE_TRACKS
+```
+
+### Key behaviours
+
+- **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel, ranks by fuzzy title similarity (`scoreTracklist`)
+- **Repair log**: JSON Lines at `$CWD/.music-audit-repair.log`; each event written immediately (crash-safe); previously-fixed issues auto-skipped on resume via `album:::issueCode` key
+- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification to catch silent NFS/root-squash failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID
+- **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext` (or `dDtNN - Title.ext` for multi-disc) to prevent NAME_TAG_MISMATCH on next audit run
+- **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment. Resume-from-log uses issue code `RETAG`
+- **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs. Master IDs (`m<n>`) are rejected with a clear message
+- **Folder rename safety**: all renames go through `guardedRename()` which checks for pre-existing target before calling `fs.rename`
+
 ### Code style
 
 - Prettier: 120 char width, single quotes, trailing commas
