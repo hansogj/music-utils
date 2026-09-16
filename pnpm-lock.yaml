@@ -70,7 +70,7 @@ importers:
         version: 25.9.5
       '@vitest/coverage-v8':
         specifier: 3.2.7
-        version: 3.2.7(vitest@3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(tsx@4.23.13))
+        version: 3.2.7(supports-color@7.2.0)(vitest@3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(supports-color@7.2.0)(tsx@4.23.13))
       msw:
         specifier: ^2.15.0
         version: 2.15.0(@types/node@25.9.5)(typescript@5.9.3)
@@ -82,13 +82,13 @@ importers:
         version: 10.9.2(@types/node@25.9.5)(typescript@5.9.3)
       tsup:
         specifier: ^8.5.1
-        version: 8.5.1(postcss@8.5.26)(tsx@4.23.13)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.13)(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: 3.2.7
-        version: 3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(tsx@4.23.13)
+        version: 3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(supports-color@7.2.0)(tsx@4.23.13)
 
   packages/music-utils:
     dependencies:
@@ -2030,8 +2030,8 @@ packages:
   js-tokens@9.0.1:
     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
 
-  js-yaml@3.15.0:
-    resolution: {integrity: sha512-ttBQIIQPDeLjpPOohtUdXuXUVoA2uIB6fEH9HyJ7234s5mBJ5wTx20njxplLZQgLaOfpmPQA7X2t5AX6tIPbog==}
+  js-yaml@3.15.2:
+    resolution: {integrity: sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==}
     hasBin: true
 
   js-yaml@4.2.0:
@@ -3847,22 +3847,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/coverage-v8@3.2.7(vitest@3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(tsx@4.23.13))':
+  '@vitest/coverage-v8@3.2.7(supports-color@7.2.0)(vitest@3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(supports-color@7.2.0)(tsx@4.23.13))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 1.0.2
       ast-v8-to-istanbul: 0.3.12
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@7.2.0)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
-      istanbul-lib-source-maps: 5.0.6
+      istanbul-lib-source-maps: 5.0.6(supports-color@7.2.0)
       istanbul-reports: 3.2.0
       magic-string: 0.30.21
       magicast: 0.3.5
       std-env: 3.10.0
       test-exclude: 7.0.2
       tinyrainbow: 2.0.0
-      vitest: 3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(tsx@4.23.13)
+      vitest: 3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(supports-color@7.2.0)(tsx@4.23.13)
     transitivePeerDependencies:
       - supports-color
 
@@ -4225,10 +4225,6 @@ snapshots:
       ms: 2.1.3
     optionalDependencies:
       supports-color: 5.5.0
-
-  debug@4.4.3:
-    dependencies:
-      ms: 2.1.3
 
   debug@4.4.3(supports-color@5.5.0):
     dependencies:
@@ -4981,18 +4977,18 @@ snapshots:
       make-dir: 4.0.0
       supports-color: 7.2.0
 
-  istanbul-lib-source-maps@5.0.6:
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      debug: 4.4.3
-      istanbul-lib-coverage: 3.2.2
-    transitivePeerDependencies:
-      - supports-color
-
   istanbul-lib-source-maps@5.0.6(supports-color@5.5.0):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       debug: 4.4.3(supports-color@5.5.0)
+      istanbul-lib-coverage: 3.2.2
+    transitivePeerDependencies:
+      - supports-color
+
+  istanbul-lib-source-maps@5.0.6(supports-color@7.2.0):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      debug: 4.4.3(supports-color@7.2.0)
       istanbul-lib-coverage: 3.2.2
     transitivePeerDependencies:
       - supports-color
@@ -5014,7 +5010,7 @@ snapshots:
 
   js-tokens@9.0.1: {}
 
-  js-yaml@3.15.0:
+  js-yaml@3.15.2:
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
@@ -5433,7 +5429,7 @@ snapshots:
   read-yaml-file@1.1.0:
     dependencies:
       graceful-fs: 4.2.11
-      js-yaml: 3.15.0
+      js-yaml: 3.15.2
       pify: 4.0.1
       strip-bom: 3.0.0
 
@@ -5856,6 +5852,34 @@ snapshots:
       strip-bom: 3.0.0
       strip-json-comments: 2.0.1
 
+  tsup@8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.13)(typescript@5.9.3):
+    dependencies:
+      bundle-require: 5.1.0(esbuild@0.27.7)
+      cac: 6.7.14
+      chokidar: 4.0.3
+      consola: 3.4.2
+      debug: 4.4.3(supports-color@7.2.0)
+      esbuild: 0.27.7
+      fix-dts-default-cjs-exports: 1.0.1
+      joycon: 3.1.1
+      picocolors: 1.1.1
+      postcss-load-config: 6.0.1(postcss@8.5.26)(tsx@4.23.13)
+      resolve-from: 5.0.0
+      rollup: 4.62.2
+      source-map: 0.7.6
+      sucrase: 3.35.1
+      tinyexec: 0.3.2
+      tinyglobby: 0.2.15
+      tree-kill: 1.2.2
+    optionalDependencies:
+      postcss: 8.5.26
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
+      - tsx
+      - yaml
+
   tsup@8.5.1(postcss@8.5.26)(supports-color@7.2.0)(tsx@4.23.13)(typescript@6.0.3):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
@@ -5878,34 +5902,6 @@ snapshots:
     optionalDependencies:
       postcss: 8.5.26
       typescript: 6.0.3
-    transitivePeerDependencies:
-      - jiti
-      - supports-color
-      - tsx
-      - yaml
-
-  tsup@8.5.1(postcss@8.5.26)(tsx@4.23.13)(typescript@5.9.3):
-    dependencies:
-      bundle-require: 5.1.0(esbuild@0.27.7)
-      cac: 6.7.14
-      chokidar: 4.0.3
-      consola: 3.4.2
-      debug: 4.4.3
-      esbuild: 0.27.7
-      fix-dts-default-cjs-exports: 1.0.1
-      joycon: 3.1.1
-      picocolors: 1.1.1
-      postcss-load-config: 6.0.1(postcss@8.5.26)(tsx@4.23.13)
-      resolve-from: 5.0.0
-      rollup: 4.62.2
-      source-map: 0.7.6
-      sucrase: 3.35.1
-      tinyexec: 0.3.2
-      tinyglobby: 0.2.15
-      tree-kill: 1.2.2
-    optionalDependencies:
-      postcss: 8.5.26
-      typescript: 5.9.3
     transitivePeerDependencies:
       - jiti
       - supports-color
@@ -6001,10 +5997,10 @@ snapshots:
 
   v8-compile-cache-lib@3.0.1: {}
 
-  vite-node@3.2.4(@types/node@25.9.5)(tsx@4.23.13):
+  vite-node@3.2.4(@types/node@25.9.5)(supports-color@7.2.0)(tsx@4.23.13):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@7.2.0)
       es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 7.3.6(@types/node@25.9.5)(tsx@4.23.13)
@@ -6069,7 +6065,7 @@ snapshots:
       fsevents: 2.3.3
       tsx: 4.23.13
 
-  vitest@3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(tsx@4.23.13):
+  vitest@3.2.7(@types/node@25.9.5)(msw@2.15.0(@types/node@25.9.5)(typescript@5.9.3))(supports-color@7.2.0)(tsx@4.23.13):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
@@ -6080,7 +6076,7 @@ snapshots:
       '@vitest/spy': 3.2.7
       '@vitest/utils': 3.2.7
       chai: 5.3.3
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@7.2.0)
       expect-type: 1.4.0
       magic-string: 0.30.21
       pathe: 2.0.3
@@ -6092,7 +6088,7 @@ snapshots:
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 7.3.6(@types/node@25.9.5)(tsx@4.23.13)
-      vite-node: 3.2.4(@types/node@25.9.5)(tsx@4.23.13)
+      vite-node: 3.2.4(@types/node@25.9.5)(supports-color@7.2.0)(tsx@4.23.13)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 25.9.5
