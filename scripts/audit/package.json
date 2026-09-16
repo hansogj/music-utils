@@ -1,0 +1,21 @@
+{
+  "name": "@music/audit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Music library audit script — not published",
+  "type": "module",
+  "scripts": {
+    "audit": "tsx src/audit.ts",
+    "test": "tsx src/audit.ts --root=../../packages/music-utils/test-data/raw --no-discogs",
+    "completion": "tsx src/completion.ts bash"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

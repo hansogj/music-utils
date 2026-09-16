@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# music-audit — real executable wrapper so `sudo music-audit` works.
+# Install: sudo /git/music/music-utils/scripts/install-bins.sh
+
+set -euo pipefail
+
+REAL_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_SCRIPT")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+AUDIT="$REPO_ROOT/scripts/audit/src/audit.ts"
+
+# sudo strips PATH so `node` resolves to the system node (often old).
+# Find the pnpm-managed node directly so we always get the right version.
+NODE=""
+while IFS= read -r candidate; do
+  [[ -x "$candidate" ]] && NODE="$candidate" && break
+done < <(find /home /root -maxdepth 8 -name node \
+           -path "*/pnpm/nodejs/*/bin/node" -type f 2>/dev/null \
+         | sort -rV)
+
+if [[ -z "$NODE" ]]; then
+  NODE="$(command -v node 2>/dev/null || true)"
+  [[ -z "$NODE" || ! -x "$NODE" ]] && {
+    echo "music-audit: node not found — try: sudo -E music-audit ..." >&2; exit 1
+  }
+fi
+
+# Locate tsx's ESM hook from the workspace pnpm store (version-agnostic glob).
+TSX_ESM="$(find "$REPO_ROOT/node_modules/.pnpm" -maxdepth 6 \
+             -name "index.mjs" -path "*/tsx*/dist/esm/index.mjs" 2>/dev/null \
+           | sort -rV | head -1)"
+
+if [[ -z "$TSX_ESM" || ! -f "$TSX_ESM" ]]; then
+  echo "music-audit: tsx ESM loader not found — run: cd $REPO_ROOT && pnpm install" >&2
+  exit 1
+fi
+
+exec "$NODE" --import "$TSX_ESM" "$AUDIT" "$@"
