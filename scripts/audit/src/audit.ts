@@ -10,8 +10,10 @@ import { checkTags } from './checks/tags.js';
 import { checkNameTagMatch } from './checks/names.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { searchDiscogs } from './discogs.js';
+import { writeInfoTxtFromTags } from './info-txt.js';
+import { AuditLogger } from './logger.js';
 import { printReport } from './report.js';
-import { runRepair } from './repair.js';
+import { runRepair, AuditStream } from './repair.js';
 import { serveReport } from './server.js';
 import type { AlbumAudit, AlbumLayout, AuditReport, Issue, Severity, TrackInfo } from './types.js';
 
@@ -33,6 +35,15 @@ function getArg(args: string[], flag: string): string | undefined {
 
 function hasFlag(args: string[], flag: string): boolean {
   return args.includes(`--${flag}`);
+}
+
+function auditLogPath(suffix: string): string {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return path.join(process.cwd(), '.audit-log', `${mm}.${dd}.${hh}.${min}-${suffix}.log`);
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +78,7 @@ async function auditAlbum(
   layout: AlbumLayout,
   token: string | undefined,
   skipDiscogs: boolean,
+  fetchDiscogsAlways = false,
 ): Promise<AlbumAudit> {
   const tracks = await readTracks(layout);
   const issues: Issue[] = [];
@@ -87,7 +99,7 @@ async function auditAlbum(
   issues.push(...checkDuplicates(tracks));
 
   let discogsResults = undefined;
-  if (!skipDiscogs && token && issues.length > 0) {
+  if (!skipDiscogs && token && (issues.length > 0 || fetchDiscogsAlways)) {
     try {
       const localNames = tracks
         .map((t) => t.tags.title ?? t.parsedName ?? '')
@@ -95,6 +107,17 @@ async function auditAlbum(
       discogsResults = await searchDiscogs(layout.artistName, layout.albumFolder, token, localNames);
     } catch {
       // Discogs rate-limit or network — silently skip per-album
+    }
+  }
+
+  // Silently generate a basic info.txt from tags if none exists yet.
+  // (Discogs tagging in repair mode will overwrite this with a richer version.)
+  const infoTxtPath = path.join(layout.albumPath, 'info.txt');
+  try {
+    await fs.access(infoTxtPath);
+  } catch {
+    if (tracks.length > 0) {
+      writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
     }
   }
 
@@ -129,12 +152,13 @@ Usage: pnpm audit -- [options]
 
 Options:
   --root=<path>       Root of music library (default: cwd)
-  --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env)
+  --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env / .env file)
   --no-discogs        Skip Discogs API calls entirely
   --repair            Interactive repair mode — step through issues and fix them
   --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
   --ui                Serve audit report as HTML in browser at http://localhost:7171
   --json              Output raw JSON instead of formatted report (incompatible with --repair/--ui)
+  --log[=<path>]      Append structured JSON Lines audit log (default: .audit-log/MM.dd.HH.mm-audit.log)
   --help, -h          Show this help
 
 Examples:
@@ -157,6 +181,8 @@ Examples:
   const repairMode = hasFlag(args, 'repair') || retagMode;
   const uiMode = hasFlag(args, 'ui') && !repairMode;
   const jsonOutput = hasFlag(args, 'json') && !repairMode && !uiMode;
+  const logPath = getArg(args, 'log') ?? (hasFlag(args, 'log') ? auditLogPath('audit') : undefined);
+  const logger = logPath ? new AuditLogger(logPath) : undefined;
 
   try {
     await fs.access(root);
@@ -171,33 +197,61 @@ Examples:
 
   process.stderr.write(`Scanning ${root} ...\n`);
 
+  const mode = retagMode ? 'retag' : repairMode ? 'repair' : 'audit';
+  await logger?.logSession(mode, root);
+
   const layouts = await walkLibrary(root);
   process.stderr.write(`Found ${layouts.length} album(s). Running checks`);
 
-  const audits: AlbumAudit[] = [];
-  for (const layout of layouts) {
-    const audit = await auditAlbum(layout, token, skipDiscogs);
-    audits.push(audit);
-    process.stderr.write(audit.issues.length > 0 ? '!' : '.');
-  }
-  process.stderr.write('\n');
-
-  const report: AuditReport = {
-    root,
-    date: new Date().toISOString().slice(0, 10),
-    audits,
-    summary: buildSummary(audits),
-  };
-
   if (repairMode) {
-    printReport(report);
-    await runRepair(audits, token, { retag: retagMode });
-  } else if (uiMode) {
-    serveReport(report);
-  } else if (jsonOutput) {
-    console.log(JSON.stringify(report, null, 2));
+    // Stream mode: scan in background while user interacts with found albums.
+    const stream = new AuditStream();
+    const allAudits: AlbumAudit[] = [];
+
+    const scanTask = (async () => {
+      for (const layout of layouts) {
+        const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
+        allAudits.push(audit);
+        await logger?.logAlbum(audit);
+        process.stderr.write(audit.issues.length > 0 ? '!' : '.');
+        if (retagMode || audit.issues.length > 0) stream.push(audit);
+      }
+      process.stderr.write('\n');
+      stream.close();
+    })();
+
+    await runRepair(stream, token, { retag: retagMode });
+    await scanTask; // ensure scan finishes (may already be done)
+
+    const summary = buildSummary(allAudits);
+    await logger?.logSummary(summary);
   } else {
-    printReport(report);
+    const audits: AlbumAudit[] = [];
+    for (const layout of layouts) {
+      const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
+      audits.push(audit);
+      await logger?.logAlbum(audit);
+      process.stderr.write(audit.issues.length > 0 ? '!' : '.');
+    }
+    process.stderr.write('\n');
+
+    const summary = buildSummary(audits);
+    await logger?.logSummary(summary);
+
+    const report: AuditReport = {
+      root,
+      date: new Date().toISOString().slice(0, 10),
+      audits,
+      summary,
+    };
+
+    if (uiMode) {
+      serveReport(report);
+    } else if (jsonOutput) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      printReport(report);
+    }
   }
 }
 

@@ -56,7 +56,9 @@ export async function readMp3Tags(filePath: string): Promise<{ tags: TrackTags; 
 
     for (const line of lines) {
       // id3v2 output: "TIT2 (Title/songname/content description): value"
-      const match = line.match(/^([A-Z0-9]{4})\s*(?:\([^)]*\))?\s*:\s*(.+)$/);
+      // Use [^:]* to skip the description — avoids breaking on nested parens like
+      // "TPE1 (Lead performer(s)/Soloist(s)): ZAO" where [^)]* would stop early.
+      const match = line.match(/^([A-Z0-9]{4})[^:]*:\s*(.+)$/);
       if (match) {
         raw[match[1]] = match[2].trim();
       }

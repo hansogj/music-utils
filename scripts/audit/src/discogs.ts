@@ -40,6 +40,8 @@ interface RawTrack {
   position: string;
   title: string;
   type_: string;
+  duration?: string;
+  extraartists?: Array<{ name: string; role: string }>;
 }
 
 function cleanAlbumTitle(folderName: string): string {
@@ -139,6 +141,8 @@ export interface ReleaseInfo {
   artists?: string[];
   genres?: string[];
   styles?: string[];
+  country?: string;
+  extraartists?: Array<{ name: string; role: string }>;
 }
 
 // Fetch full release metadata (tracklist, year, title, artists, genres) for use in repair.ts.
@@ -151,6 +155,8 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     artists?: Array<{ name: string }>;
     genres?: string[];
     styles?: string[];
+    country?: string;
+    extraartists?: Array<{ name: string; role: string }>;
   };
   return {
     tracklist: (data.tracklist ?? []).filter((t) => t.type_ === 'track'),
@@ -160,5 +166,7 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     artists: data.artists?.map((a) => a.name.replace(/\s*\(\d+\)\s*$/, '').trim()),
     genres: data.genres,
     styles: data.styles,
+    country: data.country,
+    extraartists: data.extraartists?.map((a) => ({ name: a.name, role: a.role })),
   };
 }
