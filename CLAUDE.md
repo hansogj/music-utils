@@ -12,10 +12,10 @@ TypeScript CLI toolkit for managing FLAC and MP3 music collections. Handles tag 
 
 ```bash
 pnpm run build              # Clean + compile TypeScript with declarations
-pnpm run jest               # Run tests (default reporter)
-pnpm run jest:watch         # Run tests in watch mode
-pnpm run jest:ci            # Run tests with coverage thresholds
-pnpm test                   # Full suite: jest + jest:ci + CI integration tests
+pnpm run vitest             # Run tests (default reporter)
+pnpm run vitest:watch       # Run tests in watch mode
+pnpm run vitest:ci          # Run tests with coverage thresholds
+pnpm test                   # Full suite: vitest + vitest:ci + CI integration tests
 pnpm run lint               # ESLint
 pnpm run format:check       # Prettier check
 pnpm run format:lint:fix    # Fix both lint and format issues
@@ -57,7 +57,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 
 ### Testing
 
-- Jest with ts-jest, tests colocated with source (`*.test.ts`)
+- Vitest with ts-jest, tests colocated with source (`*.test.ts`)
 - Coverage thresholds: 50% statements, 80% branches, 90% functions, 90% lines
 - Mocks in `__mocks__/` subdirectories; `execute`, `path`, and tag reader modules are commonly mocked
 - `src/run/`, `prompt.ts`, `color.log.ts`, `photo.ts` are excluded from coverage
@@ -83,9 +83,13 @@ scripts/audit/src/
   discogs.ts      — searchDiscogs(), fetchRelease(); all HTTP through discogsGet()
                     which retries 429/500 with exponential backoff
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
-  repair.ts       — runRepair(); buildDiscogsAction(); interactive issue loop
+  repair.ts       — runRepair(); AuditStream (background scan queue); BackSignal
+                    (Esc → back to action menu); buildDiscogsAction(); interactive
+                    issue loop
   report.ts       — printReport(); terminal-formatted severity sections
   server.ts       — serveReport(): HTML UI mode (--ui flag)
+  logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)
+  info-txt.ts     — writeInfoTxt() (Discogs-rich); writeInfoTxtFromTags() (fallback)
   checks/
     folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR,
                     WRONG_AUX_BRACKETS
@@ -97,12 +101,16 @@ scripts/audit/src/
 ### Key behaviours
 
 - **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel, ranks by fuzzy title similarity (`scoreTracklist`)
-- **Repair log**: JSON Lines at `$CWD/.music-audit-repair.log`; each event written immediately (crash-safe); previously-fixed issues auto-skipped on resume via `album:::issueCode` key
-- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification to catch silent NFS/root-squash failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID
+- **Streaming repair**: `AuditStream` producer/consumer queue — scan runs in background while user handles already-found albums interactively
+- **Repair log**: JSON Lines at `.audit-log/MM.dd.HH.mm-repair.log`; each event written immediately (crash-safe). Log is audit history only — issues are always shown if audit detects them (no auto-skip on resume)
+- **Audit log**: `--log` flag writes session/album/summary events to `.audit-log/MM.dd.HH.mm-audit.log`
+- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID
+- **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations); silently created from existing tags on audit if none exists
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext` (or `dDtNN - Title.ext` for multi-disc) to prevent NAME_TAG_MISMATCH on next audit run
-- **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment. Resume-from-log uses issue code `RETAG`
+- **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs. Master IDs (`m<n>`) are rejected with a clear message
 - **Folder rename safety**: all renames go through `guardedRename()` which checks for pre-existing target before calling `fs.rename`
+- **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses suggested ID; `b` opens browse list
 
 ### Code style
 
