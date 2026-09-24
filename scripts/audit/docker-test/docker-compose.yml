@@ -1,0 +1,8 @@
+services:
+  audit-test:
+    build:
+      context: ..
+      dockerfile: docker-test/Dockerfile
+    command: bash /app/docker-test/run-test.sh
+    volumes:
+      - /git/music/music-utils/scripts/audit:/app

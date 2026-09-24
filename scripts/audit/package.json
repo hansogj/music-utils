@@ -1,21 +1,44 @@
 {
-  "name": "@music/audit",
-  "private": true,
+  "name": "@hansogj/music-audit",
+  "private": false,
   "version": "0.1.0",
-  "description": "Music library audit script — not published",
+  "description": "Music library audit CLI — library audit, interactive repair, Discogs enrichment",
   "type": "module",
+  "main": "./dist/music-audit.js",
+  "exports": {
+    ".": "./dist/music-audit.js"
+  },
+  "bin": {
+    "music-audit": "./dist/music-audit.js",
+    "music-audit-completion": "./dist/music-audit-completion.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "audit": "tsx src/audit.ts",
     "test": "tsx src/audit.ts --root=../../packages/music-utils/test-data/raw --no-discogs",
-    "completion": "tsx src/completion.ts bash"
+    "completion": "tsx src/completion.ts bash",
+    "vitest": "vitest run",
+    "vitest:watch": "vitest watch",
+    "vitest:ci": "vitest run --coverage",
+    "build": "tsup",
+    "lint": "echo 'no lint configured yet'",
+    "precommit": "pnpm run vitest:ci && pnpm run build"
   },
   "dependencies": {
     "chalk": "^5.4.1",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "tsup": "^8.0.0",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.0.0"
   }
 }
