@@ -6,7 +6,7 @@ const escape = (s: string) => s.replace(/[\\"$`]/g, '\\$&');
 
 const emitCase = (label: string, flags: string[], compgenArg: string): string => {
   if (flags.length === 0) return '';
-  return `    ${flags.join('|')}) local IFS=$'\\n'; compopt -o filenames; COMPREPLY=($(compgen -${compgenArg} -- "$cur")); return ;;  # ${label}`;
+  return `    ${flags.join('|')}) mapfile -t COMPREPLY < <(compgen -${compgenArg} -- "$cur"); compopt -o filenames; return ;;  # ${label}`;
 };
 
 const emitCommand = (spec: CommandSpec): string => {
@@ -24,9 +24,9 @@ const emitCommand = (spec: CommandSpec): string => {
 
   const positional =
     spec.positional === 'dir'
-      ? `  local IFS=$'\\n'; compopt -o filenames\n  COMPREPLY=($(compgen -d -- "$cur"))`
+      ? `  mapfile -t COMPREPLY < <(compgen -d -- "$cur"); compopt -o filenames`
       : spec.positional === 'file'
-        ? `  local IFS=$'\\n'; compopt -o filenames\n  COMPREPLY=($(compgen -f -- "$cur"))`
+        ? `  mapfile -t COMPREPLY < <(compgen -f -- "$cur"); compopt -o filenames`
         : `  COMPREPLY=()`;
 
   return `${fn}() {

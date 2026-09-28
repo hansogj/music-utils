@@ -19,18 +19,16 @@ describe('generateBash', () => {
   });
 
   it('sets up file completion for file-taking flags', () => {
-    // IFS guard + compopt filenames ensures files with spaces complete as one token
-    expect(script).toMatch(/-f\|--fileName[^)]*\) local IFS.*compopt -o filenames.*COMPREPLY=\(\$\(compgen -f/);
+    expect(script).toMatch(/-f\|--fileName[^)]*\) mapfile -t COMPREPLY < <\(compgen -f/);
   });
 
   it('sets up directory completion for dir-taking flags', () => {
-    // IFS guard + compopt filenames ensures dirs with spaces complete as one token
-    expect(script).toMatch(/-A[|][^)]*\) local IFS.*compopt -o filenames.*COMPREPLY=\(\$\(compgen -d/);
+    expect(script).toMatch(/-A[|][^)]*\) mapfile -t COMPREPLY < <\(compgen -d/);
   });
 
   it('emits positional directory completion for bulk commands', () => {
-    expect(script).toMatch(/_music_utils_bulk_album_tag[\s\S]*?compgen -d -- "\$cur"/);
-    expect(script).toMatch(/_music_utils_bulk_cover_photo[\s\S]*?compgen -d -- "\$cur"/);
+    expect(script).toMatch(/_music_utils_bulk_album_tag[\s\S]*?mapfile -t COMPREPLY < <\(compgen -d -- "\$cur"\)/);
+    expect(script).toMatch(/_music_utils_bulk_cover_photo[\s\S]*?mapfile -t COMPREPLY < <\(compgen -d -- "\$cur"\)/);
   });
 
   it('prefixes with an install-instructions header', () => {
