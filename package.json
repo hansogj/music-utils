@@ -35,7 +35,5 @@
       "esbuild": "^0.28.1"
     }
   },
-  "volta": {
-    "node": "26.4.0"
-  }
+  "packageManager": "pnpm@12.3.4"
 }
