@@ -19,13 +19,13 @@ describe('generateBash', () => {
   });
 
   it('sets up file completion for file-taking flags', () => {
-    // similarities has -f/--fileName as file inputs; look for the alternation line + compgen -f
-    expect(script).toMatch(/-f\|--fileName[^)]*\) COMPREPLY=\(\$\(compgen -f/);
+    // similarities has -f/--fileName as file inputs; look for the alternation line + IFS guard + compgen -f
+    expect(script).toMatch(/-f\|--fileName[^)]*\) local IFS.*COMPREPLY=\(\$\(compgen -f/);
   });
 
   it('sets up directory completion for dir-taking flags', () => {
-    // -A and --dirA both appear in the dir alternation; compgen -d handles them
-    expect(script).toMatch(/-A[|][^)]*\) COMPREPLY=\(\$\(compgen -d/);
+    // -A and --dirA both appear in the dir alternation; IFS guard prevents space-splitting on dir names
+    expect(script).toMatch(/-A[|][^)]*\) local IFS.*COMPREPLY=\(\$\(compgen -d/);
   });
 
   it('emits positional directory completion for bulk commands', () => {
