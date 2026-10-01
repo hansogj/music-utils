@@ -197,11 +197,11 @@ importers:
         specifier: 3.0.1
         version: 3.0.1
       '@hansogj/discogs-cover':
-        specifier: workspace:*
-        version: link:../discogs-cover
+        specifier: 1.4.0
+        version: 1.4.0
       '@hansogj/discogs-item-lookup':
-        specifier: workspace:*
-        version: link:../discogs-item-lookup
+        specifier: 1.4.0
+        version: 1.4.0
       '@hansogj/maybe':
         specifier: 2.7.2
         version: 2.7.2
@@ -770,6 +770,14 @@ packages:
   '@hansogj/array.utils@3.0.1':
     resolution: {integrity: sha512-r9JARWNo9iu/oxmwbC73pOhA9lGcJgFc27JyFvBFwsMxmuHEZAwSLLof0BEiytWCqvPkOsdvoVqR6eW6NvKxFw==}
     engines: {node: '>=18'}
+
+  '@hansogj/discogs-cover@1.4.0':
+    resolution: {integrity: sha512-R8v/GSBHmbPrkSX0YShGioRxWNT2zK2X40aEUbpf5pqR+8OIuWfhGGQkrmwmpg0aMpYITkcf2eDzu6uMglCmng==}
+    hasBin: true
+
+  '@hansogj/discogs-item-lookup@1.4.0':
+    resolution: {integrity: sha512-MkomrEHnZmdZ6WZX7wU1tcAp0b5njYje4Q9zj0mWtLCAl1rArtCOsouz5uT8n7X5rO+1EKSFW6hDqdTCJrNg/w==}
+    hasBin: true
 
   '@hansogj/maybe@2.7.2':
     resolution: {integrity: sha512-yae7NGhuOVzFDhFzijRHdKujbSp+6RUHegcSuR7ASzTh0LdbSHJmtMbG3RCXXQ6Ig9kJu3MWKvFwhas9JLfvdA==}
@@ -3572,6 +3580,16 @@ snapshots:
       levn: 0.4.1
 
   '@hansogj/array.utils@3.0.1': {}
+
+  '@hansogj/discogs-cover@1.4.0':
+    dependencies:
+      dotenv: 17.4.2
+
+  '@hansogj/discogs-item-lookup@1.4.0':
+    dependencies:
+      '@hansogj/maybe': 2.7.2
+      commander: 14.0.3
+      dotenv: 17.4.2
 
   '@hansogj/maybe@2.7.2': {}
 
