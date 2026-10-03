@@ -13,6 +13,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm -r build && changeset publish",
+    "changelog": "changelogen --output CHANGELOG.md",
     "update-host": "npm install -g @hansogj/music-utils@latest",
     "update": "npx npm-check-updates -i -t minor --deep && pnpm run post:update",
     "update:majors": "npx npm-check-updates -i -t latest --deep && pnpm run post:update",
@@ -22,6 +23,7 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@changesets/cli": "2.31.1",
+    "changelogen": "^0.6.2",
     "husky": "9.1.7",
     "npm-run-all2": "9.0.3",
     "typescript": "6.0.3"
