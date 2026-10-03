@@ -8,6 +8,12 @@ if [[ ! "$BUMP" =~ ^(patch|minor|major)$ ]]; then
   exit 1
 fi
 
+# Verify npm login before doing anything irreversible
+if ! npm whoami --registry https://registry.npmjs.org 2>/dev/null; then
+  echo "Not logged in to npm. Run: npm login"
+  exit 1
+fi
+
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Working tree is not clean. Commit or stash changes first."
   exit 1
