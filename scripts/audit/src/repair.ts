@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { emitKeypressEvents } from 'node:readline';
@@ -796,12 +797,13 @@ export async function runRepair(
 
   const session = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const now = new Date();
+  const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
   const hh = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
-  const logDir = path.join(process.cwd(), '.audit-log');
-  const logPath = path.join(logDir, `${mm}.${dd}.${hh}.${min}-repair.log`);
+  const logDir = path.join(os.homedir(), '.local', 'share', 'music-audit');
+  const logPath = path.join(logDir, `${yyyy}.${mm}.${dd}.${hh}.${min}-repair.log`);
   await fs.mkdir(logDir, { recursive: true });
   const events: RepairEvent[] = [];
 

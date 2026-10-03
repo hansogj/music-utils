@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
 import { walkLibrary, listMusicFiles } from './walk.js';
@@ -39,11 +40,12 @@ function hasFlag(args: string[], flag: string): boolean {
 
 function auditLogPath(suffix: string): string {
   const now = new Date();
+  const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
   const hh = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
-  return path.join(process.cwd(), '.audit-log', `${mm}.${dd}.${hh}.${min}-${suffix}.log`);
+  return path.join(os.homedir(), '.local', 'share', 'music-audit', `${yyyy}.${mm}.${dd}.${hh}.${min}-${suffix}.log`);
 }
 
 // ---------------------------------------------------------------------------
@@ -158,7 +160,7 @@ Options:
   --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
   --ui                Serve audit report as HTML in browser at http://localhost:7171
   --json              Output raw JSON instead of formatted report (incompatible with --repair/--ui)
-  --log[=<path>]      Append structured JSON Lines audit log (default: .audit-log/MM.dd.HH.mm-audit.log)
+  --log[=<path>]      Append structured JSON Lines audit log (default: ~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log)
   --help, -h          Show this help
 
 Examples:
