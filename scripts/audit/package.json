@@ -1,7 +1,7 @@
 {
   "name": "@hansogj/music-audit",
   "private": false,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Music library audit CLI — library audit, interactive repair, Discogs enrichment",
   "type": "module",
   "main": "./dist/music-audit.js",
