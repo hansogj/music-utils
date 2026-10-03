@@ -71,6 +71,22 @@ describe('walkLibrary', () => {
     expect(layouts.map((l) => l.artistName).sort()).toEqual(['Beatles', 'Beck']);
   });
 
+  it('detects artist-level root (subdirs are album folders with music)', async () => {
+    // root = /Music/McCoy Tyner — direct subdirs contain music files
+    mockReaddir.mockImplementation((dirPath: string) => {
+      const p = String(dirPath);
+      if (p === '/Music/McCoy Tyner') return Promise.resolve([dir('2004 Illuminations'), dir('1972 Sahara')]);
+      if (p === '/Music/McCoy Tyner/2004 Illuminations') return Promise.resolve([file('01 - Track.flac')]);
+      if (p === '/Music/McCoy Tyner/1972 Sahara') return Promise.resolve([file('01 - Sahara.flac')]);
+      return Promise.resolve([]);
+    });
+
+    const layouts = await walkLibrary('/Music/McCoy Tyner');
+    expect(layouts).toHaveLength(2);
+    expect(layouts.every((l) => l.artistName === 'McCoy Tyner')).toBe(true);
+    expect(layouts.map((l) => l.albumFolder).sort()).toEqual(['1972 Sahara', '2004 Illuminations']);
+  });
+
   it('handles --root pointing directly at an album folder', async () => {
     // /root itself contains music files
     mockReaddir.mockImplementation((dirPath: string) => {

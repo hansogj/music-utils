@@ -63,14 +63,28 @@ export async function walkLibrary(root: string): Promise<AlbumLayout[]> {
       }
     }
   } else {
-    const artistDirs = await listDirs(root);
-    for (const artistName of artistDirs) {
-      const artistPath = path.join(root, artistName);
-      const albumDirs = await listDirs(artistPath);
-      for (const albumFolder of albumDirs) {
-        const albumPath = path.join(artistPath, albumFolder);
+    const subDirs = await listDirs(root);
+    // Detect artist-level root: if any immediate subdir contains music, root is an artist dir.
+    const musicChecks = await Promise.all(subDirs.slice(0, 5).map((d) => hasMusic(path.join(root, d))));
+    const isArtistLevel = musicChecks.some(Boolean);
+
+    if (isArtistLevel) {
+      const artistName = path.basename(root);
+      for (const albumFolder of subDirs) {
+        const albumPath = path.join(root, albumFolder);
         if (await hasMusic(albumPath)) {
           layouts.push({ artistName, albumFolder, albumPath });
+        }
+      }
+    } else {
+      for (const artistName of subDirs) {
+        const artistPath = path.join(root, artistName);
+        const albumDirs = await listDirs(artistPath);
+        for (const albumFolder of albumDirs) {
+          const albumPath = path.join(artistPath, albumFolder);
+          if (await hasMusic(albumPath)) {
+            layouts.push({ artistName, albumFolder, albumPath });
+          }
         }
       }
     }
