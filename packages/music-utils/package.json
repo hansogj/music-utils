@@ -1,9 +1,11 @@
 {
   "name": "@hansogj/music-utils",
-  "version": "1.6.4",
+  "version": "2.0.0",
   "description": "music tools for my flac & mp3 collection",
   "main": "",
   "bin": {
+    "mu": "build/run/cli.js",
+    "music-utils": "build/run/cli.js",
     "music-utils-rip": "build/run/rip.js",
     "music-utils-album-tag": "build/run/tag.album.js",
     "music-utils-tracks-tag": "build/run/tag.tracks.js",
