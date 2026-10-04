@@ -33,6 +33,29 @@ describe('generateBash', () => {
 
   it('prefixes with an install-instructions header', () => {
     expect(script).toMatch(/^# music-utils bash completion/);
-    expect(script).toContain('source <(music-utils-completion bash)');
+    expect(script).toContain('source <(mu completion bash)');
+  });
+
+  describe('unified mu / music-utils completion', () => {
+    it('registers _mu for both mu and music-utils', () => {
+      expect(script).toContain('complete -F _mu mu');
+      expect(script).toContain('complete -F _mu music-utils');
+    });
+
+    it('completes top-level commands at COMP_CWORD=1', () => {
+      expect(script).toContain('compgen -W "rip tag cover sync similarities completion help"');
+    });
+
+    it('completes tag subcommands', () => {
+      expect(script).toContain('compgen -W "album tracks bulk"');
+    });
+
+    it('completes cover subcommands', () => {
+      expect(script).toContain('compgen -W "album bulk"');
+    });
+
+    it('completes flags for similarities', () => {
+      expect(script).toContain('-A --dirA -B --dirB -T --threshold -f --fileName -I --ignore -Q --quiet');
+    });
   });
 });
