@@ -8,7 +8,7 @@ TypeScript CLI toolkit for managing FLAC and MP3 music collections. Handles tag 
 
 ## Commands
 
-**Package manager**: pnpm (enforced via preinstall hook). Node 25.x via Volta.
+**Package manager**: pnpm, installed as an npm global under nvm (`npm install -g pnpm`). Node 26.x via nvm — run `nvm use` if your node version is wrong (`.nvmrc` is present). Do not use corepack or `pnpm add -g` for tooling.
 
 ```bash
 pnpm run build              # Clean + compile TypeScript with declarations
