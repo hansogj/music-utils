@@ -9,7 +9,15 @@ let idx = 0;
 const cmd = !isFlag(rawArgs[idx]) ? rawArgs[idx++] : undefined;
 const potentialSub = !isFlag(rawArgs[idx]) ? rawArgs[idx] : undefined;
 
-const TWO_TOKEN_COMMANDS = new Set(['tag album', 'tag tracks', 'tag bulk', 'cover album', 'cover bulk']);
+const TWO_TOKEN_COMMANDS = new Set([
+  'tag album',
+  'tag tracks',
+  'tag bulk',
+  'cover album',
+  'cover bulk',
+  'audit repair',
+  'audit retag',
+]);
 const twoTokenKey = cmd && potentialSub ? `${cmd} ${potentialSub}` : undefined;
 const sub = twoTokenKey && TWO_TOKEN_COMMANDS.has(twoTokenKey) ? (idx++, potentialSub) : undefined;
 
@@ -34,6 +42,9 @@ Commands:
   cover bulk   [DIR]               Fetch covers for all albums in DIR
   sync         [-a DIR]            Rename track files to match tags
   similarities [-A DIR] [-B DIR] [-T N]  Find similar artists across two libraries
+  audit        [--root DIR] [--token T]  Audit music library for issues
+  audit repair [--root DIR] [--token T]  Interactive repair mode
+  audit retag  [--root DIR] [--token T]  Repair + retag all albums via Discogs
   completion   [bash]              Print shell completion script
   help                             Show this help
 `);
@@ -83,6 +94,19 @@ async function main() {
     case 'similarities':
       await import('./similarities.js');
       break;
+
+    case 'audit': {
+      const { spawnSync } = await import('child_process');
+      const auditArgs = process.argv.slice(2);
+      if (sub === 'repair') auditArgs.unshift('--repair');
+      else if (sub === 'retag') auditArgs.unshift('--retag');
+      const result = spawnSync('music-audit', auditArgs, { stdio: 'inherit' });
+      if (result.error) {
+        process.stderr.write(`mu audit: music-audit not found in PATH. Install it separately.\n`);
+        process.exit(1);
+      }
+      process.exit(result.status ?? 0);
+    }
 
     case 'completion':
       await import('./completion.js');

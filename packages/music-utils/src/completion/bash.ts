@@ -51,7 +51,7 @@ const generateUnifiedBash = (): string => `_mu() {
   sub="\${COMP_WORDS[2]}"
 
   if [[ $COMP_CWORD -eq 1 ]]; then
-    COMPREPLY=($(compgen -W "rip tag cover sync similarities completion help" -- "$cur"))
+    COMPREPLY=($(compgen -W "rip tag cover sync similarities audit completion help" -- "$cur"))
     return
   fi
 
@@ -59,6 +59,7 @@ const generateUnifiedBash = (): string => `_mu() {
     case "$cmd" in
       tag)   COMPREPLY=($(compgen -W "album tracks bulk" -- "$cur")); return ;;
       cover) COMPREPLY=($(compgen -W "album bulk" -- "$cur")); return ;;
+      audit) COMPREPLY=($(compgen -W "repair retag" -- "$cur")); return ;;
     esac
   fi
 
@@ -107,6 +108,11 @@ const generateUnifiedBash = (): string => `_mu() {
         -f|--fileName) mapfile -t COMPREPLY < <(compgen -f -- "$cur"); compopt -o filenames; return ;;
       esac
       COMPREPLY=($(compgen -W "-A --dirA -B --dirB -T --threshold -f --fileName -I --ignore -Q --quiet" -- "$cur")) ;;
+    audit)
+      case "$prev" in
+        --root) mapfile -t COMPREPLY < <(compgen -d -- "$cur"); compopt -o filenames; return ;;
+      esac
+      COMPREPLY=($(compgen -W "--root --token --no-discogs --repair --retag --ui --json --log --help" -- "$cur")) ;;
     completion)
       COMPREPLY=($(compgen -W "bash" -- "$cur")) ;;
   esac
