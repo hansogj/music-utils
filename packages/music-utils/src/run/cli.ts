@@ -21,32 +21,21 @@ process.argv.splice(2, idx);
 function printHelp(context?: string) {
   const hint = context ? `\nUnknown subcommand for '${context}'. ` : '';
   process.stdout.write(`${hint}
-Usage: music-utils <command> [subcommand] [options]
-       mu          <command> [subcommand] [options]
+Usage: mu          <command> [subcommand] [options]
+       music-utils <command> [subcommand] [options]
 
 Commands:
-  rip                         Rip a CD and tag tracks from Discogs
-  tag album    [-a DIR]       Tag an album from folder/path structure
+  rip                              Rip a CD and tag tracks from Discogs
+  tag album    [-a DIR]            Tag an album from folder/path structure
   tag tracks   [-a DIR] [-f FILE]  Tag tracks from a tracklist file
-  tag bulk     [DIR]          Tag all album subdirectories in DIR
+  tag bulk     [DIR]               Tag all album subdirectories in DIR
   cover        [-a DIR] [-r ID] [-Q]  Fetch album cover from Discogs
-  cover album  [-a DIR]       Fetch cover and tag album (combined)
-  cover bulk   [DIR]          Fetch covers for all albums in DIR
-  sync         [-a DIR]       Rename track files to match tags
+  cover album  [-a DIR]            Fetch cover and tag album (combined)
+  cover bulk   [DIR]               Fetch covers for all albums in DIR
+  sync         [-a DIR]            Rename track files to match tags
   similarities [-A DIR] [-B DIR] [-T N]  Find similar artists across two libraries
-  completion   [bash]         Print shell completion script
-  help                        Show this help
-
-Legacy commands (still work, prefer new form):
-  music-utils-rip              →  mu rip
-  music-utils-album-tag        →  mu tag album
-  music-utils-tracks-tag       →  mu tag tracks
-  music-utils-bulk-album-tag   →  mu tag bulk
-  music-utils-cover-photo      →  mu cover
-  music-utils-album-cover      →  mu cover album
-  music-utils-bulk-cover-photo →  mu cover bulk
-  music-utils-sync-tracks      →  mu sync
-  music-utils-similarities     →  mu similarities
+  completion   [bash]              Print shell completion script
+  help                             Show this help
 `);
 }
 
