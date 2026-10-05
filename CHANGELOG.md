@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v2.0.0...main
+
+[compare changes](https://github.com/hansogj/music-utils/compare/v2.0.0...main)
+
+### 🚀 Enhancements
+
+- **mu:** Add audit subcommand — forwards to music-audit binary ([#118](https://github.com/hansogj/music-utils/pull/118))
+
+### 🏡 Chore
+
+- Switch from Volta to nvm, document Node 26 + pnpm setup ([7eac388](https://github.com/hansogj/music-utils/commit/7eac388))
+- Ignore .claude/worktrees (Claude Code agent temp dirs) ([4d93000](https://github.com/hansogj/music-utils/commit/4d93000))
+
+### ❤️ Contributors
+
+- Hans Ole Gjerdrum ([@hansogj](https://github.com/hansogj))
+
 ## @hansogj/discogs-item-lookup@1.4.0...main
 
 [compare changes](https://github.com/hansogj/music-utils/compare/@hansogj/discogs-item-lookup@1.4.0...main)
