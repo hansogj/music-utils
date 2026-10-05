@@ -927,7 +927,15 @@ export async function runRepair(
         }
       }
 
-      if (skipped.length === 0) break albumLoop;
+      if (skipped.length === 0) {
+        console.log(chalk.green(`\n  ✓ All issues addressed.`));
+        const go = await ask('  [Enter] Next album   [q] Quit: ');
+        if (go === 'q') {
+          console.log(chalk.dim('\n  Repair aborted.'));
+          break outer;
+        }
+        break albumLoop;
+      }
 
       const sevCount = skipped.filter((i) => i.severity !== 'MODERATE').length;
       console.log(chalk.yellow(`\n  ${skipped.length} issue(s) not fixed${sevCount ? ` (${sevCount} high/severe)` : ''}.`));
