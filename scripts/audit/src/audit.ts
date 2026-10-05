@@ -203,9 +203,9 @@ Examples:
   await logger?.logSession(mode, root);
 
   const layouts = await walkLibrary(root);
-  process.stderr.write(`Found ${layouts.length} album(s). Running checks`);
 
   if (repairMode) {
+    process.stderr.write(`Found ${layouts.length} album(s) — scanning in background.\n`);
     // Stream mode: scan in background while user interacts with found albums.
     const stream = new AuditStream();
     const allAudits: AlbumAudit[] = [];
@@ -215,10 +215,8 @@ Examples:
         const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
         allAudits.push(audit);
         await logger?.logAlbum(audit);
-        process.stderr.write(audit.issues.length > 0 ? '!' : '.');
         if (retagMode || audit.issues.length > 0) stream.push(audit);
       }
-      process.stderr.write('\n');
       stream.close();
     })();
 
@@ -228,6 +226,7 @@ Examples:
     const summary = buildSummary(allAudits);
     await logger?.logSummary(summary);
   } else {
+    process.stderr.write(`Found ${layouts.length} album(s). Running checks`);
     const audits: AlbumAudit[] = [];
     for (const layout of layouts) {
       const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
