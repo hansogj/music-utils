@@ -43,7 +43,7 @@ describe('generateBash', () => {
     });
 
     it('completes top-level commands at COMP_CWORD=1', () => {
-      expect(script).toContain('compgen -W "rip tag cover sync similarities completion help"');
+      expect(script).toContain('compgen -W "rip tag cover sync similarities audit completion help"');
     });
 
     it('completes tag subcommands', () => {
@@ -52,6 +52,14 @@ describe('generateBash', () => {
 
     it('completes cover subcommands', () => {
       expect(script).toContain('compgen -W "album bulk"');
+    });
+
+    it('completes audit subcommands', () => {
+      expect(script).toContain('compgen -W "repair retag"');
+    });
+
+    it('completes audit flags', () => {
+      expect(script).toContain('--root --token --no-discogs --repair --retag --ui --json --log --help');
     });
 
     it('completes flags for similarities', () => {
