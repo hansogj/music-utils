@@ -130,7 +130,7 @@ async function writeFlacTags(filePath: string, tags: Record<string, string>): Pr
   const removeArgs = Object.keys(tags).map((k) => `--remove-tag=${k}`);
   const { stderr: se1 } = await execFileAsync('metaflac', [...removeArgs, filePath]);
   if (se1?.trim()) throw new Error(`metaflac remove: ${se1.trim()}`);
-  const setArgs = Object.entries(tags).map(([k, v]) => `--set-tag=${k}=${v}`);
+  const setArgs = Object.entries(tags).map(([k, v]) => `--set-tag=${k}=${v.trim()}`);
   const { stderr: se2 } = await execFileAsync('metaflac', [...setArgs, filePath]);
   if (se2?.trim()) throw new Error(`metaflac set: ${se2.trim()}`);
   // Verify a freshly-written tag actually landed (catches silent NFS/root-squash failures).
@@ -156,9 +156,9 @@ async function writeMp3Tags(filePath: string, tags: Record<string, string>): Pro
   };
   const args = ['-2'];
   for (const [k, v] of Object.entries(tags)) {
-    if (ID3[k]) args.push(`--${ID3[k]}`, v);
-    else if (k === 'COMMENT') args.push('--COMM', v);
-    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID=${v}`);
+    if (ID3[k]) args.push(`--${ID3[k]}`, v.trim());
+    else if (k === 'COMMENT') args.push('--COMM', v.trim());
+    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID=${v.trim()}`);
   }
   args.push(filePath);
   const { stderr } = await execFileAsync('id3v2', args);
@@ -428,7 +428,7 @@ function buildDiscogsAction(
 
       for (const { name, ext } of files) {
         const { no, disc } = trackNoFromFilename(name);
-        const title = findDiscTrack(name, disc, no)?.title;
+        const title = findDiscTrack(name, disc, no)?.title?.trim();
         const tags: Record<string, string> = {
           ARTIST: meta.artist,
           ALBUMARTIST: meta.artist,
@@ -457,7 +457,7 @@ function buildDiscogsAction(
       const isMultiDisc = parseInt(meta.noOfDiscs, 10) > 1;
       const pending = files.flatMap(({ name, ext }) => {
         const { no, disc } = trackNoFromFilename(name);
-        const title = findDiscTrack(name, disc, no)?.title;
+        const title = findDiscTrack(name, disc, no)?.title?.trim();
         if (!title) return [];
         const safe = sanitizeFilename(title);
         const newName = isMultiDisc
