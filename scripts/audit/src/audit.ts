@@ -1,7 +1,12 @@
-import 'dotenv/config';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
+// Load .env from user config dir first (reliable for global/sudo installs),
+// then fall back to cwd (dev/local usage). dotenv skips already-set vars.
+import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ path: path.join(os.homedir(), '.config', 'music-audit', '.env') });
+dotenvConfig();
 
 import { walkLibrary, listMusicFiles } from './walk.js';
 import { readTags } from './tags.js';
@@ -154,7 +159,8 @@ Usage: pnpm audit -- [options]
 
 Options:
   --root=<path>       Root of music library (default: cwd)
-  --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env / .env file)
+  --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env var,
+                      or add DISCOGS_TOKEN=... to ~/.config/music-audit/.env)
   --no-discogs        Skip Discogs API calls entirely
   --repair            Interactive repair mode — step through issues and fix them
   --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
