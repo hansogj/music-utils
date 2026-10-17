@@ -118,7 +118,7 @@ export async function searchDiscogs(
 
   const results: DiscogsSearchResult[] = (data.results ?? []).slice(0, limit).map((r) => ({
     id: r.id,
-    title: r.title,
+    title: r.title.replace(/\s*\(\d+\)(\s+-\s+|$)/, '$1'),
     year: r.year,
     masterId: r.master_id,
     releaseUrl: `https://www.discogs.com/release/${r.id}`,
@@ -167,6 +167,6 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     genres: data.genres,
     styles: data.styles,
     country: data.country,
-    extraartists: data.extraartists?.map((a) => ({ name: a.name, role: a.role })),
+    extraartists: data.extraartists?.map((a) => ({ name: a.name.replace(/\s*\(\d+\)\s*$/, '').trim(), role: a.role })),
   };
 }
