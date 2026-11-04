@@ -1,12 +1,11 @@
 #!/usr/bin/env node
-import * as dotenv from 'dotenv';
-import path from 'path';
 
 import { getAlbumDirectory } from '../album/parse.path';
 import { coverFromDiscogs } from '../covers/photo';
 import { getCommandLineArgs } from '../utils/cmd.options';
+import { loadEnv } from '../utils/env';
 
-dotenv.config({ path: path.resolve(__dirname, '../..', '.env') });
+loadEnv();
 const { quiet, releaseId } = getCommandLineArgs();
 
 const token = process.env.DISCOGS_TOKEN ?? '';

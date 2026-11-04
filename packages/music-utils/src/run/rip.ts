@@ -9,13 +9,13 @@ import path, { join } from 'node:path';
 import { chdir, exit } from 'node:process';
 
 import { DiscogsApiError, lookupRelease, LookupReleaseOptions, LookupResult } from '@hansogj/discogs-item-lookup';
-import * as dotenv from 'dotenv';
 
 import { tagAlbum } from '../album';
 import { getConfig, renderAlbumFolder, renderArtistFolder } from '../config';
 import { coverFromDiscogs } from '../covers/photo';
 import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
+import { loadEnv } from '../utils/env';
 import { replaceDangers } from '../utils/path';
 import { albumPrompt } from '../utils/prompt';
 import { syncTrackNames } from '../utils/sync.tag.path';
@@ -168,7 +168,7 @@ async function renameFlacFiles(): Promise<void> {
 
 async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 'releaseId'>): Promise<void> {
   const initialDir = process.cwd();
-  dotenv.config({ path: path.resolve(__dirname, '../..', '.env') });
+  loadEnv();
 
   checkForUpdates();
 

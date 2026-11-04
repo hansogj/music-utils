@@ -36,7 +36,7 @@ sudo music-audit --retag --root /mnt/music --token YOUR_TOKEN
 music-audit --ui --root /mnt/music --token YOUR_TOKEN
 ```
 
-`DISCOGS_TOKEN` can also be set as an environment variable or in a `.env` file instead of `--token`.
+`DISCOGS_TOKEN` can also be set as an environment variable or in `~/.config/music-utils/.env` (shared with the music-utils CLIs; under `sudo` the invoking user's home is used) instead of `--token`.
 
 ## Flags
 
