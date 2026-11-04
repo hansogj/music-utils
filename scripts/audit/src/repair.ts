@@ -12,14 +12,19 @@ import { writeInfoTxt } from './info-txt.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
 const execFileAsync = promisify(execFile);
-function createRl() {
-  return readline.createInterface({ input: process.stdin, output: process.stdout });
+// Created lazily on first prompt: an eager readline at import time resumes stdin,
+// which keeps non-interactive runs (--json, plain report) alive forever on a TTY.
+let rl: readline.Interface | undefined;
+
+function closeRl() {
+  rl?.close();
+  rl = undefined;
 }
-let rl = createRl();
 
 // ── prompt ───────────────────────────────────────────────────────────────────
 
 async function ask(q: string): Promise<string> {
+  rl ??= readline.createInterface({ input: process.stdin, output: process.stdout });
   return (await rl.question(q)).trim();
 }
 
@@ -60,7 +65,7 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
     return `  ${cursor} ${star} ${label}${score}`;
   };
 
-  rl.close(); // release readline's stdin listener so raw mode has exclusive access
+  closeRl(); // release readline's stdin listener so raw mode has exclusive access
 
   process.stdin.setRawMode(true);
   emitKeypressEvents(process.stdin); // assemble escape sequences into named key events
@@ -87,9 +92,8 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
       done = true;
       process.stdin.off('keypress', onKey);
       process.stdin.setRawMode(false);
-      process.stdin.pause(); // hand control back; createRl() will resume when needed
+      process.stdin.pause(); // hand control back; ask() recreates readline when needed
       process.stdout.write('\x1b[?25h'); // show cursor
-      rl = createRl(); // recreate readline for subsequent ask() calls
       resolve(result);
     };
 
@@ -1022,5 +1026,5 @@ export async function runRepair(
   }
 
   console.log(chalk.bold.white('══════════════════════════════════════════════════════════\n'));
-  rl.close();
+  closeRl();
 }
