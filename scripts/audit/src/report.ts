@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import { termLink } from './term-link.js';
+import { albumLocation } from './walk.js';
 import type { AlbumAudit, AuditReport, Issue, Severity } from './types.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,9 +30,7 @@ function fmtAlbum(audit: AlbumAudit, filterSeverity?: Severity): string {
   const visible = filterSeverity ? issues.filter((i) => i.severity === filterSeverity) : issues;
   if (visible.length === 0) return '';
 
-  const loc = layout.letterDir
-    ? `${layout.letterDir}/${layout.artistName}/${layout.albumFolder}`
-    : `${layout.artistName}/${layout.albumFolder}`;
+  const loc = albumLocation(layout);
 
   const trackCount = chalk.dim(`  (${tracks.length} track${tracks.length !== 1 ? 's' : ''})`);
   const lines = [`\n  ${chalk.bold(loc)}${trackCount}`];

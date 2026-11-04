@@ -7,6 +7,7 @@ import { emitKeypressEvents } from 'node:readline';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { termLink } from './term-link.js';
+import { albumLocation } from './walk.js';
 import { fetchRelease } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
@@ -826,9 +827,7 @@ export async function runRepair(
     const audit = await stream.next();
     if (!audit) break;
     const { layout, tracks, issues } = audit;
-    const loc = layout.letterDir
-      ? `${layout.letterDir}/${layout.artistName}/${layout.albumFolder}`
-      : `${layout.artistName}/${layout.albumFolder}`;
+    const loc = albumLocation(layout);
 
     console.log(chalk.bold(`\n${'─'.repeat(60)}`));
     console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${tracks.length} track${tracks.length !== 1 ? 's' : ''})`));

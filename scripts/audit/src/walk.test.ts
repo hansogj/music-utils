@@ -4,7 +4,7 @@ import type { Dirent } from 'node:fs';
 // Mock must be hoisted before importing the module under test
 vi.mock('node:fs/promises');
 
-import { walkLibrary, listMusicFiles } from './walk.js';
+import { albumLocation, listMusicFiles, walkLibrary } from './walk.js';
 import * as fsPromises from 'node:fs/promises';
 
 const mockReaddir = vi.mocked(fsPromises.readdir) as unknown as ReturnType<typeof vi.fn>;
@@ -133,10 +133,106 @@ describe('walkLibrary', () => {
     expect(layouts[0].artistName).toBe('Artist1');
   });
 
+  it('detects group layer (e.g. Country/Artist/Album)', async () => {
+    mockReaddir.mockImplementation((dirPath: string) => {
+      const p = String(dirPath);
+      if (p === '/root') return Promise.resolve([dir('Argentina'), dir('USA')]);
+      if (p === '/root/Argentina') return Promise.resolve([dir('Agnus'), dir('Almendra')]);
+      if (p === '/root/USA') return Promise.resolve([dir('Yezda Urfa')]);
+      if (p === '/root/Argentina/Agnus') return Promise.resolve([dir('1980 Pinturas y Expresiones')]);
+      if (p === '/root/Argentina/Almendra') return Promise.resolve([dir('Artwork')]);
+      if (p === '/root/USA/Yezda Urfa') return Promise.resolve([dir('1975 Boris'), file('LA.mp3')]);
+      if (p === '/root/Argentina/Agnus/1980 Pinturas y Expresiones') return Promise.resolve([file('01 - XXI.mp3')]);
+      if (p === '/root/USA/Yezda Urfa/1975 Boris') return Promise.resolve([file('01 - Boris.mp3')]);
+      return Promise.resolve([]);
+    });
+
+    const layouts = await walkLibrary('/root');
+    expect(layouts.map(albumLocation)).toEqual([
+      'Argentina/Agnus/1980 Pinturas y Expresiones',
+      'USA/Yezda Urfa/1975 Boris',
+    ]);
+    expect(layouts.every((l) => l.letterDir === undefined)).toBe(true);
+    expect(layouts[1]).toMatchObject({ groupDir: 'USA', artistName: 'Yezda Urfa', albumFolder: '1975 Boris' });
+  });
+
+  it('does not treat a flat Artist/Album library as grouped', async () => {
+    mockReaddir.mockImplementation((dirPath: string) => {
+      const p = String(dirPath);
+      if (p === '/root') return Promise.resolve([dir('Beck')]);
+      if (p === '/root/Beck') return Promise.resolve([dir('1999 Midnite Vultures')]);
+      if (p === '/root/Beck/1999 Midnite Vultures') return Promise.resolve([file('01 - Loser.flac'), dir('Scans')]);
+      return Promise.resolve([]);
+    });
+
+    const layouts = await walkLibrary('/root');
+    expect(layouts).toHaveLength(1);
+    expect(layouts[0]).toMatchObject({ artistName: 'Beck', albumFolder: '1999 Midnite Vultures' });
+    expect(layouts[0].groupDir).toBeUndefined();
+  });
+
+  it('keeps the letter dir when --root is an artist folder inside a letter layer', async () => {
+    mockReaddir.mockImplementation((dirPath: string) => {
+      const p = String(dirPath);
+      if (p === '/lib/B/Beck') return Promise.resolve([dir('1999 Midnite Vultures'), file('folder.jpg')]);
+      if (p === '/lib/B/Beck/1999 Midnite Vultures') return Promise.resolve([file('01 - Loser.flac')]);
+      return Promise.resolve([]);
+    });
+
+    const layouts = await walkLibrary('/lib/B/Beck');
+    expect(layouts).toEqual([
+      {
+        letterDir: 'B',
+        artistName: 'Beck',
+        albumFolder: '1999 Midnite Vultures',
+        albumPath: '/lib/B/Beck/1999 Midnite Vultures',
+      },
+    ]);
+  });
+
+  it('treats --root at a single group dir as an Artist/Album library', async () => {
+    mockReaddir.mockImplementation((dirPath: string) => {
+      const p = String(dirPath);
+      if (p === '/music/Argentina') return Promise.resolve([dir('Agnus')]);
+      if (p === '/music/Argentina/Agnus') return Promise.resolve([dir('1980 Pinturas')]);
+      if (p === '/music/Argentina/Agnus/1980 Pinturas') return Promise.resolve([file('01 - XXI.mp3')]);
+      return Promise.resolve([]);
+    });
+
+    const layouts = await walkLibrary('/music/Argentina');
+    expect(layouts.map(albumLocation)).toEqual(['Agnus/1980 Pinturas']);
+    expect(layouts[0].groupDir).toBeUndefined();
+  });
+
+  it('finds albums at mixed depths and ignores music-free subfolders like Artwork', async () => {
+    mockReaddir.mockImplementation((dirPath: string) => {
+      const p = String(dirPath);
+      if (p === '/root') return Promise.resolve([dir('Beck'), dir('Norge')]);
+      if (p === '/root/Beck') return Promise.resolve([dir('1996 Odelay')]);
+      if (p === '/root/Beck/1996 Odelay') return Promise.resolve([file('01 - Devils Haircut.flac'), dir('Artwork')]);
+      if (p === '/root/Beck/1996 Odelay/Artwork') return Promise.resolve([file('front.jpg')]);
+      if (p === '/root/Norge') return Promise.resolve([dir('Popol Vuh')]);
+      if (p === '/root/Norge/Popol Vuh') return Promise.resolve([dir('1973 Quiche Maya')]);
+      if (p === '/root/Norge/Popol Vuh/1973 Quiche Maya') return Promise.resolve([file('01 - A.flac')]);
+      return Promise.resolve([]);
+    });
+
+    const layouts = await walkLibrary('/root');
+    expect(layouts.map(albumLocation)).toEqual(['Beck/1996 Odelay', 'Norge/Popol Vuh/1973 Quiche Maya']);
+  });
+
   it('returns empty array when library is empty', async () => {
     mockReaddir.mockResolvedValue([]);
     const layouts = await walkLibrary('/root');
     expect(layouts).toHaveLength(0);
+  });
+});
+
+describe('albumLocation', () => {
+  it('prefixes letter or group dir when present', () => {
+    expect(albumLocation({ letterDir: 'B', artistName: 'Beck', albumFolder: 'X', albumPath: '' })).toBe('B/Beck/X');
+    expect(albumLocation({ groupDir: 'USA', artistName: 'Beck', albumFolder: 'X', albumPath: '' })).toBe('USA/Beck/X');
+    expect(albumLocation({ artistName: 'Beck', albumFolder: 'X', albumPath: '' })).toBe('Beck/X');
   });
 });
 
