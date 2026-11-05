@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { execFile } from 'node:child_process';
+import { albumLocation } from './walk.js';
 import type { AlbumAudit, AuditReport, DiscogsSearchResult, Issue, Severity } from './types.js';
 
 const PORT = 7171;
@@ -36,9 +37,7 @@ function renderDiscogs(results: DiscogsSearchResult[]): string {
 function renderAlbum(audit: AlbumAudit): string {
   if (audit.issues.length === 0) return '';
   const { layout, tracks, issues, discogsResults } = audit;
-  const loc = layout.letterDir
-    ? `${layout.letterDir}/${layout.artistName}/${layout.albumFolder}`
-    : `${layout.artistName}/${layout.albumFolder}`;
+  const loc = albumLocation(layout);
   return `
     <div class="album">
       <div class="album-header">

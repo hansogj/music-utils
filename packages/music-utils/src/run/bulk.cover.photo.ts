@@ -2,12 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import * as dotenv from 'dotenv';
-
 import { coverFromDiscogs } from '../covers/photo';
 import { info } from '../utils/color.log';
+import { loadEnv } from '../utils/env';
 
-dotenv.config({ path: path.resolve(__dirname, '../..', '.env') });
+loadEnv();
 
 const dir = process.argv[2] || '.';
 

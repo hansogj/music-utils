@@ -33,6 +33,8 @@ export interface TrackInfo {
 
 export interface AlbumLayout {
   letterDir?: string;
+  // Non-letter grouping layer above the artist, e.g. a country folder.
+  groupDir?: string;
   artistName: string;
   albumFolder: string;
   albumPath: string;
