@@ -49,6 +49,7 @@ export function parseDiscogsRef(input: string): DiscogsRef | undefined {
 
 export interface MasterInfo {
   id: number;
+  title?: string;
   year?: string; // undefined when Discogs reports 0 (unknown)
   mainRelease?: number;
 }
@@ -60,9 +61,10 @@ export function fetchMaster(masterId: number, token: string): Promise<MasterInfo
   let cached = masterCache.get(masterId);
   if (!cached) {
     cached = discogsGet(`${API}/masters/${masterId}`, authHeaders(token))
-      .then((res) => res.json() as Promise<{ year?: number; main_release?: number }>)
+      .then((res) => res.json() as Promise<{ title?: string; year?: number; main_release?: number }>)
       .then((data) => ({
         id: masterId,
+        title: data.title?.trim() || undefined,
         year: data.year ? String(data.year) : undefined,
         mainRelease: data.main_release,
       }));
@@ -99,6 +101,35 @@ interface RawTrack {
   type_: string;
   duration?: string;
   extraartists?: Array<{ name: string; role: string }>;
+}
+
+export interface NumberedTrack {
+  disc: number;
+  no: number;
+  title: string;
+  position: string;
+}
+
+const NUMERIC_POSITION = /^(?:(\d+)[-./:])?(\d+)$/;
+const DISC_PREFIX = /^(?:cd|disc|dvd)?\s*(\d+)\s*[-./:]/i;
+
+// Maps Discogs tracks to the disc/track numbers of local files.
+// Numeric positions ("3", "1-03", "2.05") are used as given. Anything else — vinyl
+// sides ("A1", "B2"), "CD1-3", blanks — is numbered by listing order, per disc.
+export function numberTracklist(tracklist: Array<{ position: string; title: string }>): NumberedTrack[] {
+  const numeric = tracklist.length > 0 && tracklist.every((t) => NUMERIC_POSITION.test(t.position.trim()));
+  const counters = new Map<number, number>();
+  return tracklist.map((t) => {
+    const position = t.position.trim();
+    if (numeric) {
+      const [, disc, no] = position.match(NUMERIC_POSITION)!;
+      return { disc: disc ? parseInt(disc, 10) : 1, no: parseInt(no, 10), title: t.title, position };
+    }
+    const disc = parseInt(position.match(DISC_PREFIX)?.[1] ?? '1', 10);
+    const no = (counters.get(disc) ?? 0) + 1;
+    counters.set(disc, no);
+    return { disc, no, title: t.title, position };
+  });
 }
 
 function cleanAlbumTitle(folderName: string): string {
@@ -216,7 +247,8 @@ export interface ReleaseInfo {
   year?: string; // original year: the master's, falling back to the release's own
   releaseYear?: string; // year of this specific pressing/reissue
   masterId?: number;
-  title?: string;
+  title?: string; // album title: the master's, falling back to the release's own
+  releaseTitle?: string;
   artists?: string[];
   genres?: string[];
   styles?: string[];
@@ -241,14 +273,15 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     extraartists?: Array<{ name: string; role: string }>;
   };
   const releaseYear = data.year && String(data.year) !== '0' ? String(data.year) : undefined;
-  const masterYear = data.master_id ? (await fetchMaster(data.master_id, token)).year : undefined;
+  const master = data.master_id ? await fetchMaster(data.master_id, token) : undefined;
   return {
     releaseId,
     tracklist: (data.tracklist ?? []).filter((t) => t.type_ === 'track'),
-    year: masterYear ?? releaseYear,
+    year: master?.year ?? releaseYear,
     releaseYear,
     ...(data.master_id ? { masterId: data.master_id } : {}),
-    title: data.title,
+    title: master?.title ?? data.title,
+    releaseTitle: data.title,
     // Strip Discogs disambiguation suffixes like " (2)" from artist names.
     artists: data.artists?.map((a) => a.name.replace(/\s*\(\d+\)\s*$/, '').trim()),
     genres: data.genres,

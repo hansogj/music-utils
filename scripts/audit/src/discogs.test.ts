@@ -8,6 +8,7 @@ import {
   fetchMaster,
   fetchOriginalYear,
   fetchRelease,
+  numberTracklist,
   parseDiscogsRef,
   resetDiscogsCaches,
   resolveReleaseId,
@@ -15,7 +16,7 @@ import {
 
 const RESPONSES: Record<string, unknown> = {
   '/releases/3422683': { title: 'In Rock', year: 1989, master_id: 1439, tracklist: [] },
-  '/masters/1439': { year: 1970, main_release: 1849291 },
+  '/masters/1439': { title: 'Deep Purple In Rock', year: 1970, main_release: 1849291 },
   '/releases/500': { title: 'Bootleg', year: 1995, tracklist: [] },
   '/releases/600': { title: 'Unknown master year', year: 2001, master_id: 6000, tracklist: [] },
   '/masters/6000': { year: 0, main_release: 600 },
@@ -63,9 +64,16 @@ describe('fetchRelease', () => {
     expect(release).toMatchObject({ releaseId: '3422683', year: '1970', releaseYear: '1989', masterId: 1439 });
   });
 
+  it('uses the master title and keeps the release title', async () => {
+    const release = await fetchRelease('3422683', 'token');
+    expect(release.title).toBe('Deep Purple In Rock');
+    expect(release.releaseTitle).toBe('In Rock');
+  });
+
   it('uses the release year when there is no master', async () => {
     const release = await fetchRelease('500', 'token');
     expect(release.year).toBe('1995');
+    expect(release.title).toBe('Bootleg');
     expect(release.masterId).toBeUndefined();
   });
 
@@ -99,5 +107,38 @@ describe('fetchOriginalYear', () => {
     fetchMock.mockClear();
     expect(await fetchOriginalYear('3422683', 'token')).toEqual(first);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('numberTracklist', () => {
+  const tracks = (...positions: string[]) => positions.map((position, i) => ({ position, title: `T${i + 1}` }));
+  const nums = (...positions: string[]) => numberTracklist(tracks(...positions)).map((t) => `${t.disc}.${t.no}`);
+
+  it('uses numeric positions as given', () => {
+    expect(nums('1', '2', '3')).toEqual(['1.1', '1.2', '1.3']);
+    expect(nums('1-1', '1-2', '2-1', '2-2')).toEqual(['1.1', '1.2', '2.1', '2.2']);
+    expect(nums('1.01', '2.01')).toEqual(['1.1', '2.1']);
+  });
+
+  it('keeps gaps in numeric positions rather than renumbering', () => {
+    expect(nums('1', '2', '4')).toEqual(['1.1', '1.2', '1.4']);
+  });
+
+  it('numbers vinyl sides by listing order', () => {
+    expect(nums('A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'B4')).toEqual(['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']);
+    expect(nums('A', 'B')).toEqual(['1.1', '1.2']);
+  });
+
+  it('reads disc prefixes like CD2-3 and numbers per disc', () => {
+    expect(nums('CD1-1', 'CD1-2', 'CD2-1')).toEqual(['1.1', '1.2', '2.1']);
+  });
+
+  it('falls back to listing order when positions are mixed or blank', () => {
+    expect(nums('1', '2', 'Bonus')).toEqual(['1.1', '1.2', '1.3']);
+    expect(nums('', '')).toEqual(['1.1', '1.2']);
+  });
+
+  it('keeps titles with their numbers', () => {
+    expect(numberTracklist(tracks('B1', 'A1')).map((t) => t.title)).toEqual(['T1', 'T2']);
   });
 });

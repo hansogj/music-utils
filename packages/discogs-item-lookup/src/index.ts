@@ -100,7 +100,9 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
     artist: maybe(release.artists)
       .map((artists) => artists.map((a) => a.name.replace(/\s*\(\d+\)\s*$/, '').trim()).join(', '))
       .valueOr('Unknown Artist'),
-    title: release.title,
+    // Album title and year come from the master (the original album) when there is one.
+    title: master?.title ?? release.title,
+    releaseTitle: release.title,
     totalDiscs,
     discs,
     masterYear: masterYear,

@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import { termLink } from './term-link.js';
 import { albumLocation } from './walk.js';
 import { folderYear, withFolderYear } from './checks/year.js';
-import { fetchRelease, parseDiscogsRef, resolveReleaseId } from './discogs.js';
+import { fetchRelease, numberTracklist, parseDiscogsRef, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
@@ -440,12 +440,9 @@ function buildDiscogsAction(
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
+      const numbered = numberTracklist(tracklist);
       const findDiscTrack = (_name: string, disc: number, no: number) =>
-        tracklist.find((t) => {
-          const m = t.position.match(/^(?:(\d+)[-./:])?(\d+)$/);
-          if (!m) return false;
-          return (m[1] ? parseInt(m[1], 10) : 1) === disc && parseInt(m[2], 10) === no;
-        });
+        numbered.find((t) => t.disc === disc && t.no === no);
 
       for (const { name, ext } of files) {
         const { no, disc } = trackNoFromFilename(name);

@@ -35,7 +35,8 @@ describe('lookupRelease', () => {
   it('should use the master year for a reissue', async () => {
     const result = await lookupRelease({ releaseId: '[r3422683]' });
 
-    expect(result.title).toBe('In Rock');
+    expect(result.title).toBe('Deep Purple In Rock'); // from the master
+    expect(result.releaseTitle).toBe('In Rock');
     expect(result.releaseYear).toBe(1989);
     expect(result.masterYear).toBe(1970);
     expect(result.releaseId).toBe('3422683');

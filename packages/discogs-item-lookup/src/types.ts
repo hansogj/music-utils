@@ -29,7 +29,9 @@ export interface DiscogsMasterResponse {
 
 export interface LookupResult {
   artist: string;
+  /** Album title from the master, falling back to the release title. */
   title: string;
+  releaseTitle: string;
   totalDiscs: number;
   discs: {
     disc: number;
