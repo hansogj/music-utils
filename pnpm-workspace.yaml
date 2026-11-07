@@ -46,3 +46,8 @@ overrides:
 allowBuilds:
   esbuild: true
   msw: true
+
+# pnpm's supply-chain policy blocks versions younger than minimumReleaseAge.
+# Our own freshly published packages are exempt so dependents can use them right away.
+minimumReleaseAgeExclude:
+  - '@hansogj/discogs-item-lookup@1.5.0'
