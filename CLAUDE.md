@@ -98,7 +98,8 @@ scripts/audit/src/
     tags.ts       — NO_TAGS, MISSING_TAGS, TAG_READ_ERROR
     names.ts      — NAME_TAG_MISMATCH; parseNameFromFilename()
     duplicates.ts — DUPLICATE_TRACKS
-    year.ts       — YEAR_NOT_ORIGINAL (needs Discogs + DISCOGS_RELEASE_ID tag)
+    year.ts       — YEAR_NOT_ORIGINAL (opt-in: --check-years or MUSIC_AUDIT_CHECK_YEARS=true
+                    in the shared .env; needs Discogs + DISCOGS_RELEASE_ID tag)
 ```
 
 ### Key behaviours

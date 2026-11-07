@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { loadEnv } from './env.js';
+import { envFlag, loadEnv } from './env.js';
 loadEnv();
 
 import { walkLibrary, listMusicFiles } from './walk.js';
@@ -84,6 +84,7 @@ async function auditAlbum(
   token: string | undefined,
   skipDiscogs: boolean,
   fetchDiscogsAlways = false,
+  checkYears = false,
 ): Promise<AlbumAudit> {
   const tracks = await readTracks(layout);
   const issues: Issue[] = [];
@@ -115,10 +116,12 @@ async function auditAlbum(
     }
   }
 
-  // Albums already tagged with a Discogs release ID: check the year is the original
-  // (master) year, not a reissue's. Runs after the search so it doesn't trigger one.
+  // Opt-in (--check-years / MUSIC_AUDIT_CHECK_YEARS): albums already tagged with a Discogs
+  // release ID get their year checked against the original (master) year. Off by default
+  // because it sends every tagged release ID to Discogs. Runs after the search so it
+  // doesn't trigger one.
   let originalYear = undefined;
-  const lookupId = !skipDiscogs && token ? originalYearLookupId(layout, tracks) : undefined;
+  const lookupId = checkYears && !skipDiscogs && token ? originalYearLookupId(layout, tracks) : undefined;
   if (lookupId && token) {
     try {
       originalYear = await fetchOriginalYear(lookupId, token);
@@ -173,6 +176,11 @@ Options:
   --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env var,
                       or add DISCOGS_TOKEN=... to ~/.config/music-utils/.env)
   --no-discogs        Skip Discogs API calls entirely
+  --check-years       Check that albums tagged with a Discogs release ID use the original
+                      (master) year, not a reissue's. Sends every tagged release ID to
+                      Discogs (cached after the first run). Default: off, or on when
+                      MUSIC_AUDIT_CHECK_YEARS=true is set in ~/.config/music-utils/.env
+  --no-check-years    Turn the year check off for this run, overriding the .env setting
   --repair            Interactive repair mode — step through issues and fix them
   --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
   --ui                Serve audit report as HTML in browser at http://localhost:7171
@@ -200,6 +208,7 @@ Examples:
   const repairMode = hasFlag(args, 'repair') || retagMode;
   const uiMode = hasFlag(args, 'ui') && !repairMode;
   const jsonOutput = hasFlag(args, 'json') && !repairMode && !uiMode;
+  const checkYears = !hasFlag(args, 'no-check-years') && (hasFlag(args, 'check-years') || envFlag('MUSIC_AUDIT_CHECK_YEARS'));
   const logPath = getArg(args, 'log') ?? (hasFlag(args, 'log') ? auditLogPath('audit') : undefined);
   const logger = logPath ? new AuditLogger(logPath) : undefined;
 
@@ -208,6 +217,10 @@ Examples:
   } catch {
     console.error(`Root directory not found: ${root}`);
     process.exit(1);
+  }
+
+  if (checkYears && skipDiscogs) {
+    process.stderr.write('Year check skipped — it needs Discogs (no token, or --no-discogs).\n');
   }
 
   if (!skipDiscogs && !token) {
@@ -229,7 +242,7 @@ Examples:
 
     const scanTask = (async () => {
       for (const layout of layouts) {
-        const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
+        const audit = await auditAlbum(layout, token, skipDiscogs, retagMode, checkYears);
         allAudits.push(audit);
         await logger?.logAlbum(audit);
         if (retagMode || audit.issues.length > 0) stream.push(audit);
@@ -252,7 +265,7 @@ Examples:
     const audits: AlbumAudit[] = [];
     for (const layout of layouts) {
       spin(audits.length);
-      const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
+      const audit = await auditAlbum(layout, token, skipDiscogs, retagMode, checkYears);
       audits.push(audit);
       await logger?.logAlbum(audit);
     }

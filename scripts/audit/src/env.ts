@@ -22,6 +22,11 @@ export function userHome(env: NodeJS.ProcessEnv = process.env, passwd = '/etc/pa
   }
 }
 
+/** Reads a boolean setting such as `MUSIC_AUDIT_CHECK_YEARS=true` (also 1/yes/on). */
+export function envFlag(name: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  return /^(1|true|yes|on)$/i.test(env[name]?.trim() ?? '');
+}
+
 /** Loads `~/.config/music-utils/.env` (the invoking user's home, also under sudo). Already-set vars win. */
 export function loadEnv(): string {
   const envPath = path.join(userHome(), SHARED_ENV_PATH);
