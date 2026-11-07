@@ -422,8 +422,9 @@ function buildDiscogsAction(
       const { tracklist } = release;
       if (tracklist.length === 0) { console.log(chalk.yellow('  No tracks found on this release')); return; }
 
-      // Always the original (master) year — a 1989 reissue of a 1970 album is tagged 1970.
+      // Always the original (master) year and title — a 1989 reissue of a 1970 album is tagged 1970.
       const year = release.year ?? meta.year;
+      const album = release.title?.trim() || meta.album;
       if (release.year && release.releaseYear && release.releaseYear !== release.year)
         console.log(chalk.dim(`  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`));
       const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
@@ -450,7 +451,7 @@ function buildDiscogsAction(
         const tags: Record<string, string> = {
           ARTIST: meta.artist,
           ALBUMARTIST: meta.artist,
-          ALBUM: meta.album,
+          ALBUM: album,
           TRACKNUMBER: `${no}/${total}`,
           DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
           ...(year ? { DATE: year, ORIGINALDATE: year } : {}),

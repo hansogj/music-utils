@@ -57,7 +57,7 @@ music-audit --ui --root /mnt/music --token YOUR_TOKEN
 `--repair` (or `--retag`, which implies repair) walks album-by-album through issues and offers automated fixes:
 
 - **Folder renames** — year prefix, disc separator, bracket style, letter-dir moves
-- **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID; offers to rename files and folders (including the year) to match. DATE/ORIGINALDATE is always the **original** year from the Discogs master, not the year of the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
+- **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID; offers to rename files and folders (including the year) to match. DATE/ORIGINALDATE and ALBUM always come from the Discogs **master** (original year and title), not from the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
 - **Original year** — sets DATE/ORIGINALDATE to the master year and renames the folder's year prefix
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
