@@ -1,7 +1,9 @@
-import 'dotenv/config';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
+import { loadEnv } from './env.js';
+loadEnv();
 
 import { walkLibrary, listMusicFiles } from './walk.js';
 import { readTags } from './tags.js';
@@ -154,7 +156,8 @@ Usage: pnpm audit -- [options]
 
 Options:
   --root=<path>       Root of music library (default: cwd)
-  --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env / .env file)
+  --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env var,
+                      or add DISCOGS_TOKEN=... to ~/.config/music-utils/.env)
   --no-discogs        Skip Discogs API calls entirely
   --repair            Interactive repair mode — step through issues and fix them
   --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
@@ -203,9 +206,9 @@ Examples:
   await logger?.logSession(mode, root);
 
   const layouts = await walkLibrary(root);
-  process.stderr.write(`Found ${layouts.length} album(s). Running checks`);
 
   if (repairMode) {
+    process.stderr.write(`Found ${layouts.length} album(s) — scanning in background.\n`);
     // Stream mode: scan in background while user interacts with found albums.
     const stream = new AuditStream();
     const allAudits: AlbumAudit[] = [];
@@ -215,10 +218,8 @@ Examples:
         const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
         allAudits.push(audit);
         await logger?.logAlbum(audit);
-        process.stderr.write(audit.issues.length > 0 ? '!' : '.');
         if (retagMode || audit.issues.length > 0) stream.push(audit);
       }
-      process.stderr.write('\n');
       stream.close();
     })();
 
@@ -228,14 +229,21 @@ Examples:
     const summary = buildSummary(allAudits);
     await logger?.logSummary(summary);
   } else {
+    const frames = ['|', '/', '-', '\\'];
+    let fi = 0;
+    const total = layouts.length;
+    const spin = (n: number) =>
+      process.stderr.write(`\r  ${frames[fi++ % frames.length]}  ${n} / ${total} albums`);
+
     const audits: AlbumAudit[] = [];
     for (const layout of layouts) {
+      spin(audits.length);
       const audit = await auditAlbum(layout, token, skipDiscogs, retagMode);
       audits.push(audit);
       await logger?.logAlbum(audit);
-      process.stderr.write(audit.issues.length > 0 ? '!' : '.');
     }
-    process.stderr.write('\n');
+    const issues = audits.reduce((s, a) => s + a.issues.length, 0);
+    process.stderr.write(`\r  ✓  ${total} album(s) scanned — ${issues} issue(s) found\n`);
 
     const summary = buildSummary(audits);
     await logger?.logSummary(summary);

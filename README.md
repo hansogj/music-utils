@@ -20,7 +20,7 @@ sudo bash scripts/install-bins.sh   # install music-audit binary system-wide
 
 ## Development
 
-Package manager: **pnpm** (enforced via preinstall hook). Node 25.x via Volta.
+Package manager: **pnpm** (enforced via preinstall hook). Node 26.x via nvm — run `nvm use` if your node version is wrong (`.nvmrc` is present).
 
 ```bash
 pnpm install
@@ -50,10 +50,12 @@ source <(music-utils-completion bash)
 
 ### Releases
 
-Managed via [Changesets](https://github.com/changesets/changesets). Adding a changeset:
+Releases are done manually via `scripts/release.sh`:
 
 ```bash
-pnpm changeset          # interactive: pick packages + bump type + write summary
+pnpm run release          # patch bump (default)
+pnpm run release:minor    # minor bump
+pnpm run release:major    # major bump
 ```
 
-The `release` workflow on `main` picks up changesets, opens a "Version Packages" PR that bumps versions and updates `CHANGELOG.md`, and on merge publishes the affected packages to npm.
+The script verifies npm login, updates `CHANGELOG.md`, bumps `packages/music-utils/package.json`, commits, tags, publishes to npm, and pushes with tags.

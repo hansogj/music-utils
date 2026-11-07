@@ -37,7 +37,7 @@
       "esbuild": "^0.28.1"
     }
   },
-  "packageManager": "pnpm@12.3.4",
+  "packageManager": "pnpm@12.9.1",
   "engines": {
     "node": ">=26"
   }

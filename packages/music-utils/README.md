@@ -39,7 +39,7 @@ pnpm --filter @hansogj/music-utils link --global
 
 # Environment
 
-Every command that talks to Discogs needs a personal access token. Put it in a `.env` at the project root (source install) or export it in your shell (npm install):
+Every command that talks to Discogs needs a personal access token. Put it in `~/.config/music-utils/.env` (shared with `music-audit`; under `sudo` the invoking user's home is used) or export it in your shell:
 
 ```
 DISCOGS_TOKEN="###YOUR_DISCOGS_TOKEN###"

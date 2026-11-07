@@ -7,19 +7,25 @@ import { emitKeypressEvents } from 'node:readline';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { termLink } from './term-link.js';
+import { albumLocation } from './walk.js';
 import { fetchRelease } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
 const execFileAsync = promisify(execFile);
-function createRl() {
-  return readline.createInterface({ input: process.stdin, output: process.stdout });
+// Created lazily on first prompt: an eager readline at import time resumes stdin,
+// which keeps non-interactive runs (--json, plain report) alive forever on a TTY.
+let rl: readline.Interface | undefined;
+
+function closeRl() {
+  rl?.close();
+  rl = undefined;
 }
-let rl = createRl();
 
 // ── prompt ───────────────────────────────────────────────────────────────────
 
 async function ask(q: string): Promise<string> {
+  rl ??= readline.createInterface({ input: process.stdin, output: process.stdout });
   return (await rl.question(q)).trim();
 }
 
@@ -60,7 +66,7 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
     return `  ${cursor} ${star} ${label}${score}`;
   };
 
-  rl.close(); // release readline's stdin listener so raw mode has exclusive access
+  closeRl(); // release readline's stdin listener so raw mode has exclusive access
 
   process.stdin.setRawMode(true);
   emitKeypressEvents(process.stdin); // assemble escape sequences into named key events
@@ -87,9 +93,8 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
       done = true;
       process.stdin.off('keypress', onKey);
       process.stdin.setRawMode(false);
-      process.stdin.pause(); // hand control back; createRl() will resume when needed
+      process.stdin.pause(); // hand control back; ask() recreates readline when needed
       process.stdout.write('\x1b[?25h'); // show cursor
-      rl = createRl(); // recreate readline for subsequent ask() calls
       resolve(result);
     };
 
@@ -130,7 +135,7 @@ async function writeFlacTags(filePath: string, tags: Record<string, string>): Pr
   const removeArgs = Object.keys(tags).map((k) => `--remove-tag=${k}`);
   const { stderr: se1 } = await execFileAsync('metaflac', [...removeArgs, filePath]);
   if (se1?.trim()) throw new Error(`metaflac remove: ${se1.trim()}`);
-  const setArgs = Object.entries(tags).map(([k, v]) => `--set-tag=${k}=${v}`);
+  const setArgs = Object.entries(tags).map(([k, v]) => `--set-tag=${k}=${v.trim()}`);
   const { stderr: se2 } = await execFileAsync('metaflac', [...setArgs, filePath]);
   if (se2?.trim()) throw new Error(`metaflac set: ${se2.trim()}`);
   // Verify a freshly-written tag actually landed (catches silent NFS/root-squash failures).
@@ -156,9 +161,9 @@ async function writeMp3Tags(filePath: string, tags: Record<string, string>): Pro
   };
   const args = ['-2'];
   for (const [k, v] of Object.entries(tags)) {
-    if (ID3[k]) args.push(`--${ID3[k]}`, v);
-    else if (k === 'COMMENT') args.push('--COMM', v);
-    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID=${v}`);
+    if (ID3[k]) args.push(`--${ID3[k]}`, v.trim());
+    else if (k === 'COMMENT') args.push('--COMM', v.trim());
+    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID=${v.trim()}`);
   }
   args.push(filePath);
   const { stderr } = await execFileAsync('id3v2', args);
@@ -428,7 +433,7 @@ function buildDiscogsAction(
 
       for (const { name, ext } of files) {
         const { no, disc } = trackNoFromFilename(name);
-        const title = findDiscTrack(name, disc, no)?.title;
+        const title = findDiscTrack(name, disc, no)?.title?.trim();
         const tags: Record<string, string> = {
           ARTIST: meta.artist,
           ALBUMARTIST: meta.artist,
@@ -457,7 +462,7 @@ function buildDiscogsAction(
       const isMultiDisc = parseInt(meta.noOfDiscs, 10) > 1;
       const pending = files.flatMap(({ name, ext }) => {
         const { no, disc } = trackNoFromFilename(name);
-        const title = findDiscTrack(name, disc, no)?.title;
+        const title = findDiscTrack(name, disc, no)?.title?.trim();
         if (!title) return [];
         const safe = sanitizeFilename(title);
         const newName = isMultiDisc
@@ -822,9 +827,7 @@ export async function runRepair(
     const audit = await stream.next();
     if (!audit) break;
     const { layout, tracks, issues } = audit;
-    const loc = layout.letterDir
-      ? `${layout.letterDir}/${layout.artistName}/${layout.albumFolder}`
-      : `${layout.artistName}/${layout.albumFolder}`;
+    const loc = albumLocation(layout);
 
     console.log(chalk.bold(`\n${'─'.repeat(60)}`));
     console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${tracks.length} track${tracks.length !== 1 ? 's' : ''})`));
@@ -927,7 +930,15 @@ export async function runRepair(
         }
       }
 
-      if (skipped.length === 0) break albumLoop;
+      if (skipped.length === 0) {
+        console.log(chalk.green(`\n  ✓ All issues addressed.`));
+        const go = await ask('  [Enter] Next album   [q] Quit: ');
+        if (go === 'q') {
+          console.log(chalk.dim('\n  Repair aborted.'));
+          break outer;
+        }
+        break albumLoop;
+      }
 
       const sevCount = skipped.filter((i) => i.severity !== 'MODERATE').length;
       console.log(chalk.yellow(`\n  ${skipped.length} issue(s) not fixed${sevCount ? ` (${sevCount} high/severe)` : ''}.`));
@@ -1014,5 +1025,5 @@ export async function runRepair(
   }
 
   console.log(chalk.bold.white('══════════════════════════════════════════════════════════\n'));
-  rl.close();
+  closeRl();
 }
