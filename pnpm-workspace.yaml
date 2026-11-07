@@ -33,9 +33,13 @@ overrides:
   # Via tsc/eslint tinyglobby chains.
   'picomatch@2': '2.3.2'
   'picomatch@4': '4.0.4'
-  # js-yaml 4.x <4.2.0: quadratic DoS in merge-key handling.
+  # js-yaml 4.x <4.3.2: quadratic DoS in merge-key handling, and the follow-up
+  # advisories fixed in 4.3.0–4.3.2. Via eslint.
   # (3.x is separately advisory'd but requires cross-major upgrade — see backlog.)
-  'js-yaml@4': '4.2.0'
+  'js-yaml@4': '^4.3.2'
+  # minimatch >=7 <11.0.1: ReDoS; no 10.x fix exists. Via eslint 10 ->
+  # @eslint/config-array (minimatch 10). 3.x (eslint-plugin-import) is unaffected.
+  'minimatch@>=7': '^11.0.1'
   # diff <4.0.4: DoS in parsePatch/applyPatch. Via ts-node -> diff.
   diff: '4.0.4'
   # Moved from package.json "pnpm.overrides" (ignored since pnpm 10) in the
