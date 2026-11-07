@@ -4,7 +4,7 @@ import type { TrackTags } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
-const FLAC_TAGS = ['TITLE', 'TRACKNUMBER', 'TRACKTOTAL', 'ARTIST', 'ALBUMARTIST', 'ALBUM', 'DATE', 'DISCNUMBER', 'TOTALDISCS', 'GENRE', 'COMMENT', 'DESCRIPTION'];
+const FLAC_TAGS = ['TITLE', 'TRACKNUMBER', 'TRACKTOTAL', 'ARTIST', 'ALBUMARTIST', 'ALBUM', 'DATE', 'DISCNUMBER', 'TOTALDISCS', 'GENRE', 'COMMENT', 'DESCRIPTION', 'ORIGINALDATE', 'DISCOGS_RELEASE_ID'];
 
 export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags; error?: string }> {
   try {
@@ -37,6 +37,8 @@ export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags;
         noOfDiscs: raw['TOTALDISCS'],
         genre: raw['GENRE'],
         comment: raw['DESCRIPTION'] ?? raw['COMMENT'],
+        originalYear: raw['ORIGINALDATE'],
+        discogsReleaseId: raw['DISCOGS_RELEASE_ID'],
       },
     };
   } catch (err) {
@@ -48,11 +50,28 @@ export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags;
   }
 }
 
+// id3v2 lists user frames as "TXXX (User defined text information): (DESC): value".
+// Older audit versions wrote DISCOGS_RELEASE_ID with an empty DESC and "KEY=value" as the value.
+export function parseTxxx(lines: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of lines) {
+    const m = line.match(/^TXXX[^:]*:\s*\(([^)]*)\):\s*(.*)$/);
+    if (!m) continue;
+    const [, desc, value] = m;
+    const legacy = !desc ? value.match(/^([^=]+)=(.*)$/) : null;
+    const key = desc || legacy?.[1];
+    // A described frame wins over a legacy empty-description one.
+    if (key && (desc || !(key in out))) out[key.trim()] = (legacy ? legacy[2] : value).trim();
+  }
+  return out;
+}
+
 export async function readMp3Tags(filePath: string): Promise<{ tags: TrackTags; error?: string }> {
   try {
     const { stdout } = await execFileAsync('id3v2', ['-l', filePath]);
     const lines = stdout.split('\n').map((l) => l.trim()).filter(Boolean);
     const raw: Record<string, string> = {};
+    const txxx = parseTxxx(lines);
 
     for (const line of lines) {
       // id3v2 output: "TIT2 (Title/songname/content description): value"
@@ -90,6 +109,8 @@ export async function readMp3Tags(filePath: string): Promise<{ tags: TrackTags; 
         noOfDiscs: tpos[1],
         genre: genre?.toString(),
         comment: raw['COMM'],
+        originalYear: raw['TORY'],
+        discogsReleaseId: txxx['DISCOGS_RELEASE_ID'],
       },
     };
   } catch (err) {

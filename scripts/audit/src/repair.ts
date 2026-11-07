@@ -8,7 +8,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { termLink } from './term-link.js';
 import { albumLocation } from './walk.js';
-import { fetchRelease } from './discogs.js';
+import { folderYear, withFolderYear } from './checks/year.js';
+import { fetchRelease, parseDiscogsRef, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
@@ -33,6 +34,12 @@ async function ask(q: string): Promise<string> {
 
 import type { DiscogsSearchResult } from './types.js';
 
+// " (1989, orig. 1970)" for a reissue, " (1970)" otherwise.
+function yearLabel(r: DiscogsSearchResult): string {
+  if (!r.year) return r.originalYear ? ` (orig. ${r.originalYear})` : '';
+  return r.originalYear && r.originalYear !== r.year ? ` (${r.year}, orig. ${r.originalYear})` : ` (${r.year})`;
+}
+
 class BackSignal extends Error {
   constructor() { super('back'); }
 }
@@ -46,7 +53,7 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
 
   const items = [
     ...results.map((r) => {
-      const yr = r.year ? ` (${r.year})` : '';
+      const yr = yearLabel(r);
       const isBest = r.matchScore !== undefined && r.matchScore === bestScore;
       const score = r.matchScore !== undefined
         ? ` ${Math.round(r.matchScore * 100)}%${r.trackCount ? ` · ${r.trackCount}tr` : ''}`
@@ -155,6 +162,7 @@ async function writeMp3Tags(filePath: string, tags: Record<string, string>): Pro
     ALBUMARTIST: 'TPE2',
     ALBUM: 'TALB',
     DATE: 'TYER',
+    ORIGINALDATE: 'TORY', // ID3v2.3 (what id3v2 writes); TDOR is the v2.4 equivalent
     TRACKNUMBER: 'TRCK',
     DISCNUMBER: 'TPOS',
     GENRE: 'TCON',
@@ -163,7 +171,8 @@ async function writeMp3Tags(filePath: string, tags: Record<string, string>): Pro
   for (const [k, v] of Object.entries(tags)) {
     if (ID3[k]) args.push(`--${ID3[k]}`, v.trim());
     else if (k === 'COMMENT') args.push('--COMM', v.trim());
-    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID=${v.trim()}`);
+    // "DESC:value" sets the frame description; the old "DESC=value" form left it empty.
+    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID:${v.trim()}`);
   }
   args.push(filePath);
   const { stderr } = await execFileAsync('id3v2', args);
@@ -202,28 +211,13 @@ async function writeTags(filePath: string, ext: 'flac' | 'mp3', tags: Record<str
 
 // Accepts: plain digits, r<id>, [r<id>], full release URLs.
 // Rejects master IDs (m<id> / /master/<id>) with a clear message.
-function parseReleaseId(raw: string): string {
-  const s = raw.trim();
-
-  // Full Discogs master URL or bare master ID — not a release ID
-  if (/discogs\.com\/master\//i.test(s) || /^m\d+$/i.test(s)) {
-    console.log(chalk.yellow(`  ⚠ That looks like a master ID — paste a release URL or use a release ID (r<number> or plain number).`));
-    return '';
-  }
-
-  // Full release URL: extract the trailing numeric ID
-  const urlMatch = s.match(/discogs\.com\/(?:release\/[^/]*\/|release\/)(\d+)/i);
-  if (urlMatch) return urlMatch[1];
-
-  // r<id> or [r<id>] — strip the prefix/brackets
-  const prefixed = s.match(/^\[?r(\d+)\]?$/i);
-  if (prefixed) return prefixed[1];
-
-  // Plain number
-  if (/^\d+$/.test(s)) return s;
-
-  console.log(chalk.yellow(`  ⚠ Unrecognised format. Enter a release ID (e.g. 4565937, r4565937) or paste a Discogs release URL.`));
-  return '';
+function parseReleaseRef(raw: string) {
+  const ref = parseDiscogsRef(raw);
+  if (!ref)
+    console.log(
+      chalk.yellow(`  ⚠ Unrecognised format. Enter a release ID (4565937, r4565937), a master ID (m1439) or a Discogs URL.`),
+    );
+  return ref;
 }
 
 function trackNoFromFilename(fileName: string): { no: number; disc: number } {
@@ -285,19 +279,24 @@ async function offerFolderRenames(
 ): Promise<void> {
   const discogsArtist = release.artists?.[0];
   const discogsAlbum = release.title;
+  const localYear = folderYear(layout.albumFolder);
 
   const artistMismatch =
     discogsArtist && normName(discogsArtist) !== normName(layout.artistName);
   const albumMismatch =
     discogsAlbum && normName(discogsAlbum) !== normName(meta.album);
+  // Only correct an existing year prefix; a missing one is MISSING_YEAR_PREFIX's job.
+  const yearMismatch = localYear && release.year && localYear !== release.year;
 
-  if (!artistMismatch && !albumMismatch) return;
+  if (!artistMismatch && !albumMismatch && !yearMismatch) return;
 
   console.log(chalk.yellow('\n  Discogs name differs from local folder:'));
   if (artistMismatch)
     console.log(`    artist : "${layout.artistName}"  →  "${discogsArtist}"`);
   if (albumMismatch)
     console.log(`    album  : "${meta.album}"  →  "${discogsAlbum}"`);
+  if (yearMismatch)
+    console.log(`    year   : ${localYear}  →  ${release.year} (original release)`);
 
   const answer = await ask('  Rename folder(s) to match Discogs? [y/N] ');
   if (answer.toLowerCase() !== 'y') {
@@ -306,11 +305,14 @@ async function offerFolderRenames(
   }
 
   // Rename album folder first (artist rename changes its parent path).
-  if (albumMismatch && discogsAlbum) {
-    const yearPrefix = layout.albumFolder.match(/^(\d{4}\s+)/)?.[1] ?? '';
+  if ((albumMismatch && discogsAlbum) || yearMismatch) {
+    const yearPrefix = yearMismatch ? `${release.year} ` : (layout.albumFolder.match(/^(\d{4}\s+)/)?.[1] ?? '');
+    const albumTitle = albumMismatch && discogsAlbum ? discogsAlbum : meta.album;
     const discPart = layout.albumFolder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
     const auxPart = (layout.albumFolder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
-    const newAlbumFolder = `${yearPrefix}${discogsAlbum}${discPart}${auxPart}`.trim();
+    const newAlbumFolder = albumMismatch
+      ? `${yearPrefix}${albumTitle}${discPart}${auxPart}`.trim()
+      : withFolderYear(layout.albumFolder, release.year!);
     const newAlbumPath = path.join(path.dirname(layout.albumPath), newAlbumFolder);
     try {
       await guardedRename(layout.albumPath, newAlbumPath);
@@ -386,7 +388,18 @@ function buildDiscogsAction(
           if (picked !== undefined) releaseId = picked;
           // undefined = "enter different ID" row selected — fall through to re-prompt
         } else if (input) {
-          releaseId = parseReleaseId(input);
+          const ref = parseReleaseRef(input);
+          releaseId = ref?.id ?? '';
+          if (ref?.type === 'master') {
+            try {
+              releaseId = await resolveReleaseId(ref, token);
+              console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+            } catch (err) {
+              console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
+              releaseId = '';
+              continue;
+            }
+          }
         } else if (!releaseId) {
           releaseId = topId; // Enter with no input → use suggested ID
         }
@@ -409,7 +422,10 @@ function buildDiscogsAction(
       const { tracklist } = release;
       if (tracklist.length === 0) { console.log(chalk.yellow('  No tracks found on this release')); return; }
 
-      const year = meta.year ?? release.year;
+      // Always the original (master) year — a 1989 reissue of a 1970 album is tagged 1970.
+      const year = release.year ?? meta.year;
+      if (release.year && release.releaseYear && release.releaseYear !== release.year)
+        console.log(chalk.dim(`  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`));
       const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
       const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
       const total = files.length;
@@ -440,7 +456,7 @@ function buildDiscogsAction(
           ALBUM: meta.album,
           TRACKNUMBER: `${no}/${total}`,
           DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
-          ...(year ? { DATE: year } : {}),
+          ...(year ? { DATE: year, ORIGINALDATE: year } : {}),
           ...(title ? { TITLE: title } : {}),
           ...(genreValue ? { GENRE: genreValue } : {}),
           COMMENT: releaseUrl,
@@ -501,7 +517,7 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
     case 'MISSING_YEAR_PREFIX': {
       // Prefer year embedded in folder name, fall back to best Discogs result
       const yearFromFolder = layout.albumFolder.match(/\b(19|20)\d{2}\b/)?.[0];
-      const yearFromDiscogs = audit.discogsResults?.[0]?.year;
+      const yearFromDiscogs = audit.discogsResults?.[0]?.originalYear ?? audit.discogsResults?.[0]?.year;
       const guessedYear = yearFromFolder ?? yearFromDiscogs;
 
       const yearActions: RepairAction[] = [];
@@ -624,6 +640,35 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       return actions;
     }
 
+    // ── HIGH: reissue year instead of the original (master) year ───────────
+    case 'YEAR_NOT_ORIGINAL': {
+      const year = audit.originalYear?.year;
+      if (!year) return [];
+      const files = await musicFilesIn(layout.albumPath);
+      const retag = async () => {
+        for (const { name, ext } of files) {
+          await writeTags(path.join(layout.albumPath, name), ext, { DATE: year, ORIGINALDATE: year });
+          console.log(chalk.green(`  ✓ ${name} → ${year}`));
+        }
+      };
+      const local = folderYear(layout.albumFolder);
+      if (!local || local === year) return [{ label: `Set DATE/ORIGINALDATE to ${year}`, run: retag }];
+      const newName = withFolderYear(layout.albumFolder, year);
+      const newPath = path.join(path.dirname(layout.albumPath), newName);
+      return [
+        {
+          label: `Set DATE/ORIGINALDATE to ${year} and rename folder → "${newName}"`,
+          run: async () => {
+            await retag();
+            await guardedRename(layout.albumPath, newPath);
+            layout.albumPath = newPath;
+            layout.albumFolder = newName;
+          },
+        },
+        { label: `Set DATE/ORIGINALDATE to ${year} (keep folder name)`, run: retag },
+      ];
+    }
+
     // ── MODERATE: filename/tag mismatch ────────────────────────────────────
     case 'NAME_TAG_MISMATCH': {
       if (!issue.file) return [];
@@ -716,7 +761,7 @@ function printAlbumTable(audit: AlbumAudit): void {
     rows.push([chalk.bold('Discogs'), '']);
     const bestScore = Math.max(...discogsResults.map((x) => x.matchScore ?? -1));
     for (const r of discogsResults) {
-      const yr = r.year ? ` (${r.year})` : '';
+      const yr = yearLabel(r);
       const star = r.matchScore !== undefined && r.matchScore === bestScore ? '★ ' : '  ';
       const score = r.matchScore !== undefined
         ? chalk.dim(` ${Math.round(r.matchScore * 100)}%${r.trackCount !== undefined ? ` · ${r.trackCount}tr` : ''}`)

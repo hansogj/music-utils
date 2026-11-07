@@ -13,6 +13,7 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 | All required tags present | HIGH | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER |
 | Filename matches TITLE tag | MODERATE | |
 | Duplicate track numbers | MODERATE | |
+| Year is the original release year | HIGH | Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
 
 ## Usage
 
@@ -56,11 +57,12 @@ music-audit --ui --root /mnt/music --token YOUR_TOKEN
 `--repair` (or `--retag`, which implies repair) walks album-by-album through issues and offers automated fixes:
 
 - **Folder renames** — year prefix, disc separator, bracket style, letter-dir moves
-- **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID; offers to rename files and folders to match
+- **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID; offers to rename files and folders (including the year) to match. DATE/ORIGINALDATE is always the **original** year from the Discogs master, not the year of the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
+- **Original year** — sets DATE/ORIGINALDATE to the master year and renames the folder's year prefix
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
 
-Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs.
+Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release.
 
 Each session writes two logs to `.audit-log/`:
 

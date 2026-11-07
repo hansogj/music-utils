@@ -12,7 +12,8 @@ import { checkFolderFormat } from './checks/folder.js';
 import { checkTags } from './checks/tags.js';
 import { checkNameTagMatch } from './checks/names.js';
 import { checkDuplicates } from './checks/duplicates.js';
-import { searchDiscogs } from './discogs.js';
+import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
+import { fetchOriginalYear, searchDiscogs } from './discogs.js';
 import { writeInfoTxtFromTags } from './info-txt.js';
 import { AuditLogger } from './logger.js';
 import { printReport } from './report.js';
@@ -114,6 +115,19 @@ async function auditAlbum(
     }
   }
 
+  // Albums already tagged with a Discogs release ID: check the year is the original
+  // (master) year, not a reissue's. Runs after the search so it doesn't trigger one.
+  let originalYear = undefined;
+  const lookupId = !skipDiscogs && token ? originalYearLookupId(layout, tracks) : undefined;
+  if (lookupId && token) {
+    try {
+      originalYear = await fetchOriginalYear(lookupId, token);
+      issues.push(...checkOriginalYear(layout, tracks, originalYear));
+    } catch {
+      // Discogs rate-limit or network — silently skip per-album
+    }
+  }
+
   // Silently generate a basic info.txt from tags if none exists yet.
   // (Discogs tagging in repair mode will overwrite this with a richer version.)
   const infoTxtPath = path.join(layout.albumPath, 'info.txt');
@@ -125,7 +139,7 @@ async function auditAlbum(
     }
   }
 
-  return { layout, tracks, issues, discogsResults };
+  return { layout, tracks, issues, discogsResults, originalYear };
 }
 
 // ---------------------------------------------------------------------------
