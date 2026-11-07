@@ -1,24 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeReleaseId } from '../../src/core/sanitizer';
+import { parseDiscogsId } from '../../src/core/sanitizer';
 
-describe('sanitizeReleaseId', () => {
-  it('should return only digits from a string', () => {
-    expect(sanitizeReleaseId('r249504')).toBe('249504');
+describe('parseDiscogsId', () => {
+  it.each([
+    ['12345', { type: 'release', id: '12345' }],
+    ['r249504', { type: 'release', id: '249504' }],
+    ['[r249504]', { type: 'release', id: '249504' }],
+    [' R249504 ', { type: 'release', id: '249504' }],
+    ['m1439', { type: 'master', id: '1439' }],
+    ['[m1439]', { type: 'master', id: '1439' }],
+    ['https://www.discogs.com/release/3422683-Deep-Purple-In-Rock', { type: 'release', id: '3422683' }],
+    ['https://www.discogs.com/master/1439-Deep-Purple-Deep-Purple-In-Rock', { type: 'master', id: '1439' }],
+    ['https://www.discogs.com/Deep-Purple-In-Rock/release/3422683', { type: 'release', id: '3422683' }],
+  ])('parses %s', (input, expected) => {
+    expect(parseDiscogsId(input)).toEqual(expected);
   });
 
-  it('should handle strings with brackets and other characters', () => {
-    expect(sanitizeReleaseId('[r249504]')).toBe('249504');
-  });
-
-  it('should return an empty string if no digits are present', () => {
-    expect(sanitizeReleaseId('abc-def')).toBe('');
-  });
-
-  it('should handle an already numeric string', () => {
-    expect(sanitizeReleaseId('12345')).toBe('12345');
-  });
-
-  it('should handle an empty string', () => {
-    expect(sanitizeReleaseId('')).toBe('');
-  });
+  it.each(['', 'abc-def', 'x123', 'r12a', 'https://www.discogs.com/artist/123-Foo'])(
+    'returns undefined for %o',
+    (input) => {
+      expect(parseDiscogsId(input)).toBeUndefined();
+    },
+  );
 });

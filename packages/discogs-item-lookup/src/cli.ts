@@ -36,7 +36,7 @@ program
   .name('discogs-lookup')
   .version(pkg.version, '-V, --version', 'output the version number')
   .description(pkg.description)
-  .argument('<release-id>', 'The numeric ID of the Discogs release')
+  .argument('<release-id>', 'Discogs release ID (249504, r249504) or master ID (m1439, resolves to its main release)')
   .option('--token <token>', 'Discogs personal access token (overrides DISCOGS_TOKEN from .env)')
   .option('--disc <disc>', 'Return only the specified disc number (if multi-disc release)', (value) =>
     parseInt(value, 10),

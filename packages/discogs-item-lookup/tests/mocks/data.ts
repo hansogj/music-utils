@@ -108,6 +108,7 @@ export const mockTwoDiscRelease: DiscogsReleaseResponse = {
 export const mockMaster: DiscogsMasterResponse = {
   id: 3369,
   year: 2000,
+  main_release: 249504,
   title: 'One More Time',
   artists: [
     {
@@ -123,4 +124,21 @@ export const mockMaster: DiscogsMasterResponse = {
   data_quality: 'Accepted',
   genres: ['Electronic'],
   images: [],
+};
+
+// A 1989 reissue whose master (the original album) is from 1970.
+export const mockReissue: DiscogsReleaseResponse = {
+  ...mockRelease,
+  id: 3422683,
+  title: 'In Rock',
+  year: 1989,
+  master_id: 1439,
+};
+
+export const mockReissueMaster: DiscogsMasterResponse = {
+  ...mockMaster,
+  id: 1439,
+  year: 1970,
+  title: 'Deep Purple In Rock',
+  main_release: 3422683,
 };

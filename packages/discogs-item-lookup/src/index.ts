@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import maybe from '@hansogj/maybe';
 import { fetchRelease, fetchMaster } from './core/api-client';
-import { sanitizeReleaseId } from './core/sanitizer';
+import { parseDiscogsId } from './core/sanitizer';
 import { getToken } from './core/config';
 import { DiscogsApiError } from './errors';
 import type { LookupResult } from './types';
@@ -12,7 +12,8 @@ export { DiscogsApiError } from './errors';
 
 /**
  * Fetches and formats comprehensive release data from the Discogs API.
- * @param releaseId The ID of the Discogs release. Can be in formats like '249504', 'r249504', or '[r249504]'.
+ * @param releaseId The ID of the Discogs release. Can be in formats like '249504', 'r249504', or '[r249504]',
+ *   or a master ID ('m1439', '[m1439]') which resolves to the master's main release.
  * @param discogsToken Your Discogs personal access token. If not provided, it will try to use the DISCOGS_TOKEN environment variable.
  * @returns A promise that resolves with the formatted release data.
  */
@@ -24,17 +25,24 @@ export interface LookupReleaseOptions {
 
 export async function lookupRelease(options: LookupReleaseOptions): Promise<LookupResult> {
   const { releaseId, token: discogsToken, disc: discFilter } = options;
-  const sanitizedId = sanitizeReleaseId(releaseId);
-  if (!sanitizedId) {
-    throw new DiscogsApiError(`Invalid Release ID format: "${releaseId}". Please provide a valid numeric ID.`);
+  const parsed = parseDiscogsId(releaseId);
+  if (!parsed) {
+    throw new DiscogsApiError(
+      `Invalid Release ID format: "${releaseId}". Please provide a release ID (e.g. r249504) or master ID (e.g. m1439).`,
+    );
   }
 
   // Resolve provided arguments: support both lookupRelease(id, token) and lookupRelease(id, disc, token)
   const token = getToken(discogsToken);
 
+  // A master ID resolves to the master's main release for the tracklist.
+  const masterFromInput = parsed.type === 'master' ? await fetchMaster(Number(parsed.id), token) : undefined;
+  const sanitizedId = masterFromInput ? String(masterFromInput.main_release) : parsed.id;
   const release = await fetchRelease(sanitizedId, token);
 
-  const masterYear = release.master_id ? (await fetchMaster(release.master_id, token)).year : release.year;
+  // Discogs reports year 0 when unknown, so fall back to the release year.
+  const master = masterFromInput ?? (release.master_id ? await fetchMaster(release.master_id, token) : undefined);
+  const masterYear = master?.year || release.year;
   // Heuristic: determine the disc number for each track from its position string.
   // Common patterns:
   // - "1-1" or "2-03" => prefix before '-' indicates disc number
@@ -97,6 +105,8 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
     discs,
     masterYear: masterYear,
     releaseYear: release.year,
+    releaseId: sanitizedId,
+    ...(master ? { masterId: master.id } : {}),
     discogsUrl: `https://www.discogs.com/release/${sanitizedId}`,
   };
 }

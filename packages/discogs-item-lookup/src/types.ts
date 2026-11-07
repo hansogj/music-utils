@@ -22,6 +22,7 @@ export interface DiscogsReleaseResponse {
 export interface DiscogsMasterResponse {
   id: number;
   year: number;
+  main_release: number;
   title: string;
   artists: DiscogsArtist[];
 }
@@ -34,7 +35,10 @@ export interface LookupResult {
     disc: number;
     tracks: { position: string; title: string }[];
   }[];
+  /** Original release year from the master, falling back to the release year. */
   masterYear: number;
   releaseYear: number;
+  releaseId: string;
+  masterId?: number;
   discogsUrl: string;
 }
