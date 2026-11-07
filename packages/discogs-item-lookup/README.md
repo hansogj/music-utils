@@ -26,7 +26,7 @@ discogs-lookup <release-id> [options]
 
 **Arguments:**
 
-- `<release-id>`: The numeric ID of the Discogs release (e.g., `249504`).
+- `<release-id>`: The Discogs release ID (e.g., `249504` or `r249504`), a master ID (e.g., `m1439`, resolved to the master's main release), or a discogs.com release/master URL. `masterYear` is the original release year from the master (falls back to the release year).
 
 **Options:**
 

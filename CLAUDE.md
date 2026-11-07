@@ -77,10 +77,12 @@ Private, unpublished audit + repair CLI. Run with `pnpm --filter @music/audit ru
 ```
 scripts/audit/src/
   audit.ts        — CLI entry: arg parsing, walk → audit → report/repair/ui/json
-  walk.ts         — walkLibrary(): detects letter-layer, artist, album structure;
-                    also handles --root pointing directly at an album folder
+  walk.ts         — walkLibrary(): crawls up to 10 levels below --root; a folder with
+                    tracks is an album, its parent the artist, the one above a letter
+                    or group dir (e.g. country). --root may be an album, artist or above
   tags.ts         — readFlacTags() / readMp3Tags() via metaflac / id3v2 -l
-  discogs.ts      — searchDiscogs(), fetchRelease(); all HTTP through discogsGet()
+  discogs.ts      — searchDiscogs(), fetchRelease(), fetchMaster(), fetchOriginalYear(),
+                    parseDiscogsRef(); all HTTP through discogsGet()
                     which retries 429/500 with exponential backoff
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
   repair.ts       — runRepair(); AuditStream (background scan queue); BackSignal
@@ -96,6 +98,7 @@ scripts/audit/src/
     tags.ts       — NO_TAGS, MISSING_TAGS, TAG_READ_ERROR
     names.ts      — NAME_TAG_MISMATCH; parseNameFromFilename()
     duplicates.ts — DUPLICATE_TRACKS
+    year.ts       — YEAR_NOT_ORIGINAL (needs Discogs + DISCOGS_RELEASE_ID tag)
 ```
 
 ### Key behaviours
@@ -104,11 +107,12 @@ scripts/audit/src/
 - **Streaming repair**: `AuditStream` producer/consumer queue — scan runs in background while user handles already-found albums interactively
 - **Repair log**: JSON Lines at `.audit-log/MM.dd.HH.mm-repair.log`; each event written immediately (crash-safe). Log is audit history only — issues are always shown if audit detects them (no auto-skip on resume)
 - **Audit log**: `--log` flag writes session/album/summary events to `.audit-log/MM.dd.HH.mm-audit.log`
-- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID
+- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, ORIGINALDATE (MP3: TORY), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID (MP3: TXXX with description)
+- **Original year & title**: DATE, ORIGINALDATE, ALBUM and the folder's year/title always use the Discogs **master** (falling back to the release), never a reissue's year or title. Tracks are matched by numeric position when all positions are numeric, else by listing order (`numberTracklist()`, for vinyl `A1/B1`). `fetchOriginalYear()` results are cached on disk at `~/.cache/music-audit/original-years.json`
 - **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations); silently created from existing tags on audit if none exists
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext` (or `dDtNN - Title.ext` for multi-disc) to prevent NAME_TAG_MISMATCH on next audit run
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
-- **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs. Master IDs (`m<n>`) are rejected with a clear message
+- **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release
 - **Folder rename safety**: all renames go through `guardedRename()` which checks for pre-existing target before calling `fs.rename`
 - **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses suggested ID; `b` opens browse list
 

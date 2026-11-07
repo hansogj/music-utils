@@ -20,6 +20,8 @@ export interface TrackTags {
   noOfDiscs?: string;
   genre?: string;
   comment?: string;
+  originalYear?: string; // ORIGINALDATE (FLAC) / TORY (MP3)
+  discogsReleaseId?: string;
 }
 
 export interface TrackInfo {
@@ -44,6 +46,7 @@ export interface DiscogsSearchResult {
   id: number;
   title: string;
   year?: string;
+  originalYear?: string; // master year, falling back to `year`
   masterId?: number;
   releaseUrl: string;
   masterUrl?: string;
@@ -53,11 +56,20 @@ export interface DiscogsSearchResult {
   matchScore?: number;   // 0–1 similarity against local files; undefined = not yet scored
 }
 
+// Original release year resolved from a release ID already in the album's tags.
+export interface OriginalYear {
+  releaseId: string;
+  year?: string; // master year, falling back to the release year
+  releaseYear?: string;
+  masterId?: number;
+}
+
 export interface AlbumAudit {
   layout: AlbumLayout;
   tracks: TrackInfo[];
   issues: Issue[];
   discogsResults?: DiscogsSearchResult[];
+  originalYear?: OriginalYear;
 }
 
 export interface AuditReport {

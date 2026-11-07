@@ -19,6 +19,7 @@ export async function writeInfoTxt(albumPath: string, release: ReleaseInfo, arti
 
   const lines: string[] = [];
   lines.push([artist, album].filter(Boolean).join(' - ') + (year ? ` (${year})` : ''));
+  if (release.releaseYear && release.releaseYear !== year) lines.push(`Reissue: ${release.releaseYear}`);
   if (release.country) lines.push(release.country.toUpperCase());
   lines.push('');
 

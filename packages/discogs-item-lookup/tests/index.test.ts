@@ -32,6 +32,38 @@ describe('lookupRelease', () => {
     expect(result.masterYear).toBe(2005); // falls back to release year
   });
 
+  it('should use the master year for a reissue', async () => {
+    const result = await lookupRelease({ releaseId: '[r3422683]' });
+
+    expect(result.title).toBe('Deep Purple In Rock'); // from the master
+    expect(result.releaseTitle).toBe('In Rock');
+    expect(result.releaseYear).toBe(1989);
+    expect(result.masterYear).toBe(1970);
+    expect(result.releaseId).toBe('3422683');
+    expect(result.masterId).toBe(1439);
+  });
+
+  it('should fall back to the release year when the master year is unknown (0)', async () => {
+    const result = await lookupRelease({ releaseId: '4000001' });
+
+    expect(result.masterYear).toBe(1995);
+  });
+
+  it('should resolve a master ID to its main release', async () => {
+    const result = await lookupRelease({ releaseId: 'm1439' });
+
+    expect(result.releaseId).toBe('3422683');
+    expect(result.masterYear).toBe(1970);
+    expect(result.discogsUrl).toBe('https://www.discogs.com/release/3422683');
+  });
+
+  it('should not treat a master ID as a release ID', async () => {
+    // m3369 must resolve via /masters/3369 (main release 249504), never /releases/3369.
+    const result = await lookupRelease({ releaseId: '[m3369]' });
+
+    expect(result.releaseId).toBe('249504');
+  });
+
   it('should throw an error for an invalid release ID format', async () => {
     await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow(DiscogsApiError);
     await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow('Invalid Release ID format: "invalid-id"');
