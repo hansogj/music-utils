@@ -263,8 +263,8 @@ importers:
         specifier: 1.4.0
         version: 1.4.0
       '@hansogj/discogs-item-lookup':
-        specifier: 1.4.0
-        version: 1.4.0
+        specifier: 1.5.0
+        version: 1.5.0
       '@hansogj/maybe':
         specifier: 2.7.2
         version: 2.7.2
@@ -682,8 +682,8 @@ packages:
     resolution: {integrity: sha512-R8v/GSBHmbPrkSX0YShGioRxWNT2zK2X40aEUbpf5pqR+8OIuWfhGGQkrmwmpg0aMpYITkcf2eDzu6uMglCmng==}
     hasBin: true
 
-  '@hansogj/discogs-item-lookup@1.4.0':
-    resolution: {integrity: sha512-MkomrEHnZmdZ6WZX7wU1tcAp0b5njYje4Q9zj0mWtLCAl1rArtCOsouz5uT8n7X5rO+1EKSFW6hDqdTCJrNg/w==}
+  '@hansogj/discogs-item-lookup@1.5.0':
+    resolution: {integrity: sha512-G9SMbdMKann/O56Gd07bzkwyAeIc94+v/K2pwjImmI7RZW92lYanMOzMrwZ2fowegjiIWexc/minYhl0QWTIgg==}
     hasBin: true
 
   '@hansogj/maybe@2.7.2':
@@ -3518,7 +3518,7 @@ snapshots:
     dependencies:
       dotenv: 17.4.2
 
-  '@hansogj/discogs-item-lookup@1.4.0':
+  '@hansogj/discogs-item-lookup@1.5.0':
     dependencies:
       '@hansogj/maybe': 2.7.2
       commander: 14.0.3

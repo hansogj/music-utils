@@ -209,9 +209,12 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     console.log(`   Current directory: ${process.cwd()}`);
 
     console.log(`\n🖼️  Fetching album cover in background...`);
-    const coverPromise = coverFromDiscogs({ releaseId, quiet: true, token: process.env.DISCOGS_TOKEN ?? '' }).catch(
-      (err: unknown) => console.error('Cover fetch failed (rip continues):', err),
-    );
+    // Use the resolved release: the input may be a master ID (m1439), which discogs-cover can't use.
+    const coverPromise = coverFromDiscogs({
+      releaseId: releaseData.releaseId,
+      quiet: true,
+      token: process.env.DISCOGS_TOKEN ?? '',
+    }).catch((err: unknown) => console.error('Cover fetch failed (rip continues):', err));
 
     try {
       await runCommand('cdparanoia', ['-B']);

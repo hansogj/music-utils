@@ -53,7 +53,7 @@
   "dependencies": {
     "@hansogj/array.utils": "3.0.1",
     "@hansogj/discogs-cover": "1.4.0",
-    "@hansogj/discogs-item-lookup": "1.4.0",
+    "@hansogj/discogs-item-lookup": "1.5.0",
     "@hansogj/maybe": "2.7.2",
     "chalk": "4.1.2",
     "dotenv": "17.4.2",
