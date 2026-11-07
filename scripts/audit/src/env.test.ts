@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadEnv, SHARED_ENV_PATH, userHome } from './env.js';
+import { envFlag, loadEnv, SHARED_ENV_PATH, userHome } from './env.js';
 
 function passwdWith(line: string): string {
   const file = path.join(mkdtempSync(path.join(os.tmpdir(), 'env-test-')), 'passwd');
@@ -56,5 +56,15 @@ describe('loadEnv', () => {
     expect(loadEnv()).toBe(envFile);
     expect(process.env['AUDIT_TEST_A']).toBe('from-file');
     expect(process.env['AUDIT_TEST_B']).toBe('preset');
+  });
+});
+
+describe('envFlag', () => {
+  it.each(['1', 'true', 'TRUE', 'yes', 'on', ' true '])('treats %o as on', (value) => {
+    expect(envFlag('X', { X: value })).toBe(true);
+  });
+
+  it.each([undefined, '', '0', 'false', 'no', 'off', 'maybe'])('treats %o as off', (value) => {
+    expect(envFlag('X', { X: value })).toBe(false);
   });
 });

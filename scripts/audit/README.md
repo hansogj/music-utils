@@ -13,7 +13,7 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 | All required tags present | HIGH | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER |
 | Filename matches TITLE tag | MODERATE | |
 | Duplicate track numbers | MODERATE | |
-| Year is the original release year | HIGH | Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
+| Year is the original release year | HIGH | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
 
 ## Usage
 
@@ -35,6 +35,21 @@ sudo music-audit --retag --root /mnt/music --token YOUR_TOKEN
 
 # Serve HTML report in browser
 music-audit --ui --root /mnt/music --token YOUR_TOKEN
+```
+
+### What is sent to Discogs
+
+With `--no-discogs`, nothing leaves your machine. Otherwise requests go to `api.discogs.com`, authenticated with your token:
+
+- artist and album title (from the folder name) for albums with issues — every album with `--retag`
+- with the year check on: the Discogs release ID from the tags of every tagged album (once; then cached)
+
+File names, paths and track titles are never sent; tracklist matching happens locally.
+
+To turn the year check on permanently, add this to `~/.config/music-utils/.env` (override per run with `--no-check-years`):
+
+```
+MUSIC_AUDIT_CHECK_YEARS=true
 ```
 
 `DISCOGS_TOKEN` can also be set as an environment variable or in `~/.config/music-utils/.env` (shared with the music-utils CLIs; under `sudo` the invoking user's home is used) instead of `--token`.
