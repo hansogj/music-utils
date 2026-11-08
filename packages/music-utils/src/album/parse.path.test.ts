@@ -22,6 +22,12 @@ vi.mock('../utils/color.log', () => ({
 vi.mock('../utils/cmd.options', () => ({
   getCommandLineArgs: vi.fn(),
 }));
+// sortArticles is off by default; these tests cover the inversion itself
+vi.mock('../config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../config')>();
+  const config = { ...actual.DEFAULT_CONFIG, artist: { ...actual.DEFAULT_CONFIG.artist, sortArticles: true } };
+  return { ...actual, getConfig: () => config };
+});
 
 describe('artist sort', () => {
   describe.each([

@@ -19,7 +19,7 @@ describe('loadConfig', () => {
   it('returns defaults when no config file exists', () => {
     const cfg = loadConfig(tempDir);
     expect(cfg.patterns.albumFolder).toBe(DEFAULT_CONFIG.patterns.albumFolder);
-    expect(cfg.artist.sortArticles).toBe(true);
+    expect(cfg.artist.sortArticles).toBe(false);
     expect(cfg.libraryRoot).toBeUndefined();
     expect(cfg.tracksFile).toBe(DEFAULT_CONFIG.tracksFile);
     expect(cfg.cover.filename).toBe('cover.jpg');
@@ -52,17 +52,17 @@ describe('loadConfig', () => {
     expect(cfg.disc.separator).toBe('-');
     expect(cfg.flac.compressionLevel).toBe(8);
     // Untouched:
-    expect(cfg.artist.sortArticles).toBe(true);
+    expect(cfg.artist.sortArticles).toBe(false);
   });
 
   it('picks up ./music-utils.config.json in cwd', () => {
     writeFileSync(
       join(tempDir, 'music-utils.config.json'),
-      JSON.stringify({ libraryRoot: '/tmp/library', artist: { sortArticles: false } }),
+      JSON.stringify({ libraryRoot: '/tmp/library', artist: { sortArticles: true } }),
     );
     const cfg = loadConfig(tempDir);
     expect(cfg.libraryRoot).toBe('/tmp/library');
-    expect(cfg.artist.sortArticles).toBe(false);
+    expect(cfg.artist.sortArticles).toBe(true);
     // Unspecified keys stay at defaults
     expect(cfg.artist.articles).toEqual(DEFAULT_CONFIG.artist.articles);
     expect(cfg.patterns.albumFolder).toBe(DEFAULT_CONFIG.patterns.albumFolder);
