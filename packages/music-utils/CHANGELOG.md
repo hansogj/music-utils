@@ -1,5 +1,14 @@
 # @hansogj/music-utils
 
+## 2.2.0
+
+### Minor Changes
+
+- 361f6f4: `mu rip` uses `@hansogj/discogs-item-lookup` 1.5.0: accepts master IDs (`m1439`), and names the album folder from the master's original year and title (a 1989 reissue of _In Rock_ rips to `Deep Purple/1970 Deep Purple In Rock`). The cover is fetched from the resolved release, so a master ID no longer reaches discogs-cover.
+- 0f07abb: `artist.sortArticles` is now off by default: artist folders keep their article (`The Beatles`), matching a `Letter/Artist` library where the letter, not the name, drops the article. Set `"sortArticles": true` in `music-utils.config.json` to get `Beatles, The` back.
+
+  When enabled, articles match in any case and keep the artist's own casing (`The Beatles` → `Beatles, The`, previously `Beatles, the`).
+
 ## 1.6.1
 
 ### Patch Changes
