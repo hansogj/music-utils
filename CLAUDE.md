@@ -72,7 +72,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 
 ## `scripts/audit/` — music-audit
 
-Private, unpublished audit + repair CLI. Run with `pnpm --filter @music/audit run audit -- [options]` or via the installed `music-audit` binary.
+Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-audit run audit -- [options]` or via the installed `music-audit` binary.
 
 ### Architecture
 

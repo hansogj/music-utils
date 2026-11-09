@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 const SCRIPT = `# music-audit bash completion
-# Source this file or add to ~/.bashrc:
-#   source <(pnpm tsx /path/to/scripts/audit/src/completion.ts bash)
-# Or install persistently:
-#   pnpm tsx /path/to/scripts/audit/src/completion.ts bash \\
-#     > ~/.local/share/bash-completion/completions/music-audit
+# Install (session):    source <(pnpm --dir scripts/audit run --silent completion)
+# Install (persistent): pnpm --dir scripts/audit run --silent completion \\
+#                         > ~/.local/share/bash-completion/completions/music-audit
+# (\`mu audit\` is completed by \`mu completion bash\`.)
 
 _music_audit() {
   local cur prev flag
@@ -28,7 +27,7 @@ _music_audit() {
 
   # Flag completion — offer flags without trailing '=' so nospace isn't needed
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=($(compgen -W "--root --token --no-discogs --repair --ui --json --help" -- "$cur"))
+    COMPREPLY=($(compgen -W "--root --token --no-discogs --repair --retag --ui --json --log --check-years --no-check-years --help" -- "$cur"))
     return
   fi
 
@@ -37,9 +36,6 @@ _music_audit() {
 }
 
 complete -F _music_audit music-audit
-
-# Convenience alias so 'music-audit' works from anywhere in this repo
-alias music-audit="/git/music/music-utils/scripts/audit/bin/music-audit"
 `;
 
 const SUPPORTED = ['bash'] as const;

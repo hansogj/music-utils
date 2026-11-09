@@ -196,7 +196,7 @@ Examples:
   music-audit --root ~/Music --token YOUR_TOKEN
 
   # Interactive repair (run as sudo if files are root-owned):
-  sudo $(which pnpm) --filter @music/audit run audit -- --repair --root /mnt/music --token YOUR_TOKEN
+  sudo $(which pnpm) --filter @hansogj/music-audit run audit -- --repair --root /mnt/music --token YOUR_TOKEN
 `);
     return;
   }

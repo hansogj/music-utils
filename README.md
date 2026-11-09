@@ -32,21 +32,21 @@ Per-package scripts live in each `packages/*/package.json`; the workspace root h
 
 ### Bash completion
 
-`@hansogj/music-utils` ships a completion script for all `music-utils-*` commands (flag names, directory/file arguments).
+`mu completion bash` prints completion for `mu` / `music-utils` (subcommands, flags, directory/file arguments). bash-completion loads a file named after the command, so install it under both names:
 
 ```bash
-# Create the completions directory if it doesn't exist yet
 mkdir -p ~/.local/share/bash-completion/completions
-
-# Generate and install
-music-utils-completion bash > ~/.local/share/bash-completion/completions/music-utils
+mu completion bash > ~/.local/share/bash-completion/completions/mu
+ln -sf mu ~/.local/share/bash-completion/completions/music-utils
 ```
 
-Or source it just for the current session:
+For the standalone `music-audit` command (from the repo root):
 
 ```bash
-source <(music-utils-completion bash)
+pnpm --dir scripts/audit run --silent completion > ~/.local/share/bash-completion/completions/music-audit
 ```
+
+Or source either for the current session only: `source <(mu completion bash)`.
 
 ### Releases
 

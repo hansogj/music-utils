@@ -51,7 +51,7 @@ function fmtAlbum(audit: AlbumAudit, filterSeverity?: Severity): string {
       if (genres) lines.push(`         ${chalk.dim('genre:')} ${genres}`);
     }
     lines.push(
-      `     ${chalk.dim('Use release ID with:')} music-utils-album-tag, music-utils-cover-photo, discogs-lookup`,
+      `     ${chalk.dim('Use release ID with:')} mu tag album, mu cover -r <id>, discogs-lookup`,
     );
   }
 
@@ -103,7 +103,7 @@ Fields it can display beyond what current tools already write:
   ${chalk.bold('Recommended enrichment workflow:')}
   1. Use Discogs release ID from audit suggestions above
   2. Run: discogs-lookup <id>            → verify tracklist
-  3. Run: music-utils-album-tag          → writes artist/album/year/disc/track
+  3. Run: mu tag album                   → writes artist/album/year/disc/track
   4. Add genre from Discogs response to a wrapper script that writes GENRE tag
   5. Store Discogs URL in COMMENT for DS Audio visibility
 `;

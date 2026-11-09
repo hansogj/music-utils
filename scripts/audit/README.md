@@ -19,10 +19,10 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 
 ```bash
 # Audit only (no Discogs lookups)
-pnpm --filter @music/audit run audit -- --root /mnt/music --no-discogs
+pnpm --filter @hansogj/music-audit run audit -- --root /mnt/music --no-discogs
 
 # Audit with Discogs suggestions (top 5 releases, scored against local track names)
-pnpm --filter @music/audit run audit -- --root /mnt/music --token YOUR_TOKEN
+pnpm --filter @hansogj/music-audit run audit -- --root /mnt/music --token YOUR_TOKEN
 
 # Point at a single album folder
 music-audit --root /mnt/music/Z/ZAO/1976\ Kawana --token YOUR_TOKEN
