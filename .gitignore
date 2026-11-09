@@ -115,7 +115,7 @@ _bundles
 test
 *.flac
 *.mp3
-test-data/copy
+**/test-data/copy
 
 build.ci
 junit-TEST.xml
