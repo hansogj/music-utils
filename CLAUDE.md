@@ -43,7 +43,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 ### Key conventions
 
 - The `∕` character (DISC_NO_SPLIT, not a regular slash) separates disc number from total in folder names
-- Definite articles ("the", "los", "il", etc.) are moved to suffix position for artist sorting: "The Beatles" -> "Beatles, The"
+- Definite articles ("the", "los", "il", etc.) can be moved to suffix position for artist sorting ("The Beatles" -> "Beatles, The"); off by default, enabled with `artist.sortArticles: true` in config
 - `@hansogj/array.utils` provides `.defined()` (filter nullish) and `.onEmpty()` chainable array methods used extensively throughout
 - `@hansogj/maybe` provides Maybe/Optional monad used for null-safe value access
 - Shell commands are executed via `src/utils/execute.ts`: `executeFile` (using `child_process.execFile`, preferred for safety) and `execute` (using `child_process.exec`, for shell-dependent commands)

@@ -22,20 +22,65 @@ vi.mock('../utils/color.log', () => ({
 vi.mock('../utils/cmd.options', () => ({
   getCommandLineArgs: vi.fn(),
 }));
+// sortArticles is off by default; most tests here cover the inversion itself.
+// `artistConfig` is mutable so individual tests can override it.
+const artistConfig = vi.hoisted(() => ({ value: {} as { sortArticles?: boolean; articles?: string[] } }));
+vi.mock('../config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../config')>();
+  return {
+    ...actual,
+    getConfig: () => ({
+      ...actual.DEFAULT_CONFIG,
+      artist: { ...actual.DEFAULT_CONFIG.artist, sortArticles: true, ...artistConfig.value },
+    }),
+  };
+});
 
 describe('artist sort', () => {
+  afterEach(() => {
+    artistConfig.value = {};
+  });
+
   describe.each([
     ['artist', 'artist'],
     ['the artist', 'artist, the'],
-    ['The Artist', 'Artist, the'],
+    ['The Artist', 'Artist, The'],
+    ['THE ARTIST', 'ARTIST, THE'],
+    ['tHe Artist', 'Artist, tHe'],
     ['TheArtist', 'TheArtist'],
+    ['Them', 'Them'],
+    ['Thee Oh Sees', 'Thee Oh Sees'],
+    ['The', 'The'],
+    ['Artist The', 'Artist The'],
     ['los Artist', 'Artist, los'],
-    ['la Artist', 'Artist, la'],
-    ['il Artist', 'Artist, il'],
+    ['Los Lobos', 'Lobos, Los'],
+    ['La Artist', 'Artist, La'],
+    ['Il Divo', 'Divo, Il'],
+    ['The Beatles', 'Beatles, The'],
   ])('artistSortable(%s)', (path: string, expected: string) => {
     it(`should return ${expected}`, () => expect(artistSortable(path)).toEqual(expected));
   });
+
+  it('keeps the artist unchanged when sortArticles is off (the default)', () => {
+    artistConfig.value = { sortArticles: false };
+    expect(['The Beatles', 'Los Lobos', 'the artist'].map(artistSortable)).toEqual([
+      'The Beatles',
+      'Los Lobos',
+      'the artist',
+    ]);
+  });
+
+  it('matches configured articles regardless of their case', () => {
+    artistConfig.value = { articles: ['DIE', 'The'] };
+    expect(['Die Toten Hosen', 'die Ärzte', 'the Who', 'Los Lobos'].map(artistSortable)).toEqual([
+      'Toten Hosen, Die',
+      'Ärzte, die',
+      'Who, the',
+      'Los Lobos',
+    ]);
+  });
 });
+
 describe('parse.path', () => {
   describe.each([
     ['artist', { artist: 'artist', album: '', noOfDiscs: '1' }],
@@ -45,7 +90,7 @@ describe('parse.path', () => {
       { artist: 'My Band', album: 'Album Of The Year', discNumber: '1', noOfDiscs: '1' },
     ],
     [`/Artist/'74 album`, { artist: 'Artist', album: `'74 Album`, discNumber: '1', noOfDiscs: '1' }],
-    [`/The Artist/'74 album`, { artist: 'Artist, the', album: `'74 Album`, discNumber: '1', noOfDiscs: '1' }],
+    [`/The Artist/'74 album`, { artist: 'Artist, The', album: `'74 Album`, discNumber: '1', noOfDiscs: '1' }],
     [`/Artist/1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1', noOfDiscs: '1' }],
     [`/Artist/ 1974 album`, { artist: 'Artist', album: `Album`, year: '1974', discNumber: '1', noOfDiscs: '1' }],
     [`/Artist/album (${DISC_LABEL} 1)`, { artist: 'Artist', album: `Album`, discNumber: '1', noOfDiscs: '1' }],

@@ -71,7 +71,7 @@ Every key is optional; anything you omit falls back to the default. Types and ra
     "auxSuffix": " [{aux}]"
   },
   "artist": {
-    "sortArticles": true,
+    "sortArticles": false,
     "articles": ["the", "los", "il", "la", "el", "le"]
   },
   "cover": {
@@ -106,7 +106,7 @@ Templates use `{token}` substitution. Available tokens: `{artist}`, `{album}`, `
 
 ### `artist.sortArticles` / `artist.articles`
 
-When `true`, definite articles listed in `articles` move to the end during folder naming: `"The Beatles" → "Beatles, The"`. Set `false` to keep the article in place, or replace `articles` with your own list.
+Off by default: artist folders keep the article (`The Beatles`). When `true`, definite articles listed in `articles` move to the end during folder naming: `"The Beatles" → "Beatles, The"`; replace `articles` with your own list if needed.
 
 ### `cover.filename`
 

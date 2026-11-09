@@ -14,7 +14,7 @@ export const DEFAULT_CONFIG: Config = {
     auxSuffix: ' [{aux}]',
   },
   artist: {
-    sortArticles: true,
+    sortArticles: false,
     articles: ['the', 'los', 'il', 'la', 'el', 'le'],
   },
   cover: {

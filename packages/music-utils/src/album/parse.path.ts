@@ -93,13 +93,10 @@ export const artistSortable = (artist: string) => {
   const { sortArticles, articles } = getConfig().artist;
   if (!sortArticles) return artist;
 
-  const matchingPrefix = articles.find((prefix) => RegExp(`^${prefix} `, 'i').test(artist));
-  if (!matchingPrefix) return artist;
-
-  return artist
-    .split(RegExp(`^${matchingPrefix} `, 'i'))
-    .reverse()
-    .join(`, ${matchingPrefix}`);
+  // Articles match in any case and keep the artist's own casing: "The Beatles" → "Beatles, The".
+  const [, article, name] =
+    articles.map((prefix) => artist.match(RegExp(`^(${prefix}) (.+)$`, 'i'))).find(Boolean) ?? [];
+  return article && name ? `${name}, ${article}` : artist;
 };
 
 export const parseAlbumInfo = (
