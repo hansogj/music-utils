@@ -34,6 +34,10 @@ describe('generateBash', () => {
     expect(script).toContain('compgen -W "repair retag"');
   });
 
+  it('offers subcommands only when the second word is not a flag', () => {
+    expect(script).toContain('if [[ $COMP_CWORD -eq 2 && "$cur" != -* ]]; then');
+  });
+
   it('completes audit flags, including the year check', () => {
     expect(script).toContain(
       '--root --token --no-discogs --repair --retag --ui --json --log --check-years --no-check-years --help',

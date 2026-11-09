@@ -11,7 +11,8 @@ const generateUnifiedBash = (): string => `_mu() {
     return
   fi
 
-  if [[ $COMP_CWORD -eq 2 ]]; then
+  # Subcommands only when not typing a flag: "mu audit --root" and "mu cover -r 123" take flags directly.
+  if [[ $COMP_CWORD -eq 2 && "$cur" != -* ]]; then
     case "$cmd" in
       tag)   COMPREPLY=($(compgen -W "album tracks bulk" -- "$cur")); return ;;
       cover) COMPREPLY=($(compgen -W "album bulk" -- "$cur")); return ;;
