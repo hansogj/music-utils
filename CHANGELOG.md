@@ -1,5 +1,7 @@
 # Changelog
 
+> Historical, up to `@hansogj/music-utils` 2.1.0. Newer releases are versioned with Changesets; see each package's own `CHANGELOG.md` (e.g. `packages/music-utils/CHANGELOG.md`).
+
 
 ## v2.0.0...main
 

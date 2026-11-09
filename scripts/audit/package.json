@@ -1,6 +1,6 @@
 {
   "name": "@hansogj/music-audit",
-  "private": false,
+  "private": true,
   "version": "0.2.0",
   "description": "Music library audit CLI — library audit, interactive repair, Discogs enrichment",
   "type": "module",
@@ -15,9 +15,6 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "audit": "tsx src/audit.ts",
     "test": "tsx src/audit.ts --root=../../packages/music-utils/test-data/raw --no-discogs",
