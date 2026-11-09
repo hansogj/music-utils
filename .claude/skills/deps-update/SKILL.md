@@ -1,13 +1,20 @@
 ---
 name: deps-update
-description: Update dependencies in the music-utils monorepo, verify tests pass, create a PR, and let CI publish after merge. Use when the user says "update deps", "bump dependencies", "update packages", or similar.
+description: Update dependencies in the music-utils monorepo, verify tests pass, add a changeset where needed, and create a PR. Use when the user says "update deps", "bump dependencies", "update packages", or similar.
 ---
 
-# deps-update — Dependency Update + PR + Publish
+# deps-update — Dependency Update + PR
 
 Working directory: `/git/music/music-utils`
 
-This monorepo uses **pnpm workspaces** and **changesets** for versioning. The CI (`release.yml`) auto-publishes to npm when a changeset version PR is merged to main — no manual publish needed.
+This monorepo uses **pnpm workspaces** and **changesets** for versioning. There is **no CI publishing**: `.github/workflows/build.yml` only builds and tests. Releases are cut manually afterwards (see "After merge").
+
+Published packages: `@hansogj/music-utils`, `@hansogj/discogs-item-lookup`, `@hansogj/discogs-cover`.
+`scripts/audit` (`@hansogj/music-audit`) is `"private": true` — never add it to a changeset.
+
+pnpm 12 notes:
+- Overrides live in `pnpm-workspace.yaml` (`overrides:`), not in the root `package.json`.
+- The supply-chain `minimumReleaseAge` policy rejects very fresh versions. If install refuses one, pick an older version rather than weakening the policy.
 
 ---
 
@@ -25,27 +32,15 @@ For major updates the user must explicitly ask (e.g. `/deps-update majors`). In 
 
 ---
 
-## Step 2 — Ask the user for bump type
-
-Use `AskUserQuestion` to ask which semver bump the changeset should use:
-
-- **patch** — bug fixes only, no API changes
-- **minor** — new capabilities, backwards-compatible
-- **major** — breaking changes
-
-Default recommendation: **patch** (dependency updates rarely change public API).
-
----
-
-## Step 3 — Create a branch
+## Step 2 — Create a branch
 
 ```bash
-cd /git/music/music-utils && git checkout -b chore/update-deps-$(date +%Y%m%d)
+cd /git/music/music-utils && git checkout main && git pull --ff-only && git checkout -b chore/update-deps-$(date +%Y%m%d)
 ```
 
 ---
 
-## Step 4 — Apply updates
+## Step 3 — Apply updates
 
 Run non-interactively (the `-i` flag in `pnpm run update` requires a TTY):
 
@@ -62,72 +57,73 @@ cd /git/music/music-utils && npx npm-check-updates -u -t latest --deep && pnpm r
 
 ---
 
-## Step 5 — Run tests
+## Step 4 — Run the full suite
 
 ```bash
-cd /git/music/music-utils && pnpm test
+cd /git/music/music-utils && pnpm run precommit
 ```
 
-If tests fail, stop and report the failure to the user. Do **not** proceed to PR creation.
+This is what the git pre-commit hook runs (tests, coverage thresholds, CI tag tests, lint, format, tsc, builds for every package). If it fails, stop and report the failure to the user. Do **not** proceed to PR creation.
 
 ---
 
-## Step 6 — Create a changeset
+## Step 5 — Add a changeset (only if needed)
 
-Write the changeset file directly (avoid the interactive `pnpm changeset` CLI).
+A changeset is needed only for a published package whose **`dependencies`** (runtime) changed — that changes what users install. Pure `devDependencies` bumps don't need a release; skip this step for them.
 
-Replace `<bump>` with the type chosen in Step 2 (`patch`, `minor`, or `major`).
-Replace `<summary>` with a short one-liner like `"chore: update dependencies to latest minor versions"`.
+Ask the user for the bump type with `AskUserQuestion` (default **patch** — dependency updates rarely change public API). Write the file directly (avoid the interactive `pnpm changeset` CLI), listing only the affected published packages:
 
 ```bash
 cat > /git/music/music-utils/.changeset/update-deps-$(date +%Y%m%d).md << 'EOF'
 ---
-"@hansogj/music-utils": <bump>
-"@hansogj/discogs-cover": <bump>
-"@hansogj/discogs-item-lookup": <bump>
+"@hansogj/music-utils": patch
 ---
 
-<summary>
+Update dependencies.
 EOF
 ```
 
 ---
 
-## Step 7 — Commit and push
+## Step 6 — Commit and push
+
+Stage files by name — never `git add -A` / `git add .` (the sandbox can show placeholder files such as `.bashrc` or `.mcp.json` in the repo root):
 
 ```bash
-cd /git/music/music-utils && git add -A && git commit -m "chore: update dependencies to latest minor versions
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+cd /git/music/music-utils && git add pnpm-lock.yaml pnpm-workspace.yaml package.json packages/*/package.json scripts/*/package.json .changeset/*.md && git status --short
+git commit -m "chore(deps): update dependencies to latest minor versions"
 git push -u origin HEAD
 ```
 
+End the commit message with the co-author line from the current session's attribution instructions. Commits are SSH-signed and the pre-commit hook runs the full suite, so the commit may need to run outside the sandbox.
+
 ---
 
-## Step 8 — Create the PR
+## Step 7 — Create the PR
 
 ```bash
-cd /git/music/music-utils && gh pr create \
-  --title "chore: update dependencies" \
+cd /git/music/music-utils && gh pr create --base main \
+  --title "chore(deps): update dependencies" \
   --body "$(cat <<'EOF'
 ## Summary
-- Bump all packages to latest minor versions
-- Tests passing
+- Bump dependencies to latest minor versions
+- Full precommit suite passing
 
-## Publish
-CI will automatically open a **chore: version packages** PR once this merges to main. Merging that PR triggers npm publish via OIDC Trusted Publisher.
+## Release
+<"Changeset included for …" or "Dev dependencies only — no release needed.">
 EOF
 )"
 ```
+
+If `gh pr edit` fails with a Projects-classic GraphQL error, edit via `gh api -X PATCH repos/hansogj/music-utils/pulls/<n> -F body=@file`.
 
 Return the PR URL to the user.
 
 ---
 
-## After merge — what happens automatically
+## After merge — releasing (manual, only when the user asks)
 
-1. `release.yml` runs on push to `main`
-2. `changesets/action` detects the new changeset → opens a **"chore: version packages"** PR
-3. User merges the version PR → `changesets/action` runs `pnpm run release` → publishes all three packages to npm
-
-No manual publish step needed.
+1. On a branch from up-to-date `main`: `pnpm version-packages` (bumps versions, writes each package's `CHANGELOG.md`, consumes changesets, refreshes the lockfile). Commit, open a "chore: version packages" PR, merge.
+2. Remind the user to run `npm login` first (sessions expire quickly; a 404 on publish means not logged in).
+3. From `main`: `pnpm release` — checks npm login, builds, `changeset publish`. Needs 2FA, so the user runs it themselves, e.g. `! pnpm release --otp=<code>`.
+4. Push the new tags: `git push origin --tags` (changesets creates lightweight tags, which `--follow-tags` skips).
