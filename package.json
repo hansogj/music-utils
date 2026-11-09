@@ -10,10 +10,9 @@
     "lint": "pnpm -r run --sequential --if-present lint",
     "format:check": "pnpm -r run --sequential --if-present format:check",
     "precommit": "pnpm -r run --sequential --if-present precommit",
-    "changelog": "changelogen --output CHANGELOG.md",
-    "release": "bash scripts/release.sh",
-    "release:minor": "bash scripts/release.sh minor",
-    "release:major": "bash scripts/release.sh major",
+    "changeset": "changeset",
+    "version-packages": "changeset version && pnpm install --lockfile-only",
+    "release": "npm whoami --registry https://registry.npmjs.org >/dev/null || (echo 'Not logged in to npm. Run: npm login' && exit 1) && pnpm -r build && changeset publish",
     "update-host": "npm install -g @hansogj/music-utils@latest",
     "update": "npx npm-check-updates -i -t minor --deep && pnpm run post:update",
     "update:majors": "npx npm-check-updates -i -t latest --deep && pnpm run post:update",
@@ -23,7 +22,6 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@changesets/cli": "2.31.1",
-    "changelogen": "^0.6.2",
     "husky": "9.1.7",
     "npm-run-all2": "9.0.3",
     "typescript": "6.0.3"

@@ -22,6 +22,8 @@ pnpm run format:lint:fix    # Fix both lint and format issues
 pnpm run precommit          # Full pre-commit chain: test + lint + format:check + tsc + build
 ```
 
+**Releases**: Changesets only (root README, "Releases"). Add a `.changeset/*.md` with each user-facing change to a published package; `pnpm version-packages` on a branch, then `pnpm release` from `main`. `scripts/audit` is `"private": true` and never published.
+
 Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via `pretest`). CI integration tests in `ci/` run real tag operations against copied test files.
 
 ## Architecture
