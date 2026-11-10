@@ -1,5 +1,11 @@
 # @hansogj/music-utils
 
+## 2.2.1
+
+### Patch Changes
+
+- 0e311f6: `music-utils completion bash` no longer emits completions for the pre-2.0 `music-utils-*` commands (removed in 2.0), completes `music-utils audit --check-years` / `--no-check-years`, and documents installing it for both `music-utils` and `mu`. The README now documents the `music-utils` subcommands instead of the old commands.
+
 ## 2.2.0
 
 ### Minor Changes
