@@ -20,7 +20,7 @@ sudo bash scripts/install-bins.sh   # install music-audit binary system-wide
 
 ## Development
 
-Package manager: **pnpm** (enforced via preinstall hook). Node 26.x via nvm — run `nvm use` if your node version is wrong (`.nvmrc` is present).
+**Package manager**: pnpm. Node 26.x via nvm; run nvm use to switch to the version in .nvmrc. pnpm is not installed by hand: nvm installs it automatically into each Node version from ~/.nvm/default-packages (maintained in the dotfiles repo). If pnpm is missing after nvm use, that Node version was installed before the list existed; run npm i -g pnpm once, or reinstall that version with nvm install. Don't use corepack, and don't install tooling with pnpm add -g.
 
 ```bash
 pnpm install
@@ -32,21 +32,21 @@ Per-package scripts live in each `packages/*/package.json`; the workspace root h
 
 ### Bash completion
 
-`@hansogj/music-utils` ships a completion script for all `music-utils-*` commands (flag names, directory/file arguments).
+`music-utils completion bash` prints completion for `music-utils` / `mu` (subcommands, flags, directory/file arguments). bash-completion loads a file named after the command, so install it under both names:
 
 ```bash
-# Create the completions directory if it doesn't exist yet
 mkdir -p ~/.local/share/bash-completion/completions
-
-# Generate and install
-music-utils-completion bash > ~/.local/share/bash-completion/completions/music-utils
+music-utils completion bash > ~/.local/share/bash-completion/completions/music-utils
+ln -sf music-utils ~/.local/share/bash-completion/completions/mu
 ```
 
-Or source it just for the current session:
+For the standalone `music-audit` command (from the repo root):
 
 ```bash
-source <(music-utils-completion bash)
+pnpm --dir scripts/audit run --silent completion > ~/.local/share/bash-completion/completions/music-audit
 ```
+
+Or source either for the current session only: `source <(music-utils completion bash)`.
 
 ### Releases
 
