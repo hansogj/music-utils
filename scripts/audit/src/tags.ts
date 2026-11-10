@@ -4,7 +4,7 @@ import type { TrackTags } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
-const FLAC_TAGS = ['TITLE', 'TRACKNUMBER', 'TRACKTOTAL', 'ARTIST', 'ALBUMARTIST', 'ALBUM', 'DATE', 'DISCNUMBER', 'TOTALDISCS', 'GENRE', 'COMMENT', 'DESCRIPTION', 'ORIGINALDATE', 'DISCOGS_RELEASE_ID'];
+const FLAC_TAGS = ['TITLE', 'TRACKNUMBER', 'TRACKTOTAL', 'ARTIST', 'ALBUMARTIST', 'ALBUM', 'DATE', 'DISCNUMBER', 'TOTALDISCS', 'GENRE', 'COMMENT', 'DESCRIPTION', 'ORIGINALDATE', 'DISCOGS_RELEASE_ID', 'DISCOGS_MASTER_ID'];
 
 export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags; error?: string }> {
   try {
@@ -39,6 +39,7 @@ export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags;
         comment: raw['DESCRIPTION'] ?? raw['COMMENT'],
         originalYear: raw['ORIGINALDATE'],
         discogsReleaseId: raw['DISCOGS_RELEASE_ID'],
+        discogsMasterId: raw['DISCOGS_MASTER_ID'] || undefined,
       },
     };
   } catch (err) {
@@ -111,6 +112,7 @@ export async function readMp3Tags(filePath: string): Promise<{ tags: TrackTags; 
         comment: raw['COMM'],
         originalYear: raw['TORY'],
         discogsReleaseId: txxx['DISCOGS_RELEASE_ID'],
+        discogsMasterId: txxx['DISCOGS_MASTER_ID'] || undefined,
       },
     };
   } catch (err) {

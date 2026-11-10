@@ -65,26 +65,36 @@ MUSIC_AUDIT_CHECK_YEARS=true
 | `--retag` | Like `--repair` but visits clean albums too |
 | `--ui` | Serve HTML report at `http://localhost:7171` |
 | `--json` | Raw JSON output (incompatible with `--repair`/`--ui`) |
-| `--log[=<path>]` | Append JSON Lines audit log to `.audit-log/MM.dd.HH.mm-audit.log` |
+| `--log[=<path>]` | Append JSON Lines audit log (default: `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log`) |
+
+Without `--repair`/`--retag` the audit only reads: nothing in the library is written.
 
 ## Repair mode
 
 `--repair` (or `--retag`, which implies repair) walks album-by-album through issues and offers automated fixes:
 
 - **Folder renames** — year prefix, disc separator, bracket style, letter-dir moves
-- **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID; offers to rename files and folders (including the year) to match. DATE/ORIGINALDATE and ALBUM always come from the Discogs **master** (original year and title), not from the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
+- **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID (MP3: TXXX frames; in the `--json` report as `tags.discogsReleaseId` / `tags.discogsMasterId`); offers to rename files and folders (including the year) to match. DATE/ORIGINALDATE and ALBUM always come from the Discogs **master** (original year and title), not from the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
 - **Original year** — sets DATE/ORIGINALDATE to the master year and renames the folder's year prefix
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
 
 Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release.
 
-Each session writes two logs to `.audit-log/`:
+Logs go to `~/.local/share/music-audit/`:
 
-- `MM.dd.HH.mm-audit.log` — JSON Lines audit log (albums scanned, issues found, summary)
-- `MM.dd.HH.mm-repair.log` — JSON Lines repair log (every fix attempt, crash-safe)
+- `YYYY.MM.dd.HH.mm-repair.log` — JSON Lines repair log (every fix attempt, crash-safe); always written in repair mode
+- `YYYY.MM.dd.HH.mm-audit.log` — JSON Lines audit log (albums scanned, issues found, summary); only with `--log`
 
-After Discogs tagging, an `info.txt` is written to the album folder with artist, tracklist, personnel, and durations.
+After Discogs tagging, an `info.txt` is written to the album folder with artist, tracklist, personnel, and durations, ending in fixed lines for scripts:
+
+```
+Discogs-Release: 9004392
+Discogs-Master: 123456
+Disc: 1/2
+```
+
+In repair mode, albums without an `info.txt` also get a basic one built from their tags.
 
 ## Install the binary system-wide
 

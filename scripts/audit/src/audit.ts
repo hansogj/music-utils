@@ -85,6 +85,7 @@ async function auditAlbum(
   skipDiscogs: boolean,
   fetchDiscogsAlways = false,
   checkYears = false,
+  writeInfo = false,
 ): Promise<AlbumAudit> {
   const tracks = await readTracks(layout);
   const issues: Issue[] = [];
@@ -131,13 +132,13 @@ async function auditAlbum(
     }
   }
 
-  // Silently generate a basic info.txt from tags if none exists yet.
-  // (Discogs tagging in repair mode will overwrite this with a richer version.)
-  const infoTxtPath = path.join(layout.albumPath, 'info.txt');
-  try {
-    await fs.access(infoTxtPath);
-  } catch {
-    if (tracks.length > 0) {
+  // Repair mode only (report mode never writes): generate a basic info.txt from tags if none
+  // exists yet. Discogs tagging will overwrite it with a richer version.
+  if (writeInfo && tracks.length > 0) {
+    const infoTxtPath = path.join(layout.albumPath, 'info.txt');
+    try {
+      await fs.access(infoTxtPath);
+    } catch {
       writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
     }
   }
@@ -186,6 +187,8 @@ Options:
   --ui                Serve audit report as HTML in browser at http://localhost:7171
   --json              Output raw JSON instead of formatted report (incompatible with --repair/--ui)
   --log[=<path>]      Append structured JSON Lines audit log (default: ~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log)
+
+Report mode (no --repair/--retag) only reads; it never writes to the library.
   --help, -h          Show this help
 
 Examples:
@@ -242,7 +245,7 @@ Examples:
 
     const scanTask = (async () => {
       for (const layout of layouts) {
-        const audit = await auditAlbum(layout, token, skipDiscogs, retagMode, checkYears);
+        const audit = await auditAlbum(layout, token, skipDiscogs, retagMode, checkYears, true);
         allAudits.push(audit);
         await logger?.logAlbum(audit);
         if (retagMode || audit.issues.length > 0) stream.push(audit);

@@ -108,11 +108,12 @@ scripts/audit/src/
 
 - **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel, ranks by fuzzy title similarity (`scoreTracklist`)
 - **Streaming repair**: `AuditStream` producer/consumer queue — scan runs in background while user handles already-found albums interactively
-- **Repair log**: JSON Lines at `.audit-log/MM.dd.HH.mm-repair.log`; each event written immediately (crash-safe). Log is audit history only — issues are always shown if audit detects them (no auto-skip on resume)
-- **Audit log**: `--log` flag writes session/album/summary events to `.audit-log/MM.dd.HH.mm-audit.log`
-- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, ORIGINALDATE (MP3: TORY), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID (MP3: TXXX with description)
+- **Repair log**: JSON Lines at `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-repair.log`; each event written immediately (crash-safe). Log is audit history only — issues are always shown if audit detects them (no auto-skip on resume)
+- **Audit log**: `--log` flag writes session/album/summary events to `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log` (or `--log=<path>`)
+- **Report mode is read-only**: without `--repair`/`--retag` nothing in the library is written
+- **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2`. Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, ORIGINALDATE (MP3: TORY), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID and DISCOGS_MASTER_ID (MP3: TXXX with description; JSON report: `tags.discogsReleaseId` / `tags.discogsMasterId`)
 - **Original year & title**: DATE, ORIGINALDATE, ALBUM and the folder's year/title always use the Discogs **master** (falling back to the release), never a reissue's year or title. Tracks are matched by numeric position when all positions are numeric, else by listing order (`numberTracklist()`, for vinyl `A1/B1`). `fetchOriginalYear()` results are cached on disk at `~/.cache/music-audit/original-years.json`
-- **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations); silently created from existing tags on audit if none exists
+- **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines); in repair mode only, silently created from existing tags if none exists
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext` (or `dDtNN - Title.ext` for multi-disc) to prevent NAME_TAG_MISMATCH on next audit run
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release

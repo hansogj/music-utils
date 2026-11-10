@@ -142,7 +142,10 @@ async function writeFlacTags(filePath: string, tags: Record<string, string>): Pr
   const removeArgs = Object.keys(tags).map((k) => `--remove-tag=${k}`);
   const { stderr: se1 } = await execFileAsync('metaflac', [...removeArgs, filePath]);
   if (se1?.trim()) throw new Error(`metaflac remove: ${se1.trim()}`);
-  const setArgs = Object.entries(tags).map(([k, v]) => `--set-tag=${k}=${v.trim()}`);
+  // An empty value only removes the tag (e.g. a stale DISCOGS_MASTER_ID after retagging to a release without one).
+  const setArgs = Object.entries(tags)
+    .filter(([, v]) => v.trim())
+    .map(([k, v]) => `--set-tag=${k}=${v.trim()}`);
   const { stderr: se2 } = await execFileAsync('metaflac', [...setArgs, filePath]);
   if (se2?.trim()) throw new Error(`metaflac set: ${se2.trim()}`);
   // Verify a freshly-written tag actually landed (catches silent NFS/root-squash failures).
@@ -172,7 +175,7 @@ async function writeMp3Tags(filePath: string, tags: Record<string, string>): Pro
     if (ID3[k]) args.push(`--${ID3[k]}`, v.trim());
     else if (k === 'COMMENT') args.push('--COMM', v.trim());
     // "DESC:value" sets the frame description; the old "DESC=value" form left it empty.
-    else if (k === 'DISCOGS_RELEASE_ID') args.push('--TXXX', `DISCOGS_RELEASE_ID:${v.trim()}`);
+    else if (k === 'DISCOGS_RELEASE_ID' || k === 'DISCOGS_MASTER_ID') args.push('--TXXX', `${k}:${v.trim()}`);
   }
   args.push(filePath);
   const { stderr } = await execFileAsync('id3v2', args);
@@ -459,6 +462,8 @@ function buildDiscogsAction(
           ...(genreValue ? { GENRE: genreValue } : {}),
           COMMENT: releaseUrl,
           DISCOGS_RELEASE_ID: releaseId,
+          // Same across pressings (FLAC rip vs mp3 copy); empty clears a stale one.
+          DISCOGS_MASTER_ID: release.masterId ? String(release.masterId) : '',
         };
         await writeTags(path.join(audit.layout.albumPath, name), ext, tags);
         console.log(chalk.green(`  ✓ Tagged ${name}${title ? ` → "${title}"` : ' (no title match)'}`));
@@ -466,7 +471,10 @@ function buildDiscogsAction(
 
       // ── write info.txt ─────────────────────────────────────────────────
       try {
-        await writeInfoTxt(audit.layout.albumPath, release, meta.artist);
+        await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
+          discNumber: meta.discNumber,
+          noOfDiscs: meta.noOfDiscs,
+        });
         console.log(chalk.dim('  ✓ info.txt written'));
       } catch {
         // Non-fatal — tag write already succeeded

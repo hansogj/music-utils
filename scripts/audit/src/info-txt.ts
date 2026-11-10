@@ -12,7 +12,12 @@ function padCol(s: string, width: number): string {
   return s.length >= width ? s + '  ' : s.padEnd(width);
 }
 
-export async function writeInfoTxt(albumPath: string, release: ReleaseInfo, artistName: string): Promise<void> {
+export async function writeInfoTxt(
+  albumPath: string,
+  release: ReleaseInfo,
+  artistName: string,
+  disc?: { discNumber: string; noOfDiscs: string },
+): Promise<void> {
   const artist = release.artists?.[0] ?? artistName;
   const album = release.title ?? '';
   const year = release.year ?? '';
@@ -49,7 +54,22 @@ export async function writeInfoTxt(albumPath: string, release: ReleaseInfo, arti
     lines.push('');
   }
 
+  lines.push(...infoTxtIdLines(release, disc));
+
   await fs.writeFile(path.join(albumPath, 'info.txt'), lines.join('\n'), 'utf8');
+}
+
+// Fixed `Key: value` lines at the end of info.txt, for scripts.
+export function infoTxtIdLines(
+  release: Pick<ReleaseInfo, 'releaseId' | 'masterId'>,
+  disc?: { discNumber: string; noOfDiscs: string },
+): string[] {
+  return [
+    `Discogs-Release: ${release.releaseId}`,
+    ...(release.masterId ? [`Discogs-Master: ${release.masterId}`] : []),
+    ...(disc ? [`Disc: ${disc.discNumber}/${disc.noOfDiscs}`] : []),
+    '',
+  ];
 }
 
 export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[]): Promise<void> {
