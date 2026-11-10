@@ -8,7 +8,7 @@ TypeScript CLI toolkit for managing FLAC and MP3 music collections. Handles tag 
 
 ## Commands
 
-**Package manager**: pnpm, installed as an npm global under nvm (`npm install -g pnpm`). Node 26.x via nvm — run `nvm use` if your node version is wrong (`.nvmrc` is present). Do not use corepack or `pnpm add -g` for tooling.
+**Package manager**: pnpm. Node 26.x via nvm; run nvm use to switch to the version in .nvmrc. pnpm is not installed by hand: nvm installs it automatically into each Node version from ~/.nvm/default-packages (maintained in the dotfiles repo). If pnpm is missing after nvm use, that Node version was installed before the list existed; run npm i -g pnpm once, or reinstall that version with nvm install. Don't use corepack, and don't install tooling with pnpm add -g.
 
 ```bash
 pnpm run build              # Clean + compile TypeScript with declarations

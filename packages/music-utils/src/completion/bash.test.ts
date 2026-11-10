@@ -5,8 +5,9 @@ describe('generateBash', () => {
 
   it('prefixes with an install-instructions header', () => {
     expect(script).toMatch(/^# music-utils bash completion/);
-    expect(script).toContain('source <(mu completion bash)');
-    expect(script).toContain('completions/mu');
+    expect(script).toContain('source <(music-utils completion bash)');
+    expect(script).toContain('completion bash > ~/.local/share/bash-completion/completions/music-utils');
+    expect(script).toContain('ln -sf music-utils ~/.local/share/bash-completion/completions/mu');
   });
 
   it('registers _mu for both mu and music-utils', () => {

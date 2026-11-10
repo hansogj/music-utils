@@ -32,7 +32,7 @@ export function checkTags(track: TrackInfo): Issue[] {
       code: 'NO_TAGS',
       file: track.fileName,
       message: `Track has no tags`,
-      suggestion: `Look up the release on Discogs and run "mu tag album" to tag the album`,
+      suggestion: `Look up the release on Discogs and run "music-utils tag album" to tag the album`,
     });
   } else if (missing.length > 0) {
     const labels = missing.map((k) => LABEL[k]).join(', ');
@@ -41,7 +41,7 @@ export function checkTags(track: TrackInfo): Issue[] {
       code: 'MISSING_TAGS',
       file: track.fileName,
       message: `Missing tags: ${labels}`,
-      suggestion: `Re-tag with "mu tag album" or "mu tag tracks"`,
+      suggestion: `Re-tag with "music-utils tag album" or "music-utils tag tracks"`,
     });
   }
 

@@ -4,7 +4,7 @@ const SCRIPT = `# music-audit bash completion
 # Install (session):    source <(pnpm --dir scripts/audit run --silent completion)
 # Install (persistent): pnpm --dir scripts/audit run --silent completion \\
 #                         > ~/.local/share/bash-completion/completions/music-audit
-# (\`mu audit\` is completed by \`mu completion bash\`.)
+# (\`music-utils audit\` is completed by \`music-utils completion bash\`.)
 
 _music_audit() {
   local cur prev flag

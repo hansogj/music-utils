@@ -1,7 +1,7 @@
 export interface Config {
-  /** Base directory for `mu rip` — where new albums land. Tilde is expanded. When unset, callers should fall back to `process.cwd()`. */
+  /** Base directory for `music-utils rip` — where new albums land. Tilde is expanded. When unset, callers should fall back to `process.cwd()`. */
   libraryRoot?: string;
-  /** Default path for `mu tag tracks` when `-f` is not supplied. Relative paths are resolved against `process.cwd()`. */
+  /** Default path for `music-utils tag tracks` when `-f` is not supplied. Relative paths are resolved against `process.cwd()`. */
   tracksFile: string;
   patterns: {
     /** Directory name for the artist (default: "{artist}"). */
@@ -26,7 +26,7 @@ export interface Config {
     articles: string[];
   };
   cover: {
-    /** Filename `mu rip` / `mu cover` write for album art (default: "cover.jpg"). */
+    /** Filename `music-utils rip` / `music-utils cover` write for album art (default: "cover.jpg"). */
     filename: string;
   };
   disc: {

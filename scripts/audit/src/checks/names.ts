@@ -58,7 +58,7 @@ export function checkNameTagMatch(track: TrackInfo): Issue[] {
       code: 'NAME_TAG_MISMATCH',
       file: fileName,
       message: `Filename implies "${effectiveParsed}" but TITLE tag is "${tags.title}"`,
-      suggestion: `Run "mu sync" to rename files to match tags, or re-tag if the tag is wrong`,
+      suggestion: `Run "music-utils sync" to rename files to match tags, or re-tag if the tag is wrong`,
     },
   ];
 }

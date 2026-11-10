@@ -27,9 +27,9 @@ sudo apt install \
 npm install -g @hansogj/music-utils
 ```
 
-This installs the `mu` command (also available as `music-utils`). Every feature is a subcommand: run `mu help` for the list.
+This installs the `music-utils` command (also available as the short alias `mu`). Every feature is a subcommand: run `music-utils help` for the list.
 
-> Before 2.0 each feature was its own `music-utils-*` command (`music-utils-rip`, `music-utils-album-tag`, …). Those are gone; see [Features](#features) for the `mu` equivalents.
+> Before 2.0 each feature was its own `music-utils-*` command (`music-utils-rip`, `music-utils-album-tag`, …). Those are gone; see [Features](#features) for the `music-utils` equivalents.
 
 ## From source
 
@@ -90,17 +90,17 @@ Every key is optional; anything you omit falls back to the default. Types and ra
 
 ### `libraryRoot`
 
-Base directory for `mu rip`. When set (tildes are expanded), rips land here regardless of your current working directory — you can run `mu rip -r <id>` from anywhere. When unset, rips land relative to `process.cwd()`.
+Base directory for `music-utils rip`. When set (tildes are expanded), rips land here regardless of your current working directory — you can run `music-utils rip -r <id>` from anywhere. When unset, rips land relative to `process.cwd()`.
 
 ### `tracksFile`
 
-Default path used by `mu tag tracks` when `-f` is not supplied. Relative paths are resolved against `process.cwd()`; an absolute path is used as-is. Precedence: CLI `-f` > this key > default `"tracks.txt"`.
+Default path used by `music-utils tag tracks` when `-f` is not supplied. Relative paths are resolved against `process.cwd()`; an absolute path is used as-is. Precedence: CLI `-f` > this key > default `"tracks.txt"`.
 
 ### `patterns.*`
 
 Templates use `{token}` substitution. Available tokens: `{artist}`, `{album}`, `{year}`, `{disc}`, `{total}`, `{trackNo}`, `{title}`, `{aux}`, `{discSep}`, `{discSuffix}`, `{auxSuffix}`, `{artistPrefix}`. Missing tokens resolve to empty and surrounding whitespace collapses.
 
-- `artistFolder` / `albumFolder` — the two path segments `mu rip` and `mu tag album` write into.
+- `artistFolder` / `albumFolder` — the two path segments `music-utils rip` and `music-utils tag album` write into.
 - `track` / `trackMultiDisc` — filename (without extension) for single-disc vs multi-disc releases.
 - `artistPrefix` — inserted before `{title}` when the release has an artist; renders to `' '` otherwise.
 - `discSuffix` — appended to `albumFolder` when `noOfDiscs > 1`. Includes a `{discSep}` token which resolves to `disc.separator` at render time.
@@ -112,7 +112,7 @@ Off by default: artist folders keep the article (`The Beatles`). When `true`, de
 
 ### `cover.filename`
 
-Filename `mu rip` and `mu cover` write for album art. Default `"cover.jpg"`. Change to `"folder.jpg"` for the Windows convention, or `"AlbumArt.jpg"` if that's what your player expects.
+Filename `music-utils rip` and `music-utils cover` write for album art. Default `"cover.jpg"`. Change to `"folder.jpg"` for the Windows convention, or `"AlbumArt.jpg"` if that's what your player expects.
 
 ### `disc.separator`
 
@@ -122,30 +122,30 @@ Changing this after your library already contains multi-disc folders means old f
 
 ### `flac.compressionLevel`
 
-Passed to the `flac` CLI as `-<level>` during `mu rip`'s WAV→FLAC step. Range `0` (fast/large) through `8` (slow/small). Default `5` matches the `flac` CLI's own default.
+Passed to the `flac` CLI as `-<level>` during `music-utils rip`'s WAV→FLAC step. Range `0` (fast/large) through `8` (slow/small). Default `5` matches the `flac` CLI's own default.
 
 # Features
 
 | Command | What it does |
 | --- | --- |
-| `mu rip` | Rip a CD and tag it from Discogs |
-| `mu tag album` | Tag an album from its folder structure and existing tags |
-| `mu tag tracks` | Tag an album from a tracklist file |
-| `mu tag bulk` | Tag every album folder under a directory |
-| `mu cover` | Fetch the album cover from Discogs |
-| `mu cover album` | Fetch the cover, then tag the album |
-| `mu cover bulk` | Fetch covers for every album folder that has none |
-| `mu sync` | Rename track files to match their tags |
-| `mu similarities` | Find near-duplicate artist names across two libraries |
-| `mu audit` | Audit the library (forwards to `music-audit`, if installed) |
-| `mu completion bash` | Print the bash completion script |
+| `music-utils rip` | Rip a CD and tag it from Discogs |
+| `music-utils tag album` | Tag an album from its folder structure and existing tags |
+| `music-utils tag tracks` | Tag an album from a tracklist file |
+| `music-utils tag bulk` | Tag every album folder under a directory |
+| `music-utils cover` | Fetch the album cover from Discogs |
+| `music-utils cover album` | Fetch the cover, then tag the album |
+| `music-utils cover bulk` | Fetch covers for every album folder that has none |
+| `music-utils sync` | Rename track files to match their tags |
+| `music-utils similarities` | Find near-duplicate artist names across two libraries |
+| `music-utils audit` | Audit the library (forwards to `music-audit`, if installed) |
+| `music-utils completion bash` | Print the bash completion script |
 
 `-a DIR` / `--album DIR` runs a command on another album folder instead of the current directory.
 
 ## rip
 
 ```
-$> mu rip -r <releaseId> -d <disc-number?>
+$> music-utils rip -r <releaseId> -d <disc-number?>
 ```
 
 `<releaseId>` is the Discogs release ID (`4565937`, `r4565937`, or a release URL) or a master ID (`m1439`, or a master URL), which resolves to the master's main release; `<disc-number>` is used when there is more than one disc. Creates a folder `Artist/YYYY Album Name` (under `libraryRoot` if configured, otherwise the current directory), rips the CD via `cdparanoia`, converts WAV to FLAC, renames files, sets tags, and fetches the cover photo — all based on info from Discogs. Year and album title come from the Discogs master, so a reissue is filed under its original year.
@@ -153,8 +153,8 @@ $> mu rip -r <releaseId> -d <disc-number?>
 ## cover
 
 ```
-Music/Artist/2020 Album $> mu cover -r <releaseId>
-Music/Artist/2020 Album $> mu cover
+Music/Artist/2020 Album $> music-utils cover -r <releaseId>
+Music/Artist/2020 Album $> music-utils cover
 ```
 
 Parses your current directory to extract artist and album info, then fetches a matching cover photo from Discogs and saves it as `cover.jpg`. The `-r` / `--releaseId` option is more accurate; without it, info is deduced from the path. `-Q` / `--quiet` suppresses progress output.
@@ -162,8 +162,8 @@ Parses your current directory to extract artist and album info, then fetches a m
 ## tag album
 
 ```
-Music/Artist/YYYY Album $> mu tag album
-Music/Artist $> mu tag album -a "YYYY Album"
+Music/Artist/YYYY Album $> music-utils tag album
+Music/Artist $> music-utils tag album -a "YYYY Album"
 ```
 
 Parses directory structure to extract artist/album info, extracts tags from each file (FLAC, MP3, or filename), merges metadata, rewrites tags, and renames the folder to the standardized structure:
@@ -175,8 +175,8 @@ Parses directory structure to extract artist/album info, extracts tags from each
 ## tag tracks
 
 ```
-Music/Artist/2020 Album $> mu tag tracks -f /path/to/tracks.txt
-Music/Artist/2020 Album $> mu tag tracks                          # uses config.tracksFile
+Music/Artist/2020 Album $> music-utils tag tracks -f /path/to/tracks.txt
+Music/Artist/2020 Album $> music-utils tag tracks                          # uses config.tracksFile
 ```
 
 Like _tag album_ but reads track names from an external file (one title per line) instead of relying on tags already present. Path resolution:
@@ -185,12 +185,12 @@ Like _tag album_ but reads track names from an external file (one title per line
 2. `tracksFile` from your config (`music-utils.config.json` / `~/.music-utilsrc.json`)
 3. Default `tracks.txt` in the current working directory
 
-Handy after `mu rip`, which writes a `tracks.txt` for the album at rip time and then chdirs into the album folder — running `mu tag tracks` there with the default resolution just works.
+Handy after `music-utils rip`, which writes a `tracks.txt` for the album at rip time and then chdirs into the album folder — running `music-utils tag tracks` there with the default resolution just works.
 
 ## cover album (cover + tag combo)
 
 ```
-Music/Artist/2020 Album $> mu cover album
+Music/Artist/2020 Album $> music-utils cover album
 ```
 
 Fetches album cover from Discogs then tags the album in one step.
@@ -198,8 +198,8 @@ Fetches album cover from Discogs then tags the album in one step.
 ## tag bulk
 
 ```
-Music/Artist $> mu tag bulk
-Music $> mu tag bulk /path/to/artist/
+Music/Artist $> music-utils tag bulk
+Music $> music-utils tag bulk /path/to/artist/
 ```
 
 Tags all album subdirectories in the given folder (or current directory).
@@ -207,7 +207,7 @@ Tags all album subdirectories in the given folder (or current directory).
 ## cover bulk
 
 ```
-Music/Artist $> mu cover bulk
+Music/Artist $> music-utils cover bulk
 ```
 
 Fetches cover photos for all subdirectories that don't already have a `.jpg` file.
@@ -219,8 +219,8 @@ Fuzzy-matches artist directory names across two roots so you can spot duplicates
 It scans `-A` one level deep for artist directories and `-B` two levels deep (assuming `Artist/Album` layout), strips a configurable set of ignore-words from each name (definite articles, "and", "band", etc.), then compares via string similarity. Pairs scoring above `-T` are reported.
 
 ```
-$> mu similarities -A /path/to/library-A/ -B /path/to/library-B/ -T 0.5 -Q
-$> mu similarities -A ./ -B /mnt/backup/Music/ -T 0.7 -f matches.json
+$> music-utils similarities -A /path/to/library-A/ -B /path/to/library-B/ -T 0.5 -Q
+$> music-utils similarities -A ./ -B /mnt/backup/Music/ -T 0.7 -f matches.json
 ```
 
 - **`-A <path>`** / **`--dirA <path>`** base directory (artist folders directly under this)
@@ -233,7 +233,7 @@ $> mu similarities -A ./ -B /mnt/backup/Music/ -T 0.7 -f matches.json
 ## sync
 
 ```
-Music/Artist/2020 Album $> mu sync
+Music/Artist/2020 Album $> music-utils sync
 ```
 
 Renames audio files in the current album folder to reflect the tags already on them. Reads each file's tags, parses the folder path for artist/album/year context, then applies the configured `patterns.track` / `patterns.trackMultiDisc` templates to compute the target filename. The tags themselves are not rewritten — this is filename-only.
@@ -242,19 +242,19 @@ Useful when the tags are already correct (e.g. from another program) but the fil
 
 ## completion
 
-Bash tab-completion for `mu` / `music-utils`: subcommands, flags, and file/directory completion for path-valued flags (`-a`, `-f`, `-A`, `-B`, `--root`).
+Bash tab-completion for `music-utils` / `mu`: subcommands, flags, and file/directory completion for path-valued flags (`-a`, `-f`, `-A`, `-B`, `--root`).
 
 Session-only:
 
 ```
-source <(mu completion bash)
+source <(music-utils completion bash)
 ```
 
 Persistent (per-user, no root). bash-completion loads a file named after the command being completed, so install it under both names:
 
 ```
-mu completion bash > ~/.local/share/bash-completion/completions/mu
-ln -sf mu ~/.local/share/bash-completion/completions/music-utils
+music-utils completion bash > ~/.local/share/bash-completion/completions/music-utils
+ln -sf music-utils ~/.local/share/bash-completion/completions/mu
 ```
 
-Now `mu <TAB>` lists the commands, `mu tag <TAB>` the subcommands, and `mu similarities -A <TAB>` completes directories. Zsh support is on the backlog.
+Now `music-utils <TAB>` lists the commands, `music-utils tag <TAB>` the subcommands, and `music-utils similarities -A <TAB>` completes directories. Zsh support is on the backlog.
