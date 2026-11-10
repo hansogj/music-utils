@@ -22,6 +22,7 @@ export interface TrackTags {
   comment?: string;
   originalYear?: string; // ORIGINALDATE (FLAC) / TORY (MP3)
   discogsReleaseId?: string;
+  discogsMasterId?: string;
 }
 
 export interface TrackInfo {
