@@ -4,16 +4,14 @@ import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { emitKeypressEvents } from 'node:readline';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { termLink } from './term-link.js';
 import { albumLocation } from './walk.js';
 import { folderYear, withFolderYear } from './checks/year.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
+import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
-const execFileAsync = promisify(execFile);
 // Created lazily on first prompt: an eager readline at import time resumes stdin,
 // which keeps non-interactive runs (--json, plain report) alive forever on a TTY.
 let rl: readline.Interface | undefined;
@@ -25,9 +23,18 @@ function closeRl() {
 
 // ── prompt ───────────────────────────────────────────────────────────────────
 
-async function ask(q: string): Promise<string> {
+let prompt = async (q: string): Promise<string> => {
   rl ??= readline.createInterface({ input: process.stdin, output: process.stdout });
-  return (await rl.question(q)).trim();
+  return rl.question(q);
+};
+
+// Tests answer prompts through this instead of stdin.
+export function setPrompt(fn: (q: string) => Promise<string>): void {
+  prompt = fn;
+}
+
+async function ask(q: string): Promise<string> {
+  return (await prompt(q)).trim();
 }
 
 // ── interactive release picker ────────────────────────────────────────────────
@@ -132,84 +139,6 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
   });
 }
 
-// ── tag writing ──────────────────────────────────────────────────────────────
-
-// Prefer verifying a tag that was likely absent before (TRACKNUMBER, DATE) over
-// TITLE which may already be present — catches partial NFS write failures.
-const FLAC_VERIFY_PRIORITY = ['TRACKNUMBER', 'TRACKTOTAL', 'DATE', 'ARTIST', 'ALBUM', 'TITLE'];
-
-async function writeFlacTags(filePath: string, tags: Record<string, string>): Promise<void> {
-  const removeArgs = Object.keys(tags).map((k) => `--remove-tag=${k}`);
-  const { stderr: se1 } = await execFileAsync('metaflac', [...removeArgs, filePath]);
-  if (se1?.trim()) throw new Error(`metaflac remove: ${se1.trim()}`);
-  // An empty value only removes the tag (e.g. a stale DISCOGS_MASTER_ID after retagging to a release without one).
-  const setArgs = Object.entries(tags)
-    .filter(([, v]) => v.trim())
-    .map(([k, v]) => `--set-tag=${k}=${v.trim()}`);
-  const { stderr: se2 } = await execFileAsync('metaflac', [...setArgs, filePath]);
-  if (se2?.trim()) throw new Error(`metaflac set: ${se2.trim()}`);
-  // Verify a freshly-written tag actually landed (catches silent NFS/root-squash failures).
-  const verifyTag = FLAC_VERIFY_PRIORITY.find((t) => tags[t]) ?? Object.keys(tags)[0];
-  if (verifyTag) {
-    const { stdout: verify } = await execFileAsync('metaflac', [`--show-tag=${verifyTag}`, filePath]);
-    if (!verify.includes('=')) {
-      throw new Error(`FLAC tags were not written (verified ${verifyTag}) — file may be on a read-only or root-squash NFS mount. Try running as the file owner instead of root.`);
-    }
-  }
-}
-
-async function writeMp3Tags(filePath: string, tags: Record<string, string>): Promise<void> {
-  const ID3: Record<string, string> = {
-    TITLE: 'TIT2',
-    ARTIST: 'TPE1',
-    ALBUMARTIST: 'TPE2',
-    ALBUM: 'TALB',
-    DATE: 'TYER',
-    ORIGINALDATE: 'TORY', // ID3v2.3 (what id3v2 writes); TDOR is the v2.4 equivalent
-    TRACKNUMBER: 'TRCK',
-    DISCNUMBER: 'TPOS',
-    GENRE: 'TCON',
-  };
-  const args = ['-2'];
-  for (const [k, v] of Object.entries(tags)) {
-    if (ID3[k]) args.push(`--${ID3[k]}`, v.trim());
-    else if (k === 'COMMENT') args.push('--COMM', v.trim());
-    // "DESC:value" sets the frame description; the old "DESC=value" form left it empty.
-    else if (k === 'DISCOGS_RELEASE_ID' || k === 'DISCOGS_MASTER_ID') args.push('--TXXX', `${k}:${v.trim()}`);
-  }
-  args.push(filePath);
-  const { stderr } = await execFileAsync('id3v2', args);
-  if (stderr?.trim()) throw new Error(`id3v2: ${stderr.trim()}`);
-
-  // Verify a freshly-written tag actually landed (catches silent NFS/root-squash failures).
-  const MP3_VERIFY_PRIORITY: Array<[string, string]> = [
-    ['TRACKNUMBER', 'TRCK'], ['DATE', 'TYER'], ['ARTIST', 'TPE1'], ['ALBUM', 'TALB'], ['TITLE', 'TIT2'],
-  ];
-  const verifyPair = MP3_VERIFY_PRIORITY.find(([field]) => tags[field]);
-  if (verifyPair) {
-    const [field, frame] = verifyPair;
-    const { stdout: verify } = await execFileAsync('id3v2', ['-l', filePath]);
-    if (!verify.includes(frame)) {
-      throw new Error(`Tags were not written (verified ${field}) — file may be on a read-only or root-squash NFS mount. Try running as the file owner instead of root.`);
-    }
-  }
-}
-
-async function writeTags(filePath: string, ext: 'flac' | 'mp3', tags: Record<string, string>): Promise<void> {
-  if (ext === 'flac') {
-    // FLAC keeps TRACKNUMBER and TRACKTOTAL separate
-    const { TRACKNUMBER, ...rest } = tags;
-    if (TRACKNUMBER?.includes('/')) {
-      const [no, total] = TRACKNUMBER.split('/');
-      await writeFlacTags(filePath, { ...rest, TRACKNUMBER: no, TRACKTOTAL: total });
-    } else {
-      await writeFlacTags(filePath, tags);
-    }
-  } else {
-    await writeMp3Tags(filePath, tags);
-  }
-}
-
 // ── parse helpers ─────────────────────────────────────────────────────────────
 
 // Accepts: plain digits, r<id>, [r<id>], full release URLs.
@@ -273,13 +202,25 @@ function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// After Discogs tagging, compare artist/album from the release against local
-// folder names and offer renames if they differ.
-async function offerFolderRenames(
+// The answers to a folder-rename prompt, applied once the album's other fixes are done.
+// Only the targets are stored; the new names are built from the folder as it is then.
+interface FolderRenamePlan {
+  artist?: string;
+  album?: string;
+  year?: string;
+}
+
+// Folder renames the user said yes to, per album, waiting to run last (see repairAlbum).
+// Renaming mid-album would leave later fixes pointing at the old path.
+const pendingFolderRenames = new WeakMap<AlbumLayout, FolderRenamePlan>();
+
+// After Discogs tagging, compare artist/album/year from the release against local
+// folder names and ask whether to rename. Returns the plan, or undefined if nothing to do.
+async function askFolderRename(
   layout: AlbumLayout,
   meta: ReturnType<typeof albumMetaFromLayout>,
   release: import('./discogs.js').ReleaseInfo,
-): Promise<void> {
+): Promise<FolderRenamePlan | undefined> {
   const discogsArtist = release.artists?.[0];
   const discogsAlbum = release.title;
   const localYear = folderYear(layout.albumFolder);
@@ -291,7 +232,7 @@ async function offerFolderRenames(
   // Only correct an existing year prefix; a missing one is MISSING_YEAR_PREFIX's job.
   const yearMismatch = localYear && release.year && localYear !== release.year;
 
-  if (!artistMismatch && !albumMismatch && !yearMismatch) return;
+  if (!artistMismatch && !albumMismatch && !yearMismatch) return undefined;
 
   console.log(chalk.yellow('\n  Discogs name differs from local folder:'));
   if (artistMismatch)
@@ -304,38 +245,38 @@ async function offerFolderRenames(
   const answer = await ask('  Rename folder(s) to match Discogs? [y/N] ');
   if (answer.toLowerCase() !== 'y') {
     console.log(chalk.dim('  Skipped rename.'));
-    return;
+    return undefined;
   }
+  return {
+    ...(artistMismatch ? { artist: discogsArtist } : {}),
+    ...(albumMismatch ? { album: discogsAlbum } : {}),
+    ...(yearMismatch ? { year: release.year } : {}),
+  };
+}
 
+async function applyFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): Promise<void> {
   // Rename album folder first (artist rename changes its parent path).
-  if ((albumMismatch && discogsAlbum) || yearMismatch) {
-    const yearPrefix = yearMismatch ? `${release.year} ` : (layout.albumFolder.match(/^(\d{4}\s+)/)?.[1] ?? '');
-    const albumTitle = albumMismatch && discogsAlbum ? discogsAlbum : meta.album;
+  if (plan.album || plan.year) {
+    const yearPrefix = plan.year ? `${plan.year} ` : (layout.albumFolder.match(/^(\d{4}\s+)/)?.[1] ?? '');
     const discPart = layout.albumFolder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
     const auxPart = (layout.albumFolder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
-    const newAlbumFolder = albumMismatch
-      ? `${yearPrefix}${albumTitle}${discPart}${auxPart}`.trim()
-      : withFolderYear(layout.albumFolder, release.year!);
-    const newAlbumPath = path.join(path.dirname(layout.albumPath), newAlbumFolder);
-    try {
+    const newAlbumFolder = plan.album
+      ? `${yearPrefix}${plan.album}${discPart}${auxPart}`.trim()
+      : withFolderYear(layout.albumFolder, plan.year!);
+    if (newAlbumFolder !== layout.albumFolder) {
+      const newAlbumPath = path.join(path.dirname(layout.albumPath), newAlbumFolder);
       await guardedRename(layout.albumPath, newAlbumPath);
       layout.albumPath = newAlbumPath;
       layout.albumFolder = newAlbumFolder;
-    } catch (err) {
-      console.log(chalk.red(`  ✗ Album folder rename failed: ${err instanceof Error ? err.message : String(err)}`));
     }
   }
 
-  if (artistMismatch && discogsArtist) {
+  if (plan.artist && plan.artist !== layout.artistName) {
     const artistDir = path.dirname(layout.albumPath);
-    const newArtistDir = path.join(path.dirname(artistDir), discogsArtist);
-    try {
-      await guardedRename(artistDir, newArtistDir);
-      layout.artistName = discogsArtist;
-      layout.albumPath = path.join(newArtistDir, layout.albumFolder);
-    } catch (err) {
-      console.log(chalk.red(`  ✗ Artist folder rename failed: ${err instanceof Error ? err.message : String(err)}`));
-    }
+    const newArtistDir = path.join(path.dirname(artistDir), plan.artist);
+    await guardedRename(artistDir, newArtistDir);
+    layout.artistName = plan.artist;
+    layout.albumPath = path.join(newArtistDir, layout.albumFolder);
   }
 }
 
@@ -509,8 +450,12 @@ function buildDiscogsAction(
         }
       }
 
-      // ── offer folder renames if artist/album name differs ───────────────
-      await offerFolderRenames(audit.layout, meta, release);
+      // ── ask about folder renames; they run after the album's other fixes ─
+      const plan = await askFolderRename(audit.layout, meta, release);
+      if (plan) {
+        pendingFolderRenames.set(audit.layout, plan);
+        console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
+      }
     },
   };
 }
@@ -805,7 +750,7 @@ function handleRepairError(err: unknown): void {
 
 // ── repair log ───────────────────────────────────────────────────────────────
 
-interface RepairEvent {
+export interface RepairEvent {
   ts: string;
   session: string;
   album: string;
@@ -842,12 +787,224 @@ export class AuditStream {
   }
 }
 
+// ── one album ─────────────────────────────────────────────────────────────────
+
+export interface RepairAlbumContext {
+  token?: string;
+  retag?: boolean;
+  // Scans the album again from disk. Called after every fix, so the next issue shown
+  // reflects the files as they are now (a Discogs retag can solve or change later issues).
+  reaudit?: (layout: AlbumLayout) => Promise<AlbumAudit>;
+  logEvent: (e: Omit<RepairEvent, 'ts' | 'session'>) => Promise<void>;
+}
+
+// Steps through one album's issues, then runs any folder rename the user agreed to last.
+export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): Promise<'next' | 'quit'> {
+  const { token, retag = false, reaudit, logEvent } = ctx;
+  const { layout } = audit;
+  const initialIssues = [...audit.issues];
+  const loc = albumLocation(layout);
+
+  console.log(chalk.bold(`\n${'─'.repeat(60)}`));
+  console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${audit.tracks.length} track${audit.tracks.length !== 1 ? 's' : ''})`));
+  console.log(chalk.bold('─'.repeat(60)));
+  printAlbumTable(audit);
+
+  const refresh = async (fixed: Issue, ok: boolean) => {
+    if (!reaudit) {
+      if (ok) audit.issues = audit.issues.filter((i) => i !== fixed);
+      return;
+    }
+    try {
+      const fresh = await reaudit(layout);
+      audit.tracks = fresh.tracks;
+      audit.issues = fresh.issues;
+      if (fresh.originalYear) audit.originalYear = fresh.originalYear;
+    } catch (err) {
+      console.log(chalk.yellow(`  ⚠ Re-scan failed: ${err instanceof Error ? err.message : String(err)}`));
+    }
+  };
+
+  // An issue is shown once per pass. A fix that leaves it unchanged (or a skip) doesn't
+  // bring it back; one whose message changed (e.g. fewer tracks missing tags) is shown again.
+  const issueKey = (i: Issue) => `${i.code}|${i.file ?? ''}|${i.message}`;
+  const handled = new Set<string>();
+  let mismatchBulkIdx = -1;
+  let quit = false;
+
+  albumLoop: while (true) {
+    let issue: Issue | undefined;
+    while ((issue = audit.issues.find((i) => !handled.has(issueKey(i))))) {
+      handled.add(issueKey(issue));
+      const sevColor =
+        issue.severity === 'SEVERE' ? chalk.red.bold : issue.severity === 'HIGH' ? chalk.yellow.bold : chalk.cyan;
+      const file = issue.file ? chalk.dim(` [${issue.file}]`) : '';
+      console.log(`\n  ${sevColor(`[${issue.severity}]`)}${file} ${issue.message}`);
+
+      const actions = await repairActions(issue, audit, token);
+
+      if (actions.length === 0) {
+        console.log(chalk.dim('  No automated repair available — fix manually.'));
+        await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'none', result: 'no-action' });
+        continue;
+      }
+
+      let idx: number | undefined;
+      // Per-album bulk strategy for name/tag mismatches.
+      if (issue.code === 'NAME_TAG_MISMATCH' && mismatchBulkIdx >= 0 && actions[mismatchBulkIdx]) {
+        idx = mismatchBulkIdx;
+        console.log(chalk.dim(`  → bulk strategy: ${actions[idx].label}`));
+      }
+
+      issueMenuLoop: while (true) {
+        if (idx === undefined) {
+          actions.forEach((a, i) => console.log(`  [${i + 1}] ${a.label}`));
+          console.log('  [l] List files   [s] Skip   [q] Quit repair');
+
+          let choice: string;
+          while (true) {
+            choice = await ask('  Choice [1]: ');
+            if (choice !== 'l') break;
+            const files = await musicFilesIn(layout.albumPath);
+            console.log(chalk.dim(`\n  Files in ${layout.albumPath}:`));
+            for (const { name } of files) console.log(`    ${name}`);
+            console.log();
+          }
+
+          if (choice === 'q') {
+            console.log(chalk.dim('\n  Repair aborted.'));
+            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'quit', result: 'skipped' });
+            quit = true;
+            break albumLoop;
+          }
+          if (choice === 's') {
+            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'skipped', result: 'skipped' });
+            break issueMenuLoop;
+          }
+          if (choice === '') choice = '1'; // default to first action
+
+          const picked = parseInt(choice, 10) - 1;
+          if (!(picked >= 0 && picked < actions.length)) {
+            console.log(chalk.dim('  Invalid choice.'));
+            continue issueMenuLoop;
+          }
+          idx = picked;
+
+          // Offer per-album bulk for name/tag mismatches.
+          if (issue.code === 'NAME_TAG_MISMATCH' && mismatchBulkIdx < 0) {
+            const current = issue;
+            const hasMore = audit.issues.some(
+              (i) => i.code === 'NAME_TAG_MISMATCH' && i !== current && !handled.has(issueKey(i)),
+            );
+            if (hasMore) {
+              const applyAll = await ask('  Apply this to all remaining name/tag mismatches in this album? [y/N] ');
+              if (applyAll.toLowerCase() === 'y') {
+                mismatchBulkIdx = idx;
+                console.log(chalk.dim(`  → will apply "${actions[idx].label}" to remaining mismatches`));
+              }
+            }
+          }
+        }
+
+        let result: RepairEvent['result'] = 'fixed';
+        let error: string | undefined;
+        try {
+          await actions[idx].run();
+        } catch (err) {
+          if (err instanceof BackSignal) { idx = undefined; continue issueMenuLoop; } // picker Esc → re-show menu
+          handleRepairError(err);
+          result = 'failed';
+          error = err instanceof Error ? err.message : String(err);
+        }
+        await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: actions[idx].label, result, error });
+        await refresh(issue, result === 'fixed'); // re-scan even after a failure: a partial fix may have changed files
+        break issueMenuLoop;
+      }
+    }
+
+    // Every issue still present has been shown this pass: skipped, failed or not solved.
+    const left = audit.issues;
+    if (left.length === 0) {
+      console.log(chalk.green(`\n  ✓ All issues addressed.`));
+      break albumLoop;
+    }
+    const sevCount = left.filter((i) => i.severity !== 'MODERATE').length;
+    console.log(chalk.yellow(`\n  ${left.length} issue(s) not fixed${sevCount ? ` (${sevCount} high/severe)` : ''}.`));
+    const go = await ask('  [Enter] Continue   [r] Retry   [q] Quit: ');
+    if (go === 'q') {
+      console.log(chalk.dim('\n  Repair aborted.'));
+      quit = true;
+      break albumLoop;
+    }
+    if (go.toLowerCase() === 'r') {
+      handled.clear();
+      continue albumLoop;
+    }
+    break albumLoop;
+  }
+
+  // ── retag enrichment (--retag only, for albums that passed tag checks) ──
+  if (!quit && retag && token) {
+    const hasTagIssue = initialIssues.some((i) => i.code === 'NO_TAGS' || i.code === 'MISSING_TAGS');
+    if (!hasTagIssue) {
+      console.log(chalk.dim('\n  [retag] Tags look good — offer Discogs enrichment'));
+      const meta = albumMetaFromLayout(layout);
+      const files = await musicFilesIn(layout.albumPath);
+      const action = buildDiscogsAction(audit, token, meta, files);
+      console.log(`  [1] ${action.label}`);
+      console.log('  [s] Skip   [q] Quit repair');
+      const choice = await ask('  Choice: ');
+      if (choice === 'q') {
+        console.log(chalk.dim('\n  Repair aborted.'));
+        await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'quit', result: 'skipped' });
+        quit = true;
+      } else if (choice === '1') {
+        let result: RepairEvent['result'] = 'fixed';
+        let error: string | undefined;
+        try { await action.run(); } catch (err) {
+          handleRepairError(err);
+          result = 'failed';
+          error = err instanceof Error ? err.message : String(err);
+        }
+        await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: action.label, result, error });
+      } else {
+        await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'skipped', result: 'skipped' });
+      }
+    }
+  }
+
+  // ── folder rename last: nothing after it still points at the old path ──
+  // Runs on quit too: the user already said yes to it.
+  const plan = pendingFolderRenames.get(layout);
+  if (plan) {
+    pendingFolderRenames.delete(layout);
+    let result: RepairEvent['result'] = 'fixed';
+    let error: string | undefined;
+    try {
+      await applyFolderRename(layout, plan);
+    } catch (err) {
+      handleRepairError(err);
+      result = 'failed';
+      error = err instanceof Error ? err.message : String(err);
+    }
+    await logEvent({ album: loc, issue: 'FOLDER_RENAME', severity: 'MODERATE', action: 'Rename folder(s) to match Discogs', result, error });
+  }
+
+  if (quit) return 'quit';
+  const go = await ask('  [Enter] Next album   [q] Quit: ');
+  if (go === 'q') {
+    console.log(chalk.dim('\n  Repair aborted.'));
+    return 'quit';
+  }
+  return 'next';
+}
+
 // ── interactive repair loop ───────────────────────────────────────────────────
 
 export async function runRepair(
   stream: AuditStream,
   token?: string,
-  opts?: { retag?: boolean },
+  opts?: { retag?: boolean; reaudit?: (layout: AlbumLayout) => Promise<AlbumAudit> },
 ): Promise<void> {
   const retag = opts?.retag ?? false;
 
@@ -874,169 +1031,10 @@ export async function runRepair(
   console.log(chalk.bold.white('══════════════════════════════════════════════════════════'));
   console.log(chalk.dim(`  Scanning in background — albums appear as they\'re found. Press Ctrl-C to abort.\n`));
 
-  outer: while (true) {
+  while (true) {
     const audit = await stream.next();
     if (!audit) break;
-    const { layout, tracks, issues } = audit;
-    const loc = albumLocation(layout);
-
-    console.log(chalk.bold(`\n${'─'.repeat(60)}`));
-    console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${tracks.length} track${tracks.length !== 1 ? 's' : ''})`));
-    console.log(chalk.bold('─'.repeat(60)));
-    printAlbumTable(audit);
-
-    let remainingIssues = [...issues];
-
-    albumLoop: while (remainingIssues.length > 0) {
-      const skipped: Issue[] = [];
-      let mismatchBulkIdx = -1;
-
-      for (const issue of remainingIssues) {
-        const sevColor =
-          issue.severity === 'SEVERE' ? chalk.red.bold : issue.severity === 'HIGH' ? chalk.yellow.bold : chalk.cyan;
-        const file = issue.file ? chalk.dim(` [${issue.file}]`) : '';
-        console.log(`\n  ${sevColor(`[${issue.severity}]`)}${file} ${issue.message}`);
-
-        const actions = await repairActions(issue, audit, token);
-
-        if (actions.length === 0) {
-          console.log(chalk.dim('  No automated repair available — fix manually.'));
-          await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'none', result: 'no-action' });
-          continue;
-        }
-
-        // Auto-apply per-album bulk strategy for name/tag mismatches.
-        if (issue.code === 'NAME_TAG_MISMATCH' && mismatchBulkIdx >= 0) {
-          const action = actions[mismatchBulkIdx];
-          if (action) {
-            console.log(chalk.dim(`  → bulk strategy: ${action.label}`));
-            let result: RepairEvent['result'] = 'fixed';
-            let error: string | undefined;
-            try { await action.run(); } catch (err) {
-              handleRepairError(err);
-              result = 'failed';
-              error = err instanceof Error ? err.message : String(err);
-            }
-            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: action.label, result, error });
-            continue;
-          }
-        }
-
-        issueMenuLoop: while (true) {
-          actions.forEach((a, i) => console.log(`  [${i + 1}] ${a.label}`));
-          console.log('  [l] List files   [s] Skip   [q] Quit repair');
-
-          let choice: string;
-          while (true) {
-            choice = await ask('  Choice [1]: ');
-            if (choice !== 'l') break;
-            const files = await musicFilesIn(layout.albumPath);
-            console.log(chalk.dim(`\n  Files in ${layout.albumPath}:`));
-            for (const { name } of files) console.log(`    ${name}`);
-            console.log();
-          }
-
-          if (choice === 'q') {
-            console.log(chalk.dim('\n  Repair aborted.'));
-            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'quit', result: 'skipped' });
-            break outer;
-          }
-          if (choice === 's') {
-            skipped.push(issue);
-            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'skipped', result: 'skipped' });
-            break issueMenuLoop;
-          }
-          if (choice === '') choice = '1'; // default to first action
-
-          const idx = parseInt(choice, 10) - 1;
-
-          if (idx >= 0 && idx < actions.length) {
-            // Offer per-album bulk for name/tag mismatches.
-            if (issue.code === 'NAME_TAG_MISMATCH' && mismatchBulkIdx < 0) {
-              const hasMore = remainingIssues.slice(remainingIssues.indexOf(issue) + 1).some((i) => i.code === 'NAME_TAG_MISMATCH');
-              if (hasMore) {
-                const applyAll = await ask('  Apply this to all remaining name/tag mismatches in this album? [y/N] ');
-                if (applyAll.toLowerCase() === 'y') {
-                  mismatchBulkIdx = idx;
-                  console.log(chalk.dim(`  → will apply "${actions[idx].label}" to remaining mismatches`));
-                }
-              }
-            }
-            let result: RepairEvent['result'] = 'fixed';
-            let error: string | undefined;
-            try {
-              await actions[idx].run();
-            } catch (err) {
-              if (err instanceof BackSignal) continue issueMenuLoop; // picker Esc → re-show menu
-              handleRepairError(err);
-              result = 'failed';
-              error = err instanceof Error ? err.message : String(err);
-            }
-            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: actions[idx].label, result, error });
-            break issueMenuLoop;
-          } else {
-            console.log(chalk.dim('  Invalid choice.'));
-            // fall through to re-show the menu
-          }
-        }
-      }
-
-      if (skipped.length === 0) {
-        console.log(chalk.green(`\n  ✓ All issues addressed.`));
-        const go = await ask('  [Enter] Next album   [q] Quit: ');
-        if (go === 'q') {
-          console.log(chalk.dim('\n  Repair aborted.'));
-          break outer;
-        }
-        break albumLoop;
-      }
-
-      const sevCount = skipped.filter((i) => i.severity !== 'MODERATE').length;
-      console.log(chalk.yellow(`\n  ${skipped.length} issue(s) not fixed${sevCount ? ` (${sevCount} high/severe)` : ''}.`));
-      const go = await ask('  [Enter] Next album   [r] Retry skipped   [q] Quit: ');
-      if (go === 'q') {
-        console.log(chalk.dim('\n  Repair aborted.'));
-        break outer;
-      }
-      if (go.toLowerCase() === 'r') {
-        remainingIssues = skipped;
-        continue albumLoop;
-      }
-      break albumLoop;
-    }
-
-    // ── retag enrichment (--retag only, for albums that passed tag checks) ──
-    if (retag && token) {
-      const hasTagIssue = issues.some((i) => i.code === 'NO_TAGS' || i.code === 'MISSING_TAGS');
-      if (!hasTagIssue) {
-        {
-          console.log(chalk.dim('\n  [retag] Tags look good — offer Discogs enrichment'));
-          const meta = albumMetaFromLayout(layout);
-          const files = await musicFilesIn(layout.albumPath);
-          const action = buildDiscogsAction(audit, token, meta, files);
-          console.log(`  [1] ${action.label}`);
-          console.log('  [s] Skip   [q] Quit repair');
-          const choice = await ask('  Choice: ');
-          if (choice === 'q') {
-            console.log(chalk.dim('\n  Repair aborted.'));
-            await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'quit', result: 'skipped' });
-            break outer;
-          }
-          if (choice === '1') {
-            let result: RepairEvent['result'] = 'fixed';
-            let error: string | undefined;
-            try { await action.run(); } catch (err) {
-              handleRepairError(err);
-              result = 'failed';
-              error = err instanceof Error ? err.message : String(err);
-            }
-            await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: action.label, result, error });
-          } else {
-            await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'skipped', result: 'skipped' });
-          }
-        }
-      }
-    }
+    if ((await repairAlbum(audit, { token, retag, reaudit: opts?.reaudit, logEvent })) === 'quit') break;
   }
 
   // ── session summary ────────────────────────────────────────────────────────

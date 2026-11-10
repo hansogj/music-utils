@@ -5,21 +5,13 @@ import path from 'node:path';
 import { envFlag, loadEnv } from './env.js';
 loadEnv();
 
-import { walkLibrary, listMusicFiles } from './walk.js';
-import { readTags } from './tags.js';
-import { parseNameFromFilename } from './checks/names.js';
-import { checkFolderFormat } from './checks/folder.js';
-import { checkTags } from './checks/tags.js';
-import { checkNameTagMatch } from './checks/names.js';
-import { checkDuplicates } from './checks/duplicates.js';
-import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
-import { fetchOriginalYear, searchDiscogs } from './discogs.js';
-import { writeInfoTxtFromTags } from './info-txt.js';
+import { auditAlbum } from './audit-album.js';
+import { walkLibrary } from './walk.js';
 import { AuditLogger } from './logger.js';
 import { printReport } from './report.js';
 import { runRepair, AuditStream } from './repair.js';
 import { serveReport } from './server.js';
-import type { AlbumAudit, AlbumLayout, AuditReport, Issue, Severity, TrackInfo } from './types.js';
+import type { AlbumAudit, AlbumLayout, AuditReport, Severity } from './types.js';
 
 // ---------------------------------------------------------------------------
 // CLI arg parsing
@@ -49,101 +41,6 @@ function auditLogPath(suffix: string): string {
   const hh = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
   return path.join(os.homedir(), '.local', 'share', 'music-audit', `${yyyy}.${mm}.${dd}.${hh}.${min}-${suffix}.log`);
-}
-
-// ---------------------------------------------------------------------------
-// Track reading
-// ---------------------------------------------------------------------------
-
-async function readTracks(layout: AlbumLayout): Promise<TrackInfo[]> {
-  const files = await listMusicFiles(layout.albumPath);
-  const tracks: TrackInfo[] = [];
-
-  for (const { name, ext } of files) {
-    const filePath = path.join(layout.albumPath, name);
-    const { tags, error } = await readTags(filePath, ext);
-    tracks.push({
-      filePath,
-      fileName: name,
-      ext,
-      tags,
-      parsedName: parseNameFromFilename(name),
-      tagReadError: error,
-    });
-  }
-
-  return tracks;
-}
-
-// ---------------------------------------------------------------------------
-// Album audit
-// ---------------------------------------------------------------------------
-
-async function auditAlbum(
-  layout: AlbumLayout,
-  token: string | undefined,
-  skipDiscogs: boolean,
-  fetchDiscogsAlways = false,
-  checkYears = false,
-  writeInfo = false,
-): Promise<AlbumAudit> {
-  const tracks = await readTracks(layout);
-  const issues: Issue[] = [];
-
-  issues.push(...checkFolderFormat(layout));
-
-  // Consolidate tag issues to album level so repair only prompts once per album.
-  const perTrackTagIssues = tracks.flatMap((t) => checkTags(t));
-  const noTagTracks = perTrackTagIssues.filter((i) => i.code === 'NO_TAGS').map((i) => i.file!);
-  const missingTagTracks = perTrackTagIssues.filter((i) => i.code === 'MISSING_TAGS').map((i) => i.file!);
-  if (noTagTracks.length > 0)
-    issues.push({ severity: 'HIGH', code: 'NO_TAGS', message: `${noTagTracks.length} track(s) have no tags` });
-  if (missingTagTracks.length > 0)
-    issues.push({ severity: 'HIGH', code: 'MISSING_TAGS', message: `${missingTagTracks.length} track(s) have missing tags` });
-  issues.push(...perTrackTagIssues.filter((i) => i.code !== 'NO_TAGS' && i.code !== 'MISSING_TAGS'));
-
-  for (const t of tracks) issues.push(...checkNameTagMatch(t));
-  issues.push(...checkDuplicates(tracks));
-
-  let discogsResults = undefined;
-  if (!skipDiscogs && token && (issues.length > 0 || fetchDiscogsAlways)) {
-    try {
-      const localNames = tracks
-        .map((t) => t.tags.title ?? t.parsedName ?? '')
-        .filter(Boolean);
-      discogsResults = await searchDiscogs(layout.artistName, layout.albumFolder, token, localNames);
-    } catch {
-      // Discogs rate-limit or network — silently skip per-album
-    }
-  }
-
-  // Opt-in (--check-years / MUSIC_AUDIT_CHECK_YEARS): albums already tagged with a Discogs
-  // release ID get their year checked against the original (master) year. Off by default
-  // because it sends every tagged release ID to Discogs. Runs after the search so it
-  // doesn't trigger one.
-  let originalYear = undefined;
-  const lookupId = checkYears && !skipDiscogs && token ? originalYearLookupId(layout, tracks) : undefined;
-  if (lookupId && token) {
-    try {
-      originalYear = await fetchOriginalYear(lookupId, token);
-      issues.push(...checkOriginalYear(layout, tracks, originalYear));
-    } catch {
-      // Discogs rate-limit or network — silently skip per-album
-    }
-  }
-
-  // Repair mode only (report mode never writes): generate a basic info.txt from tags if none
-  // exists yet. Discogs tagging will overwrite it with a richer version.
-  if (writeInfo && tracks.length > 0) {
-    const infoTxtPath = path.join(layout.albumPath, 'info.txt');
-    try {
-      await fs.access(infoTxtPath);
-    } catch {
-      writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
-    }
-  }
-
-  return { layout, tracks, issues, discogsResults, originalYear };
 }
 
 // ---------------------------------------------------------------------------
@@ -233,6 +130,7 @@ Examples:
   process.stderr.write(`Scanning ${root} ...\n`);
 
   const mode = retagMode ? 'retag' : repairMode ? 'repair' : 'audit';
+  const auditOpts = { token, skipDiscogs, searchAlways: retagMode, checkYears };
   await logger?.logSession(mode, root);
 
   const layouts = await walkLibrary(root);
@@ -245,7 +143,7 @@ Examples:
 
     const scanTask = (async () => {
       for (const layout of layouts) {
-        const audit = await auditAlbum(layout, token, skipDiscogs, retagMode, checkYears, true);
+        const audit = await auditAlbum(layout, { ...auditOpts, writeInfo: true });
         allAudits.push(audit);
         await logger?.logAlbum(audit);
         if (retagMode || audit.issues.length > 0) stream.push(audit);
@@ -253,7 +151,10 @@ Examples:
       stream.close();
     })();
 
-    await runRepair(stream, token, { retag: retagMode });
+    // After each fix the album is scanned again (no new Discogs search) so later issues
+    // reflect the files as they are now, not as they were before the fix.
+    const reaudit = (layout: AlbumLayout) => auditAlbum(layout, { ...auditOpts, search: false });
+    await runRepair(stream, token, { retag: retagMode, reaudit });
     await scanTask; // ensure scan finishes (may already be done)
 
     const summary = buildSummary(allAudits);
@@ -268,7 +169,7 @@ Examples:
     const audits: AlbumAudit[] = [];
     for (const layout of layouts) {
       spin(audits.length);
-      const audit = await auditAlbum(layout, token, skipDiscogs, retagMode, checkYears);
+      const audit = await auditAlbum(layout, auditOpts);
       audits.push(audit);
       await logger?.logAlbum(audit);
     }

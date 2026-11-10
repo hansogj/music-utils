@@ -79,6 +79,8 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
 
+After each fix the album is scanned again, so the next issue shown matches the files as they are now: Discogs tagging often solves a name/tag mismatch, and that issue is then not shown at all. When you agree to rename the album or artist folder, the rename waits until the album's other fixes are done.
+
 Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release.
 
 Logs go to `~/.local/share/music-audit/`:
