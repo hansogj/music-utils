@@ -79,6 +79,9 @@ Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-
 ```
 scripts/audit/src/
   audit.ts        — CLI entry: arg parsing, walk → audit → report/repair/ui/json
+  audit-album.ts  — auditAlbum(): read one album's tracks and run all checks; also the
+                    re-scan repair runs after each fix (search: false)
+  tag-write.ts    — writeTags(): metaflac / id3v2 writes with post-write verification
   walk.ts         — walkLibrary(): crawls up to 10 levels below --root; a folder with
                     tracks is an album, its parent the artist, the one above a letter
                     or group dir (e.g. country). --root may be an album, artist or above
@@ -108,6 +111,7 @@ scripts/audit/src/
 
 - **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel, ranks by fuzzy title similarity (`scoreTracklist`)
 - **Streaming repair**: `AuditStream` producer/consumer queue — scan runs in background while user handles already-found albums interactively
+- **Per-album repair** (`repairAlbum()`): after every fix the album is re-scanned from disk (no new Discogs search), so issues a Discogs retag solved or changed are never shown out of date. A folder rename the user agrees to is stored and applied last, after all file-level fixes for that album, so nothing points at the old path. Tests answer prompts through `setPrompt()`
 - **Repair log**: JSON Lines at `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-repair.log`; each event written immediately (crash-safe). Log is audit history only — issues are always shown if audit detects them (no auto-skip on resume)
 - **Audit log**: `--log` flag writes session/album/summary events to `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log` (or `--log=<path>`)
 - **Report mode is read-only**: without `--repair`/`--retag` nothing in the library is written

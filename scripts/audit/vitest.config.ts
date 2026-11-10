@@ -23,6 +23,7 @@ export default defineConfig({
         '**/completion.ts',
         '**/report.ts',
         '**/tags.ts',
+        '**/tag-write.ts',
         '**/types.ts',
       ],
       thresholds: {
