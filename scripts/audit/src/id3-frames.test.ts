@@ -15,33 +15,29 @@ import {
   writeUserFrames,
 } from './id3-frames.js';
 
-const FIXTURE = path.resolve(
-  import.meta.dirname,
-  '../../../packages/music-utils/test-data/raw/Accept/1996 Predator/01 - Hard Attack.mp3',
-);
 const URL = 'https://www.discogs.com/release/4376665';
 const AUDIO = Buffer.from([0xff, 0xfb, 0x90, 0x64, 1, 2, 3, 4, 5, 6, 7, 8]);
 
 let dir: string;
 let file: string;
 
-// A v2.3 tag built by hand, followed by fake audio.
+const syncsafe = (n: number) => [(n >> 21) & 0x7f, (n >> 14) & 0x7f, (n >> 7) & 0x7f, n & 0x7f];
+
+// An ID3 tag built by hand (frame sizes are plain in v2.3, syncsafe in v2.4).
+// Audio files are gitignored, so tests never rely on test-data mp3s.
 function tagBytes(frames: Frame[], major: 3 | 4 = 3, flags = 0): Buffer {
   const body = Buffer.concat(
     frames.map((f) => {
       const h = Buffer.alloc(10);
       h.write(f.id, 0, 'latin1');
-      h.writeUInt32BE(f.data.length, 4); // test frames stay < 128 bytes, so v2.4 syncsafe is the same
+      if (major === 4) Buffer.from(syncsafe(f.data.length)).copy(h, 4);
+      else h.writeUInt32BE(f.data.length, 4);
       f.flags.copy(h, 8);
       return Buffer.concat([h, f.data]);
     }),
   );
   const n = body.length;
-  return Buffer.concat([
-    Buffer.from('ID3', 'latin1'),
-    Buffer.from([major, 0, flags, (n >> 21) & 0x7f, (n >> 14) & 0x7f, (n >> 7) & 0x7f, n & 0x7f]),
-    body,
-  ]);
+  return Buffer.concat([Buffer.from('ID3', 'latin1'), Buffer.from([major, 0, flags, ...syncsafe(n)]), body]);
 }
 
 const textFrame = (id: string, text: string): Frame => ({
@@ -155,15 +151,20 @@ describe('writeUserFrames', () => {
     expect(await comments()).toEqual([{ lang: 'eng', desc: '', text: 'mine' }]);
   });
 
-  it('keeps a v2.4 tag as v2.4 (the test-data mp3, written by ffmpeg)', async () => {
-    await fs.copyFile(FIXTURE, file);
+  it('keeps a v2.4 tag as v2.4, with syncsafe frame sizes (as ffmpeg writes)', async () => {
+    // A frame over 127 bytes: its v2.4 size differs from a plain 32-bit size.
+    const long = textFrame('TSSE', `Lavf61.7.100 ${'x'.repeat(200)}`);
+    await fs.writeFile(file, Buffer.concat([tagBytes([textFrame('TIT2', 'Hard Attack'), long], 4), AUDIO]));
     const before = parseTag(await fs.readFile(file))!;
+    expect(before.frames.map((f) => f.id)).toEqual(['TIT2', 'TSSE']);
     expect(before.major).toBe(4);
     await writeUserFrames(file, URL, [['DISCOGS_RELEASE_ID', '4376665']]);
     const after = parseTag(await fs.readFile(file))!;
     expect(after.major).toBe(4);
     expect(after.frames.slice(0, before.frames.length)).toEqual(before.frames);
     expect(await txxx()).toEqual({ DISCOGS_RELEASE_ID: '4376665' });
+    const buf = await fs.readFile(file);
+    expect(buf.subarray(parseTag(buf)!.end)).toEqual(AUDIO);
   });
 
   it('refuses tags it cannot rewrite safely', async () => {

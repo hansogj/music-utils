@@ -8,10 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { writeTags } from './tag-write.js';
 import { readMp3Tags } from './tags.js';
 
-const FIXTURE = path.resolve(
-  import.meta.dirname,
-  '../../../packages/music-utils/test-data/raw/Accept/1996 Predator/01 - Hard Attack.mp3',
-);
+// A few bytes of MPEG frame header: id3v2 tags any file, and audio files are gitignored.
+const AUDIO = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...Array(400).fill(0)]);
 const URL = 'https://www.discogs.com/release/4376665';
 
 // The full repair write path shells out to id3v2, which CI doesn't have.
@@ -30,7 +28,7 @@ let file: string;
 beforeEach(async () => {
   dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tag-write-'));
   file = path.join(dir, 'track.mp3');
-  await fs.copyFile(FIXTURE, file);
+  await fs.writeFile(file, AUDIO);
 });
 
 afterEach(async () => {
