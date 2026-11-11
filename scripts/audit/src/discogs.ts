@@ -1,8 +1,9 @@
-import { scoreTracklist } from './similarity.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { discOfFolder, sliceForDisc } from './disc-split.js';
 import { userHome } from './env.js';
+import { scoreTracklist } from './similarity.js';
 import type { DiscogsSearchResult, OriginalYear } from './types.js';
 
 const API = 'https://api.discogs.com';
@@ -82,6 +83,48 @@ export async function resolveReleaseId(ref: DiscogsRef, token: string): Promise<
   return String(master.mainRelease);
 }
 
+export interface MasterVersionWanted {
+  disc: number;
+  noOfDiscs: number;
+  localCount: number;
+}
+
+// For a "(Disc n∕m)" folder a master's main release is often the original vinyl, whose
+// sides don't map onto CDs. Prefer a CD version with as many discs as there are folders
+// (and, best, as many tracks on this disc as the folder has); else the main release.
+export async function pickMasterVersion(
+  masterId: string,
+  token: string,
+  want: MasterVersionWanted,
+  maxChecks = 5,
+): Promise<{ releaseId: string; why: string }> {
+  const main = async () => ({ releaseId: await resolveReleaseId({ type: 'master', id: masterId }, token), why: 'main release' });
+  let ids: number[];
+  try {
+    const res = await discogsGet(`${API}/masters/${masterId}/versions?format=CD&per_page=25`, authHeaders(token));
+    const data = (await res.json()) as { versions?: Array<{ id: number }> };
+    ids = (data.versions ?? []).map((v) => v.id);
+  } catch {
+    return main();
+  }
+
+  let sameDiscs: { releaseId: string; why: string } | undefined;
+  for (const id of ids.slice(0, maxChecks)) {
+    let numbered: NumberedTrack[];
+    try {
+      numbered = numberTracklist((await fetchRelease(String(id), token)).tracklist);
+    } catch {
+      continue;
+    }
+    if (new Set(numbered.map((t) => t.disc)).size !== want.noOfDiscs) continue;
+    const onDisc = numbered.filter((t) => t.disc === want.disc).length;
+    const why = `${want.noOfDiscs}×CD, disc ${want.disc}: ${onDisc} tracks`;
+    if (onDisc === want.localCount) return { releaseId: String(id), why };
+    sameDiscs ??= { releaseId: String(id), why };
+  }
+  return sameDiscs ?? main();
+}
+
 interface RawResult {
   id: number;
   title: string;
@@ -101,6 +144,20 @@ interface RawTrack {
   type_: string;
   duration?: string;
   extraartists?: Array<{ name: string; role: string }>;
+  sub_tracks?: RawTrack[];
+}
+
+// The release's tracks as files on a disc. An "index" entry (a suite such as "And You
+// And I", listed with its parts as sub-tracks and no position of its own) is one file:
+// it keeps its title and takes its position from the first part ("1-5.a" → "1-5",
+// "B2a" → "B2"). Headings are dropped.
+export function flattenTracklist(tracklist: RawTrack[]): RawTrack[] {
+  return tracklist.flatMap((t) => {
+    if (t.type_ === 'track') return [t];
+    if (t.type_ !== 'index' || !t.sub_tracks?.length) return [];
+    const position = t.position?.trim() || t.sub_tracks[0].position.trim().replace(/\.?[a-z]$/, '');
+    return [{ ...t, type_: 'track', position }];
+  });
 }
 
 export interface NumberedTrack {
@@ -114,16 +171,23 @@ const NUMERIC_POSITION = /^(?:(\d+)[-./:])?(\d+)$/;
 const DISC_PREFIX = /^(?:cd|disc|dvd)?\s*(\d+)\s*[-./:]/i;
 
 // Maps Discogs tracks to the disc/track numbers of local files.
-// Numeric positions ("3", "1-03", "2.05") are used as given. Anything else — vinyl
-// sides ("A1", "B2"), "CD1-3", blanks — is numbered by listing order, per disc.
+// Numeric positions ("3", "1-03", "2.05") are used as given; plain numbers that start
+// again at 1 (CD1 / CD2 headings) begin a new disc. Anything else — vinyl sides
+// ("A1", "B2"), "CD1-3", blanks — is numbered by listing order, per disc.
 export function numberTracklist(tracklist: Array<{ position: string; title: string }>): NumberedTrack[] {
   const numeric = tracklist.length > 0 && tracklist.every((t) => NUMERIC_POSITION.test(t.position.trim()));
   const counters = new Map<number, number>();
+  let restartDisc = 1;
+  let prevNo = 0;
   return tracklist.map((t) => {
     const position = t.position.trim();
     if (numeric) {
-      const [, disc, no] = position.match(NUMERIC_POSITION)!;
-      return { disc: disc ? parseInt(disc, 10) : 1, no: parseInt(no, 10), title: t.title, position };
+      const [, disc, noStr] = position.match(NUMERIC_POSITION)!;
+      const no = parseInt(noStr, 10);
+      if (disc) return { disc: parseInt(disc, 10), no, title: t.title, position };
+      if (no <= prevNo) restartDisc++;
+      prevNo = no;
+      return { disc: restartDisc, no, title: t.title, position };
     }
     const disc = parseInt(position.match(DISC_PREFIX)?.[1] ?? '1', 10);
     const no = (counters.get(disc) ?? 0) + 1;
@@ -141,7 +205,7 @@ function cleanAlbumTitle(folderName: string): string {
     .trim();
 }
 
-async function fetchReleaseTracks(releaseId: number, token: string): Promise<string[]> {
+async function fetchReleaseTracks(releaseId: number, token: string): Promise<NumberedTrack[]> {
   let res: Response;
   try {
     res = await discogsGet(`${API}/releases/${releaseId}`, authHeaders(token));
@@ -149,9 +213,16 @@ async function fetchReleaseTracks(releaseId: number, token: string): Promise<str
     return [];
   }
   const data = (await res.json()) as { tracklist?: RawTrack[] };
-  return (data.tracklist ?? [])
-    .filter((t) => t.type_ === 'track')
-    .map((t) => t.title);
+  return numberTracklist(flattenTracklist(data.tracklist ?? []));
+}
+
+// How well local track names match a release. For a "(Disc n∕m)" folder only that
+// disc's part of the release counts, so disc 2 isn't compared with disc 1's titles.
+export function matchScore(localNames: string[], numbered: NumberedTrack[], albumFolder: string): number | undefined {
+  if (numbered.length === 0) return undefined;
+  const folderDisc = discOfFolder(albumFolder);
+  if (folderDisc.noOfDiscs <= 1) return scoreTracklist(localNames, numbered.map((t) => t.title));
+  return sliceForDisc(numbered, { ...folderDisc, localNames, localCount: localNames.length }).score;
 }
 
 // Fetch tracklists for up to `scoreCandidates` results in parallel,
@@ -159,6 +230,7 @@ async function fetchReleaseTracks(releaseId: number, token: string): Promise<str
 async function scoreAndRank(
   results: DiscogsSearchResult[],
   localNames: string[],
+  albumFolder: string,
   token: string,
   scoreCandidates: number,
 ): Promise<DiscogsSearchResult[]> {
@@ -169,11 +241,11 @@ async function scoreAndRank(
 
   const scored = await Promise.all(
     toScore.map(async (r) => {
-      const titles = await fetchReleaseTracks(r.id, token);
+      const numbered = await fetchReleaseTracks(r.id, token);
       return {
         ...r,
-        trackCount: titles.length,
-        matchScore: titles.length > 0 ? scoreTracklist(localNames, titles) : undefined,
+        trackCount: numbered.length,
+        matchScore: matchScore(localNames, numbered, albumFolder),
       };
     }),
   );
@@ -216,7 +288,7 @@ export async function searchDiscogs(
   }));
 
   const ranked =
-    localTrackNames.length > 0 ? await scoreAndRank(results, localTrackNames, token, scoreCandidates) : results;
+    localTrackNames.length > 0 ? await scoreAndRank(results, localTrackNames, albumFolder, token, scoreCandidates) : results;
   return withOriginalYears(ranked, token, scoreCandidates);
 }
 
@@ -276,7 +348,7 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
   const master = data.master_id ? await fetchMaster(data.master_id, token) : undefined;
   return {
     releaseId,
-    tracklist: (data.tracklist ?? []).filter((t) => t.type_ === 'track'),
+    tracklist: flattenTracklist(data.tracklist ?? []),
     year: master?.year ?? releaseYear,
     releaseYear,
     ...(data.master_id ? { masterId: data.master_id } : {}),
