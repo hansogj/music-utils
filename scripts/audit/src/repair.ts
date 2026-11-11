@@ -8,7 +8,9 @@ import { termLink } from './term-link.js';
 import { albumLocation } from './walk.js';
 import { releaseIdFrom, tracksMissingReleaseId } from './checks/discogs-ids.js';
 import { folderYear, withFolderYear } from './checks/year.js';
-import { fetchRelease, numberTracklist, parseDiscogsRef, resolveReleaseId } from './discogs.js';
+import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
+import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
+import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
 import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
@@ -153,12 +155,13 @@ function parseReleaseRef(raw: string) {
   return ref;
 }
 
-function trackNoFromFilename(fileName: string): { no: number; disc: number } {
+// The disc comes from a dNtNN file name, else from the folder ("(Disc 2∕2)" → 2).
+function trackNoFromFilename(fileName: string, folderDisc = 1): { no: number; disc: number } {
   const base = path.basename(fileName, path.extname(fileName));
   const multi = base.match(/^d(\d+)t(\d+)/i);
   if (multi) return { disc: parseInt(multi[1], 10), no: parseInt(multi[2], 10) };
   const std = base.match(/^(\d+)/);
-  return { disc: 1, no: std ? parseInt(std[1], 10) : 1 };
+  return { disc: folderDisc, no: std ? parseInt(std[1], 10) : 1 };
 }
 
 function albumMetaFromLayout(layout: AlbumLayout): {
@@ -316,7 +319,54 @@ function taggedReleaseId(audit: AlbumAudit): SuggestedRelease | undefined {
 async function discogsActionFor(audit: AlbumAudit, token: string, suggested?: SuggestedRelease): Promise<RepairAction> {
   const meta = albumMetaFromLayout(audit.layout);
   const files = await musicFilesIn(audit.layout.albumPath);
-  return buildDiscogsAction(audit, token, meta, files, suggested);
+  const siblings = await siblingDiscs(audit.layout);
+  return buildDiscogsAction(audit, token, meta, files, siblings, suggested);
+}
+
+// Which part of the release this folder is: all of it, or one disc of a split album.
+// Asks when the release gives no disc split and the place can't be confirmed by titles.
+async function chooseDiscSlice(
+  numbered: ReturnType<typeof numberTracklist>,
+  ctx: DiscSliceContext & { localTotal?: number },
+): Promise<DiscSlice | undefined> {
+  let slice = sliceForDisc(numbered, ctx);
+  if (slice.method === 'whole') return slice;
+  const disc = `Disc ${ctx.disc}∕${ctx.noOfDiscs}`;
+  const show = () => {
+    const score = slice.score !== undefined ? `, ${Math.round(slice.score * 100)}% title match` : '';
+    const how = slice.method === 'positions' ? '' : slice.method === 'titles' ? ' — placed by titles' : '';
+    console.log(chalk.cyan(`  ${disc} → release ${describeSlice(slice)}${score}${how}`));
+    // Placed by position, not by the release's own disc numbering: show the pairing.
+    if (slice.method !== 'positions') {
+      slice.tracks.forEach((t, i) =>
+        console.log(chalk.dim(`    ${String(i + 1).padStart(2, '0')} ${ctx.localNames[i] || '?'}  →  ${t.position ? `${t.position} ` : ''}${t.title}`)),
+      );
+    }
+  };
+  if (slice.method === 'positions') {
+    show();
+    return slice;
+  }
+  if (ctx.localTotal !== undefined && ctx.localTotal !== slice.total) {
+    console.log(chalk.yellow(`  ⚠ The release has ${slice.total} tracks, your ${ctx.noOfDiscs} disc folders ${ctx.localTotal}: it may split the songs differently`));
+  }
+  if (slice.method === 'unknown') {
+    console.log(chalk.yellow(`  ⚠ The release has no disc split, and neither the titles nor the other disc folders tell where ${disc} starts.`));
+  } else {
+    show();
+  }
+  while (true) {
+    const again =
+      slice.method === 'unknown' ? 'n' : (await ask('  [Enter] OK   [n] Start at another track: ')).trim().toLowerCase();
+    if (again !== 'n') return slice;
+    const n = parseInt(await ask(`  ${disc} starts at release track (1–${slice.total}): `), 10);
+    if (!(n >= 1 && n <= slice.total)) {
+      if (slice.method === 'unknown') return undefined;
+      continue;
+    }
+    slice = windowAt(numbered, n - 1, ctx);
+    show();
+  }
 }
 
 function buildDiscogsAction(
@@ -324,11 +374,19 @@ function buildDiscogsAction(
   token: string,
   meta: ReturnType<typeof albumMetaFromLayout>,
   files: { name: string; ext: 'flac' | 'mp3' }[],
+  siblings: SiblingDisc[],
   suggestedRelease?: SuggestedRelease,
 ): RepairAction {
   // A release the album is known to be (tags, comment, info.txt) beats a search hit:
   // a search can only find editions by title, not the one with these bonus tracks.
-  const suggested = suggestedRelease ?? taggedReleaseId(audit);
+  // For a split album, the release the other disc folders were tagged from.
+  const fromSiblings = siblingReleaseId(siblings);
+  const suggested =
+    suggestedRelease ??
+    taggedReleaseId(audit) ??
+    (fromSiblings ? { id: fromSiblings, source: 'the other disc folder' } : undefined);
+  const folderDisc = parseInt(meta.discNumber, 10);
+  const noOfDiscs = parseInt(meta.noOfDiscs, 10);
   const topResult = audit.discogsResults?.[0];
   const label = suggested
     ? `Tag from Discogs release ID (suggested: ${suggested.id}, from ${suggested.source})`
@@ -362,8 +420,14 @@ function buildDiscogsAction(
           releaseId = ref?.id ?? '';
           if (ref?.type === 'master') {
             try {
-              releaseId = await resolveReleaseId(ref, token);
-              console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+              if (noOfDiscs > 1) {
+                const picked = await pickMasterVersion(ref.id, token, { disc: folderDisc, noOfDiscs, localCount: files.length });
+                releaseId = picked.releaseId;
+                console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
+              } else {
+                releaseId = await resolveReleaseId(ref, token);
+                console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+              }
             } catch (err) {
               console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
               releaseId = '';
@@ -401,22 +465,37 @@ function buildDiscogsAction(
       const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
       const total = files.length;
 
-      if (tracklist.length !== files.length) {
-        const extra = tracklist.length - files.length;
+      // For a "(Disc n∕m)" folder only that disc's part of the release is used.
+      const names = new Map(audit.tracks.map((t) => [t.fileName, t.tags.title || t.parsedName || '']));
+      const slice = await chooseDiscSlice(numberTracklist(tracklist), {
+        disc: folderDisc,
+        noOfDiscs,
+        localNames: files.map((f) => names.get(f.name) ?? ''),
+        localCount: files.length,
+        expectedFirst: expectedFirstTrack(folderDisc, siblings),
+        // All disc folders present: their tracks together, to compare with the release.
+        localTotal:
+          siblings.length === noOfDiscs - 1 ? siblings.reduce((n, s) => n + s.trackCount, files.length) : undefined,
+      });
+      if (!slice) { console.log(chalk.dim('  Skipped.')); return; }
+      const discTracks = slice.tracks;
+
+      if (discTracks.length !== files.length) {
+        const extra = discTracks.length - files.length;
+        const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
         const msg = extra > 0
-          ? `Discogs has ${extra} more track(s) — may be a bonus edition`
-          : `Discogs has ${-extra} fewer track(s) — may be a different pressing`;
-        console.log(chalk.yellow(`  ⚠ ${msg} (${tracklist.length} vs ${files.length} local)`));
+          ? `${what} ${extra} more track(s) — may be a bonus edition`
+          : `${what} ${-extra} fewer track(s) — may be a different pressing`;
+        console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${files.length} local)`));
         const ok = await ask('  Continue anyway? [y/N] ');
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
-      const numbered = numberTracklist(tracklist);
       const findDiscTrack = (_name: string, disc: number, no: number) =>
-        numbered.find((t) => t.disc === disc && t.no === no);
+        discTracks.find((t) => t.disc === disc && t.no === no);
 
       for (const { name, ext } of files) {
-        const { no, disc } = trackNoFromFilename(name);
+        const { no, disc } = trackNoFromFilename(name, folderDisc);
         const title = findDiscTrack(name, disc, no)?.title?.trim();
         const tags: Record<string, string> = {
           ARTIST: meta.artist,
@@ -450,7 +529,7 @@ function buildDiscogsAction(
       // ── offer file renames to match Discogs titles ──────────────────────
       const isMultiDisc = parseInt(meta.noOfDiscs, 10) > 1;
       const pending = files.flatMap(({ name, ext }) => {
-        const { no, disc } = trackNoFromFilename(name);
+        const { no, disc } = trackNoFromFilename(name, folderDisc);
         const title = findDiscTrack(name, disc, no)?.title?.trim();
         if (!title) return [];
         const safe = sanitizeFilename(title);
@@ -590,14 +669,14 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
 
       const actions: RepairAction[] = [];
 
-      if (token) actions.push(buildDiscogsAction(audit, token, meta, files));
+      if (token) actions.push(await discogsActionFor(audit, token));
 
       // Folder tagging as fallback — no title, but fills artist/album/year/track
       actions.push({
         label: `Tag from folder (${meta.artist} — ${meta.year ?? '?'} ${meta.album}) — title will be empty`,
         run: async () => {
           for (const { name, ext } of files) {
-            const { no, disc } = trackNoFromFilename(name);
+            const { no, disc } = trackNoFromFilename(name, parseInt(meta.discNumber, 10));
             const tags: Record<string, string> = {
               ARTIST: meta.artist,
               ALBUMARTIST: meta.artist,
@@ -1003,9 +1082,7 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
     const hasTagIssue = initialIssues.some((i) => i.code === 'NO_TAGS' || i.code === 'MISSING_TAGS');
     if (!hasTagIssue) {
       console.log(chalk.dim('\n  [retag] Tags look good — offer Discogs enrichment'));
-      const meta = albumMetaFromLayout(layout);
-      const files = await musicFilesIn(layout.albumPath);
-      const action = buildDiscogsAction(audit, token, meta, files);
+      const action = await discogsActionFor(audit, token);
       console.log(`  [1] ${action.label}`);
       console.log('  [s] Skip   [q] Quit repair');
       const choice = await ask('  Choice: ');

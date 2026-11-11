@@ -100,6 +100,11 @@ scripts/audit/src/
   server.ts       — serveReport(): HTML UI mode (--ui flag)
   logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)
   info-txt.ts     — writeInfoTxt() (Discogs-rich); writeInfoTxtFromTags() (fallback)
+  disc-split.ts   — sliceForDisc(): the part of a Discogs release one "(Disc n∕m)" folder
+                    holds (release disc numbers, else a window placed by the other disc
+                    folders' track counts and title match); discOfFolder()
+  disc-siblings.ts — siblingDiscs(): the album's other disc folders (track counts, release
+                    ID from info.txt/tags) → expected start, suggested release
   checks/
     folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR,
                     WRONG_AUX_BRACKETS
@@ -124,6 +129,7 @@ scripts/audit/src/
 - **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2` for standard frames and `id3-frames.ts` for TXXX (Discogs IDs) and COMM (empty description, full URL). Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, ORIGINALDATE (MP3: TORY), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID and DISCOGS_MASTER_ID (MP3: TXXX with description; JSON report: `tags.discogsReleaseId` / `tags.discogsMasterId`)
 - **Original year & title**: DATE, ORIGINALDATE, ALBUM and the folder's year/title always use the Discogs **master** (falling back to the release), never a reissue's year or title. Tracks are matched by numeric position when all positions are numeric, else by listing order (`numberTracklist()`, for vinyl `A1/B1`). `fetchOriginalYear()` results are cached on disk at `~/.cache/music-audit/original-years.json`
 - **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines); in repair mode only, silently created from existing tags if none exists
+- **Split disc folders**: Discogs tagging uses only the folder's disc (see disc-split.ts); a master entered for a disc folder resolves to a CD version with that many discs (`pickMasterVersion()`); index entries (suites with sub-tracks) count as one track (`flattenTracklist()`)
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext` (or `dDtNN - Title.ext` for multi-disc) to prevent NAME_TAG_MISMATCH on next audit run
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release

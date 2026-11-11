@@ -86,6 +86,15 @@ Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`,
 
 Discogs tagging is offered for missing tags and for a missing release ID. On any other issue, press `[d]` to tag the whole album from a release of your choice. The suggested ID is the release the album is already tagged with (or the one found in the comment or `info.txt`); otherwise it is the best search hit. `b` opens the search results.
 
+**Albums split into disc folders** (`1973 Yessongs (Disc 1∕2)`, `… (Disc 2∕2)`): each folder is tagged from its own part of the release, numbered per disc (TRACKNUMBER `n/7`, DISCNUMBER `2/2`).
+
+- Where the release numbers its discs (`1-1`/`2-1`, or numbering that starts again at 1), that disc's tracks are used as listed.
+- Where it doesn't (vinyl sides `A1`…`F2`, `1`…`15` straight through), disc *n* is placed after the tracks of the other disc folders, checked against your titles; without the other folders, by titles alone. The track-by-track pairing is shown first: Enter accepts it, `n` starts the disc at another release track. If neither titles nor other folders tell, you're asked for the start track.
+- A master ID entered for a disc folder resolves to a CD version with that many discs (and, preferably, this disc's track count) instead of the master's main release, which is often the original vinyl.
+- Once one disc folder is tagged, the others suggest the same release.
+- Discogs "index" entries (a suite listed with its parts, e.g. *And You And I*) count as one track.
+- The search's match score compares a disc folder with its own part of the release.
+
 Logs go to `~/.local/share/music-audit/`:
 
 - `YYYY.MM.dd.HH.mm-repair.log` — JSON Lines repair log (every fix attempt, crash-safe); always written in repair mode
