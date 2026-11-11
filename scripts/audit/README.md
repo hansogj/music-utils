@@ -12,7 +12,7 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 | Artist under correct `[A-Z]` letter dir | SEVERE | Articles stripped for sorting |
 | All required tags present | HIGH | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER |
 | Filename matches TITLE tag | MODERATE | |
-| Duplicate track numbers | MODERATE | |
+| Duplicate track names | MODERATE | Same title twice, ignoring variants such as `(live)`, `(demo)`, `(remix)` |
 | MP3 has a Discogs master ID but no release ID | HIGH | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL, or retags the album from a release you choose |
 | Year is the original release year | HIGH | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
 
@@ -82,11 +82,33 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 
 After each fix the album is scanned again, so the next issue shown matches the files as they are now: Discogs tagging often solves a name/tag mismatch, and that issue is then not shown at all. When you agree to rename the album or artist folder, the rename waits until the album's other fixes are done.
 
+### Prompt keys
+
+| Key | Where | Does |
+|-----|-------|------|
+| Enter | issue menu | the first action, `[1]` |
+| `1`–`9` | issue menu | that action |
+| `d` | issue menu | tag the whole album from a Discogs release you choose |
+| `l` | issue menu | list the album's files |
+| `s` / `q` | issue menu | skip this issue / quit repair |
+| `o` | any prompt | start this album over (below) |
+| `b` | release ID prompt | browse the search results; Esc goes back to the issue menu |
+| `n` | disc pairing | start the disc at another release track |
+| `r` | after an album's issues | go through the ones not fixed again |
+
 Regret a choice? Answer `o` at any prompt (or pick `[o] Start album over` in the issue menu) to go back to the album's opening table: the album is scanned again and its issues shown from the top. A folder rename you agreed to but that hasn't run yet is dropped; tags and file renames already written stay (tag again from Discogs to overwrite them).
 
-Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release. Tagging from a master picks its main release, so for an edition with bonus tracks enter that edition's release ID: the tracks get its tracklist and release ID, and still get the master ID and the master's year.
+### Choosing the Discogs release
 
-Discogs tagging is offered for missing tags and for a missing release ID. On any other issue, press `[d]` to tag the whole album from a release of your choice. The suggested ID is the release the album is already tagged with (or the one found in the comment or `info.txt`); otherwise it is the best search hit. `b` opens the search results.
+Discogs tagging is offered for missing tags and for a missing release ID. On any other issue, press `d` to tag the whole album from a release of your choice.
+
+Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release (for a disc folder, see below). For an edition with bonus tracks enter that edition's release ID: the tracks get its tracklist and release ID, and still get the master ID and the master's year.
+
+Enter at the release ID prompt takes the suggested ID, in this order:
+
+1. the release the album is already tagged with, or the one in its Discogs comment or `info.txt`
+2. for a disc folder, the release the album's other disc folders were tagged from
+3. the best search hit (`b` opens all search results)
 
 **Albums split into disc folders** (`1973 Yessongs (Disc 1∕2)`, `… (Disc 2∕2)`): each folder is tagged from its own part of the release, numbered per disc (TRACKNUMBER `n/7`, DISCNUMBER `2/2`).
 
@@ -117,3 +139,17 @@ In repair mode, albums without an `info.txt` also get a basic one built from the
 ```bash
 sudo bash scripts/install-bins.sh
 ```
+
+This links `/usr/local/bin/music-audit` to `scripts/audit/bin/music-audit`, which runs `src/audit.ts` from this checkout through tsx. There is no build or publish step: whatever branch is checked out is what runs, and `git pull` is the update. Under `sudo` the wrapper finds node under `~/.local/share/pnpm/nodejs/`.
+
+## Development
+
+```bash
+pnpm --filter @hansogj/music-audit run vitest      # tests
+pnpm --filter @hansogj/music-audit run precommit   # tests with coverage (80%) + build
+```
+
+- Tests answer prompts through `setPrompt()` and use fake audio files that hold their tags as JSON (`repair.test.ts`), so they need neither `metaflac`/`id3v2` nor real audio. Audio files are gitignored: a test must create every file it uses.
+- `tag-write.test.ts` runs only where `id3v2` is installed (CI doesn't have it).
+- Discogs is mocked; fixtures follow the real API shapes (e.g. the *Yessongs* tracklists in `disc-split.test.ts`).
+- No lint is configured for this package, and Prettier isn't enforced here.

@@ -72,7 +72,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 
 ## `scripts/audit/` — music-audit
 
-Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-audit run audit -- [options]` or via the installed `music-audit` binary.
+Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-audit run audit -- [options]` or via the installed `music-audit` binary. The binary (`scripts/audit/bin/music-audit`, linked by `scripts/install-bins.sh`) runs `src/audit.ts` from this checkout through tsx: the checked-out branch is what runs, with no build or publish step. User docs, including the prompt keys: `scripts/audit/README.md`.
 
 ### Architecture
 
@@ -89,13 +89,18 @@ scripts/audit/src/
                     tracks is an album, its parent the artist, the one above a letter
                     or group dir (e.g. country). --root may be an album, artist or above
   tags.ts         — readFlacTags() / readMp3Tags() via metaflac / id3v2 -l
-  discogs.ts      — searchDiscogs(), fetchRelease(), fetchMaster(), fetchOriginalYear(),
-                    parseDiscogsRef(); all HTTP through discogsGet()
-                    which retries 429/500 with exponential backoff
+  discogs.ts      — searchDiscogs() (+ matchScore(), per disc for a disc folder),
+                    fetchRelease(), fetchMaster(), fetchOriginalYear(), parseDiscogsRef(),
+                    resolveReleaseId(), pickMasterVersion() (master → CD version for a disc
+                    folder), flattenTracklist() (index entries → one track),
+                    numberTracklist(); all HTTP through discogsGet(), which retries
+                    429/500 with exponential backoff
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
-  repair.ts       — runRepair(); AuditStream (background scan queue); BackSignal
-                    (Esc → back to action menu); buildDiscogsAction(); interactive
-                    issue loop
+  repair.ts       — runRepair() → repairAlbum() per album; AuditStream (background scan
+                    queue); repairActions() (per issue code); discogsActionFor() /
+                    buildDiscogsAction() (release prompt, chooseDiscSlice(), tag write,
+                    info.txt, file renames, folder rename plan); BackSignal (Esc → action
+                    menu); RestartSignal (o → album start); setPrompt() for tests
   report.ts       — printReport(); terminal-formatted severity sections
   server.ts       — serveReport(): HTML UI mode (--ui flag)
   logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)
@@ -132,9 +137,18 @@ scripts/audit/src/
 - **Split disc folders**: Discogs tagging uses only the folder's disc (see disc-split.ts); a master entered for a disc folder resolves to a CD version with that many discs (`pickMasterVersion()`); index entries (suites with sub-tracks) count as one track (`flattenTracklist()`)
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext` (or `dDtNN - Title.ext` for multi-disc) to prevent NAME_TAG_MISMATCH on next audit run
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
-- **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release
+- **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release (for a disc folder: `pickMasterVersion()`)
+- **Suggested release ID**: the album's own (tags, else the comment URL / `info.txt` via `releaseIdFrom()`), then the other disc folders' (`siblingReleaseId()`), then the top search hit
 - **Folder rename safety**: all renames go through `guardedRename()` which checks for pre-existing target before calling `fs.rename`
-- **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses suggested ID (the release already in the tags/comment/info.txt beats the top search hit); `b` opens browse list; `[d]` in any issue menu retags the album from a chosen Discogs release
+- **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses the suggested ID; `b` opens browse list; `[d]` in any issue menu retags the album from a chosen Discogs release; `o` at any prompt starts the album over
+
+### Testing (audit)
+
+- `pnpm --filter @hansogj/music-audit run precommit`: vitest with 80% coverage thresholds, then tsup build. `repair.ts`, `discogs.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts` and a few others are excluded from coverage (`vitest.config.ts`), but `repair.ts` and `discogs.ts` still have tests.
+- `repair.test.ts` drives `repairAlbum()` end to end: fake "audio" files hold their tags as JSON (mocked `tags.js` / `tag-write.js`), prompts are scripted with `setPrompt()` (an unexpected prompt fails the test), and `fetchRelease` is mocked per test with `mockResolvedValueOnce`.
+- Audio files (`*.mp3`, `*.flac`) are gitignored, so tests must build every file they use; `tag-write.test.ts` is skipped where `id3v2` is missing (CI).
+- Discogs fixtures mirror real API shapes (positions, `index` entries with `sub_tracks`, master versions); check the live API (`curl https://api.discogs.com/releases/<id>`) when adding a case.
+- No ESLint and no enforced Prettier in `scripts/audit` (several files are unformatted); format new files with `npx prettier --write <file>` only.
 
 ### Code style
 
