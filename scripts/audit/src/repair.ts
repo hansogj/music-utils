@@ -7,11 +7,13 @@ import { emitKeypressEvents } from 'node:readline';
 import { termLink } from './term-link.js';
 import { albumLocation } from './walk.js';
 import { releaseIdFrom, tracksMissingReleaseId } from './checks/discogs-ids.js';
+import { localNumbering, matchNames } from './checks/names.js';
 import { folderYear, withFolderYear } from './checks/year.js';
 import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
+import { checkRenames, pairingProblem, pairWithRelease, sanitizeFilename } from './rename-plan.js';
 import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
@@ -164,14 +166,6 @@ function parseReleaseRef(raw: string) {
 }
 
 // The disc comes from a dNtNN file name, else from the folder ("(Disc 2∕2)" → 2).
-function trackNoFromFilename(fileName: string, folderDisc = 1): { no: number; disc: number } {
-  const base = path.basename(fileName, path.extname(fileName));
-  const multi = base.match(/^d(\d+)t(\d+)/i);
-  if (multi) return { disc: parseInt(multi[1], 10), no: parseInt(multi[2], 10) };
-  const std = base.match(/^(\d+)/);
-  return { disc: folderDisc, no: std ? parseInt(std[1], 10) : 1 };
-}
-
 function albumMetaFromLayout(layout: AlbumLayout): {
   artist: string;
   album: string;
@@ -204,9 +198,6 @@ async function musicFilesIn(dir: string): Promise<{ name: string; ext: 'flac' | 
 }
 
 
-function sanitizeFilename(s: string): string {
-  return s.replace(/[/\\:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
-}
 
 // ── folder rename helpers ─────────────────────────────────────────────────────
 
@@ -474,7 +465,7 @@ function buildDiscogsAction(
       const total = files.length;
 
       // For a "(Disc n∕m)" folder only that disc's part of the release is used.
-      const names = new Map(audit.tracks.map((t) => [t.fileName, t.tags.title || t.parsedName || '']));
+      const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
       const slice = await chooseDiscSlice(numberTracklist(tracklist), {
         disc: folderDisc,
         noOfDiscs,
@@ -499,12 +490,22 @@ function buildDiscogsAction(
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
-      const findDiscTrack = (_name: string, disc: number, no: number) =>
-        discTracks.find((t) => t.disc === disc && t.no === no);
+      const local = localNumbering(files.map((f) => f.name), folderDisc);
+      const paired = pairWithRelease(local, discTracks);
+      const titles = paired.map((t) => t?.title?.trim() || undefined);
+      const problem = pairingProblem(titles);
+      if (problem) {
+        console.log(chalk.yellow(`  ⚠ The titles don't line up: ${problem}`));
+        files.forEach((f, i) =>
+          console.log(chalk.dim(`    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : '?'}`)),
+        );
+        const ok = await ask('  Tag anyway? [y/N] ');
+        if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
+      }
 
-      for (const { name, ext } of files) {
-        const { no, disc } = trackNoFromFilename(name, folderDisc);
-        const title = findDiscTrack(name, disc, no)?.title?.trim();
+      for (const [i, { name, ext }] of files.entries()) {
+        const { no, disc } = local[i];
+        const title = titles[i];
         const tags: Record<string, string> = {
           ARTIST: meta.artist,
           ALBUMARTIST: meta.artist,
@@ -536,9 +537,9 @@ function buildDiscogsAction(
 
       // ── offer file renames to match Discogs titles ──────────────────────
       const isMultiDisc = parseInt(meta.noOfDiscs, 10) > 1;
-      const pending = files.flatMap(({ name, ext }) => {
-        const { no, disc } = trackNoFromFilename(name, folderDisc);
-        const title = findDiscTrack(name, disc, no)?.title?.trim();
+      const planned = files.flatMap(({ name, ext }, i) => {
+        const { no, disc } = local[i];
+        const title = titles[i];
         if (!title) return [];
         const safe = sanitizeFilename(title);
         const newName = isMultiDisc
@@ -546,6 +547,10 @@ function buildDiscogsAction(
           : `${String(no).padStart(2, '0')} - ${safe}.${ext}`;
         return newName !== name ? [{ old: name, new: newName }] : [];
       });
+      const { ok: pending, clash } = checkRenames(planned, files.map((f) => f.name));
+      if (clash) {
+        console.log(chalk.yellow(`  ⚠ No file renames: they would overwrite files (${clash.slice(0, 3).join(', ')}${clash.length > 3 ? ', …' : ''})`));
+      }
 
       if (pending.length > 0) {
         console.log(chalk.dim(`\n  File renames to match Discogs titles (${pending.length} of ${files.length}):`));
@@ -683,8 +688,9 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       actions.push({
         label: `Tag from folder (${meta.artist} — ${meta.year ?? '?'} ${meta.album}) — title will be empty`,
         run: async () => {
-          for (const { name, ext } of files) {
-            const { no, disc } = trackNoFromFilename(name, parseInt(meta.discNumber, 10));
+          const local = localNumbering(files.map((f) => f.name), parseInt(meta.discNumber, 10));
+          for (const [i, { name, ext }] of files.entries()) {
+            const { no, disc } = local[i];
             const tags: Record<string, string> = {
               ARTIST: meta.artist,
               ALBUMARTIST: meta.artist,
@@ -741,7 +747,7 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
 
       // Option A: rename file to match tag
       if (track.tags.title) {
-        const { no, disc } = trackNoFromFilename(track.fileName);
+        const { no, disc } = localNumbering(audit.tracks.map((t) => t.fileName))[audit.tracks.indexOf(track)];
         const isMultiDisc = /^d\d+t\d+/i.test(track.fileName);
         const ext = path.extname(track.fileName);
         const artistPrefix = track.tags.artist ? ` ${track.tags.artist} - ` : ' ';
