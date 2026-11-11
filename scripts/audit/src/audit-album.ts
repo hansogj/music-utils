@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { checkDiscogsIds } from './checks/discogs-ids.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { checkFolderFormat } from './checks/folder.js';
 import { checkNameTagMatch, parseNameFromFilename } from './checks/names.js';
@@ -76,6 +77,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
 
   for (const t of tracks) issues.push(...checkNameTagMatch(t));
   issues.push(...checkDuplicates(tracks));
+  issues.push(...checkDiscogsIds(tracks));
 
   let discogsResults = undefined;
   if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways)) {

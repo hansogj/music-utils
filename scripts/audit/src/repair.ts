@@ -6,6 +6,7 @@ import readline from 'node:readline/promises';
 import { emitKeypressEvents } from 'node:readline';
 import { termLink } from './term-link.js';
 import { albumLocation } from './walk.js';
+import { releaseIdFrom, tracksMissingReleaseId } from './checks/discogs-ids.js';
 import { folderYear, withFolderYear } from './checks/year.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
@@ -665,6 +666,26 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       }
 
       return actions;
+    }
+
+    // ── HIGH: mp3s that lost DISCOGS_RELEASE_ID (id3v2 kept only one TXXX frame) ──
+    case 'MISSING_RELEASE_ID': {
+      const affected = tracksMissingReleaseId(audit.tracks);
+      const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
+      const found = releaseIdFrom(audit.tracks, infoTxt);
+      if (!found) return []; // nothing to go on — retag from Discogs instead
+      const url = `https://www.discogs.com/release/${found.id}`;
+      return [
+        {
+          label: `Write release ID ${found.id} (from ${found.source}) and the Discogs URL comment to ${affected.length} track(s)`,
+          run: async () => {
+            for (const t of affected) {
+              await writeTags(t.filePath, t.ext, { DISCOGS_RELEASE_ID: found.id, COMMENT: url });
+              console.log(chalk.green(`  ✓ ${t.fileName}`));
+            }
+          },
+        },
+      ];
     }
 
     // ── MODERATE: duplicates — manual only ────────────────────────────────
