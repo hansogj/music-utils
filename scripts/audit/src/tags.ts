@@ -53,6 +53,21 @@ export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags;
 
 // id3v2 lists user frames as "TXXX (User defined text information): (DESC): value".
 // Older audit versions wrote DISCOGS_RELEASE_ID with an empty DESC and "KEY=value" as the value.
+// id3v2 lists comments as "COMM (Comments): (DESC)[LANG]: text". Returns the text of the
+// comment without a description. Older id3v2 writes split a URL at ':' into description
+// "https" + text "//www…"; that one is put back together.
+export function parseComment(lines: string[]): string | undefined {
+  const comments = lines.flatMap((line) => {
+    const m = line.match(/^COMM[^:]*:\s*\(([^)]*)\)\[([^\]]*)\]:\s*(.*)$/);
+    return m ? [{ desc: m[1], text: m[3].trim() }] : [];
+  });
+  const plain = comments.find((c) => !c.desc);
+  if (plain) return plain.text;
+  const split = comments.find((c) => /^https?$/.test(c.desc) && c.text.startsWith('//'));
+  if (split) return `${split.desc}:${split.text}`;
+  return comments[0]?.text;
+}
+
 export function parseTxxx(lines: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of lines) {
@@ -109,7 +124,7 @@ export async function readMp3Tags(filePath: string): Promise<{ tags: TrackTags; 
         discNumber: tpos[0],
         noOfDiscs: tpos[1],
         genre: genre?.toString(),
-        comment: raw['COMM'],
+        comment: parseComment(lines),
         originalYear: raw['TORY'],
         discogsReleaseId: txxx['DISCOGS_RELEASE_ID'],
         discogsMasterId: txxx['DISCOGS_MASTER_ID'] || undefined,

@@ -29,6 +29,7 @@ vi.mock('./tags.js', () => ({
       originalYear: t.ORIGINALDATE,
       discogsReleaseId: t.DISCOGS_RELEASE_ID,
       discogsMasterId: t.DISCOGS_MASTER_ID || undefined,
+      comment: t.COMMENT,
     };
     return { tags };
   },
@@ -207,5 +208,47 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     expect(audit.issues).toEqual([]);
     const track6 = await readFake(path.join(layout.albumPath, '06 - (My Doc Told Me I Had) Doggie Head.mp3'));
     expect(track6.TITLE).toBe('(My Doc Told Me I Had) Doggie Head');
+  });
+
+  it('restores the release ID that the old mp3 writer lost, from info.txt', async () => {
+    // As left by 81963c0/43bd432: fully tagged, master ID present, release ID gone,
+    // comment unreadable as a URL.
+    for (const name of await fs.readdir(layout.albumPath)) {
+      const f = path.join(layout.albumPath, name);
+      await fs.writeFile(
+        f,
+        JSON.stringify({
+          ...(await readFake(f)),
+          TITLE: name.replace(/^\d+ - |\.mp3$/g, ''),
+          ARTIST: 'Yezda Urfa',
+          ALBUM: 'Sacred Baboon',
+          DATE: '1976',
+          TRACKNUMBER: `${parseInt(name, 10)}/7`,
+          DISCOGS_MASTER_ID: '245487',
+        }),
+      );
+    }
+    await fs.writeFile(
+      path.join(layout.albumPath, 'info.txt'),
+      'Yezda Urfa\n\nDiscogs-Release: 4376665\nDiscogs-Master: 245487\n',
+    );
+
+    const audit = await scan();
+    expect(audit.issues.map((i) => i.code)).toEqual(['MISSING_RELEASE_ID']);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // [1] Write release ID 4376665 (from info.txt)
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/Write release ID 4376665 \(from info\.txt\)/);
+    expect(audit.issues).toEqual([]);
+    const track1 = await readFake(path.join(layout.albumPath, "01 - Give'em Some Rawhide Chewies.mp3"));
+    expect(track1).toMatchObject({
+      DISCOGS_RELEASE_ID: '4376665',
+      DISCOGS_MASTER_ID: '245487',
+      COMMENT: 'https://www.discogs.com/release/4376665',
+    });
   });
 });

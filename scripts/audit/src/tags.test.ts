@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTxxx } from './tags.js';
+import { parseComment, parseTxxx } from './tags.js';
 
 describe('parseTxxx', () => {
   it('reads described TXXX frames', () => {
@@ -25,5 +25,30 @@ describe('parseTxxx', () => {
     expect(
       parseTxxx(['TIT2 (Title/songname/content description): Speed King', 'TORY (Original release year): 1970']),
     ).toEqual({});
+  });
+});
+
+describe('parseComment', () => {
+  const comm = (desc: string, lang: string, text: string) => `COMM (Comments): (${desc})[${lang}]: ${text}`;
+
+  it('returns the full text of the comment without a description', () => {
+    expect(parseComment([comm('', 'eng', 'https://www.discogs.com/release/4376665')])).toBe(
+      'https://www.discogs.com/release/4376665',
+    );
+  });
+
+  it('puts a URL split by old id3v2 writes back together', () => {
+    expect(parseComment([comm('https', '', '//www.discogs.com/release/4376665')])).toBe(
+      'https://www.discogs.com/release/4376665',
+    );
+  });
+
+  it('prefers the plain comment over described ones', () => {
+    expect(parseComment([comm('iTunNORM', 'eng', '0000'), comm('', 'eng', 'ripped by me')])).toBe('ripped by me');
+    expect(parseComment([comm('iTunNORM', 'eng', '0000')])).toBe('0000');
+  });
+
+  it('returns undefined without a comment', () => {
+    expect(parseComment(['TIT2 (Title/songname/content description): Speed King'])).toBeUndefined();
   });
 });
