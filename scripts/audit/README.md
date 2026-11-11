@@ -82,6 +82,8 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 
 After each fix the album is scanned again, so the next issue shown matches the files as they are now: Discogs tagging often solves a name/tag mismatch, and that issue is then not shown at all. When you agree to rename the album or artist folder, the rename waits until the album's other fixes are done.
 
+Regret a choice? Answer `o` at any prompt (or pick `[o] Start album over` in the issue menu) to go back to the album's opening table: the album is scanned again and its issues shown from the top. A folder rename you agreed to but that hasn't run yet is dropped; tags and file renames already written stay (tag again from Discogs to overwrite them).
+
 Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release. Tagging from a master picks its main release, so for an edition with bonus tracks enter that edition's release ID: the tracks get its tracklist and release ID, and still get the master ID and the master's year.
 
 Discogs tagging is offered for missing tags and for a missing release ID. On any other issue, press `[d]` to tag the whole album from a release of your choice. The suggested ID is the release the album is already tagged with (or the one found in the comment or `info.txt`); otherwise it is the best search hit. `b` opens the search results.

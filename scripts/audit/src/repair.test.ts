@@ -258,6 +258,67 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
   });
 });
 
+describe('repairAlbum — start the album over', () => {
+  const albumHeaders = () => output.filter((l) => l.includes('📁')).length;
+
+  it('o at the release ID prompt goes back to the album\'s opening table', async () => {
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → [1] Tag from Discogs
+      [/Release ID/, 'o'], // regret
+      [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS again, from the top
+      [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(albumHeaders()).toBe(2);
+    expect(output.join('\n')).toMatch(/Starting this album over/);
+    expect(output.join('\n')).toMatch(/\[o\] Start album over/);
+    expect(events.map((e) => e.issue)).toEqual(['RESTART', 'MISSING_TAGS', 'NAME_TAG_MISMATCH']);
+  });
+
+  it('drops a pending folder rename; tags already written stay', async () => {
+    const audit = await scan();
+    audit.discogsResults = [
+      { id: 4376665, title: 'Yezda Urfa - Sacred Baboon', year: '1989', releaseUrl: 'https://www.discogs.com/release/4376665' },
+    ];
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, 'n'], // so track 1's file name disagrees with its new title
+      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
+      [/^ {2}Choice \[1\]/, 'o'], // at the track 1 mismatch: regret
+      [/^ {2}Choice \[1\]/, 's'], // the mismatch, shown from the top again
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(albumHeaders()).toBe(2);
+    expect(layout.albumFolder).toBe('1976 Sacred Baboon'); // rename dropped
+    await expect(fs.access(path.join(root, 'Y', 'Yezda Urfa', '1989 Sacred Baboon'))).rejects.toThrow();
+    const track1 = await readFake(path.join(layout.albumPath, "01 - Give'em Some Rawhide Chewies.mp3"));
+    expect(track1).toMatchObject({ TITLE: "Give 'Em Some Rawhide Chewies", DISCOGS_RELEASE_ID: '4376665' });
+    expect(events.map((e) => e.issue)).toEqual(['MISSING_TAGS', 'RESTART', 'NAME_TAG_MISMATCH']);
+  });
+
+  it('without a re-scan, starting over brings back the issues the album started with', async () => {
+    const audit = await scan();
+    audit.issues = audit.issues.filter((i) => i.code === 'NAME_TAG_MISMATCH');
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 'o'], // restarts
+      [/^ {2}Choice \[1\]/, 'q'],
+    ]);
+    expect(await repairAlbum(audit, ctx(false))).toBe('quit');
+    done();
+    expect(audit.issues.map((i) => i.code)).toEqual(['NAME_TAG_MISMATCH']);
+  });
+});
+
 // Fully tagged (no Discogs IDs unless given), with the file names as titles except track 6.
 async function tagAll(extra: Record<string, string> = {}) {
   for (const name of await fs.readdir(layout.albumPath)) {

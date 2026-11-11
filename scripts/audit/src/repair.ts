@@ -36,8 +36,16 @@ export function setPrompt(fn: (q: string) => Promise<string>): void {
   prompt = fn;
 }
 
+// Answering "o" at any prompt while an album is being repaired starts that album over.
+class RestartSignal extends Error {
+  constructor() { super('restart album'); }
+}
+let restartable = false;
+
 async function ask(q: string): Promise<string> {
-  return (await prompt(q)).trim();
+  const answer = (await prompt(q)).trim();
+  if (restartable && answer.toLowerCase() === 'o') throw new RestartSignal();
+  return answer;
 }
 
 // ── interactive release picker ────────────────────────────────────────────────
@@ -924,31 +932,70 @@ export interface RepairAlbumContext {
   logEvent: (e: Omit<RepairEvent, 'ts' | 'session'>) => Promise<void>;
 }
 
-// Steps through one album's issues, then runs any folder rename the user agreed to last.
+// Re-reads the album from disk into `audit`. False when there's no re-scan or it failed.
+async function rescanAlbum(audit: AlbumAudit, reaudit: RepairAlbumContext['reaudit']): Promise<boolean> {
+  if (!reaudit) return false;
+  try {
+    const fresh = await reaudit(audit.layout);
+    audit.tracks = fresh.tracks;
+    audit.issues = fresh.issues;
+    if (fresh.originalYear) audit.originalYear = fresh.originalYear;
+    return true;
+  } catch (err) {
+    console.log(chalk.yellow(`  ⚠ Re-scan failed: ${err instanceof Error ? err.message : String(err)}`));
+    return false;
+  }
+}
+
+// Steps through one album's issues. Answering "o" at any prompt starts the album over:
+// decisions not yet carried out (a folder rename) are dropped, the album is re-scanned
+// and shown from the top. Changes already written to the files stay.
 export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): Promise<'next' | 'quit'> {
+  const initialIssues = [...audit.issues];
+  restartable = true;
+  try {
+    while (true) {
+      try {
+        return await repairAlbumPass(audit, ctx, initialIssues);
+      } catch (err) {
+        if (!(err instanceof RestartSignal)) throw err;
+        pendingFolderRenames.delete(audit.layout);
+        const loc = albumLocation(audit.layout);
+        await ctx.logEvent({ album: loc, issue: 'RESTART', severity: 'MODERATE', action: 'Start album over', result: 'no-action' });
+        console.log(
+          chalk.cyan('\n  ↺ Starting this album over. Changes already written to the files stay; a pending folder rename is dropped.'),
+        );
+        if (!(await rescanAlbum(audit, ctx.reaudit))) audit.issues = [...initialIssues];
+      }
+    }
+  } finally {
+    restartable = false;
+  }
+}
+
+// One pass over the album from its opening table: its issues, then any folder rename
+// the user agreed to, last.
+async function repairAlbumPass(
+  audit: AlbumAudit,
+  ctx: RepairAlbumContext,
+  initialIssues: Issue[],
+): Promise<'next' | 'quit'> {
   const { token, retag = false, reaudit, logEvent } = ctx;
   const { layout } = audit;
-  const initialIssues = [...audit.issues];
   const loc = albumLocation(layout);
 
   console.log(chalk.bold(`\n${'─'.repeat(60)}`));
   console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${audit.tracks.length} track${audit.tracks.length !== 1 ? 's' : ''})`));
   console.log(chalk.bold('─'.repeat(60)));
   printAlbumTable(audit);
+  console.log(chalk.dim('  Answer o at any prompt to start this album over.'));
 
   const refresh = async (fixed: Issue, ok: boolean) => {
     if (!reaudit) {
       if (ok) audit.issues = audit.issues.filter((i) => i !== fixed);
       return;
     }
-    try {
-      const fresh = await reaudit(layout);
-      audit.tracks = fresh.tracks;
-      audit.issues = fresh.issues;
-      if (fresh.originalYear) audit.originalYear = fresh.originalYear;
-    } catch (err) {
-      console.log(chalk.yellow(`  ⚠ Re-scan failed: ${err instanceof Error ? err.message : String(err)}`));
-    }
+    await rescanAlbum(audit, reaudit);
   };
 
   // An issue is shown once per pass. A fix that leaves it unchanged (or a skip) doesn't
@@ -988,7 +1035,9 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
           // exact edition with bonus tracks), unless the menu already offers it.
           const offerDiscogs = !!token && !actions.some((a) => a.discogs);
           actions.forEach((a, i) => console.log(`  [${i + 1}] ${a.label}`));
-          console.log(`  [l] List files${offerDiscogs ? '   [d] Tag from Discogs release' : ''}   [s] Skip   [q] Quit repair`);
+          console.log(
+            `  [l] List files${offerDiscogs ? '   [d] Tag from Discogs release' : ''}   [o] Start album over   [s] Skip   [q] Quit repair`,
+          );
 
           let choice: string;
           while (true) {
@@ -1046,6 +1095,7 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
           await actions[idx].run();
         } catch (err) {
           if (err instanceof BackSignal) { idx = undefined; continue issueMenuLoop; } // picker Esc → re-show menu
+          if (err instanceof RestartSignal) throw err;
           handleRepairError(err);
           result = 'failed';
           error = err instanceof Error ? err.message : String(err);
@@ -1094,6 +1144,7 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
         let result: RepairEvent['result'] = 'fixed';
         let error: string | undefined;
         try { await action.run(); } catch (err) {
+          if (err instanceof RestartSignal) throw err;
           handleRepairError(err);
           result = 'failed';
           error = err instanceof Error ? err.message : String(err);
