@@ -235,6 +235,8 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
 
     const audit = await scan();
     expect(audit.issues.map((i) => i.code)).toEqual(['MISSING_RELEASE_ID']);
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockClear();
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Write release ID 4376665 (from info.txt)
       [/Next album/, ''],
@@ -243,6 +245,9 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
     expect(output.join('\n')).toMatch(/Write release ID 4376665 \(from info\.txt\)/);
+    // A full retag from a release of your choice is offered too, suggesting the found ID.
+    expect(output.join('\n')).toMatch(/\[2\] Tag from Discogs release ID \(suggested: 4376665, from info\.txt\)/);
+    expect(fetchRelease).not.toHaveBeenCalled(); // [1] needs no Discogs call
     expect(audit.issues).toEqual([]);
     const track1 = await readFake(path.join(layout.albumPath, "01 - Give'em Some Rawhide Chewies.mp3"));
     expect(track1).toMatchObject({
@@ -250,5 +255,97 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       DISCOGS_MASTER_ID: '245487',
       COMMENT: 'https://www.discogs.com/release/4376665',
     });
+  });
+});
+
+// Fully tagged (no Discogs IDs unless given), with the file names as titles except track 6.
+async function tagAll(extra: Record<string, string> = {}) {
+  for (const name of await fs.readdir(layout.albumPath)) {
+    const f = path.join(layout.albumPath, name);
+    await fs.writeFile(
+      f,
+      JSON.stringify({
+        ...(await readFake(f)),
+        ARTIST: 'Yezda Urfa',
+        ALBUM: 'Sacred Baboon',
+        DATE: '1976',
+        TRACKNUMBER: `${parseInt(name, 10)}/7`,
+        ...extra,
+      }),
+    );
+  }
+}
+
+describe('repairAlbum — choosing the exact Discogs release', () => {
+  it('MISSING_RELEASE_ID with nothing to restore from offers a Discogs retag', async () => {
+    await tagAll({ DISCOGS_MASTER_ID: '245487' });
+    const audit = await scan();
+    expect(audit.issues.map((i) => i.code)).toEqual(['NAME_TAG_MISMATCH', 'MISSING_RELEASE_ID']);
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockClear();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
+      [/^ {2}Choice \[1\]/, ''], // MISSING_RELEASE_ID: the only action, [1] Tag from Discogs release ID
+      [/Release ID \[enter ID\]/, '[r1886376]'],
+      [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
+      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/\[1\] Tag from Discogs release ID\n/);
+    expect(fetchRelease).toHaveBeenCalledWith('1886376', 'test-token');
+    const track6 = await readFake(path.join(layout.albumPath, '06 - (My Doc Told Me I Had) Doggie Head.mp3'));
+    expect(track6).toMatchObject({
+      TITLE: '(My Doc Told Me I Had) Doggie Head',
+      DISCOGS_RELEASE_ID: '1886376',
+      DISCOGS_MASTER_ID: '123456',
+      COMMENT: 'https://www.discogs.com/release/1886376',
+    });
+    // The retag also fixed the skipped name/tag mismatch.
+    expect(audit.issues).toEqual([]);
+  });
+
+  it('[d] retags from a chosen release on any issue', async () => {
+    await tagAll();
+    const audit = await scan();
+    expect(audit.issues.map((i) => i.code)).toEqual(['NAME_TAG_MISMATCH']);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID \[enter ID\]/, '1886376'],
+      [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
+      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/\[d\] Tag from Discogs release/);
+    expect(events.map((e) => [e.issue, e.action, e.result])).toEqual([
+      ['NAME_TAG_MISMATCH', 'Tag from Discogs release ID', 'fixed'],
+    ]);
+    const track1 = await readFake(path.join(layout.albumPath, "01 - Give 'Em Some Rawhide Chewies.mp3"));
+    expect(track1).toMatchObject({ DISCOGS_RELEASE_ID: '1886376', DISCOGS_MASTER_ID: '123456' });
+  });
+
+  it('suggests the release the album is already tagged with', async () => {
+    await tagAll({ DISCOGS_RELEASE_ID: '1886376' });
+    const audit = await scan();
+    audit.discogsResults = [
+      { id: 10152054, title: 'Yezda Urfa - Sacred Baboon', year: '1991', releaseUrl: 'https://www.discogs.com/release/10152054' },
+    ];
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID \[1886376\]/, ''], // Enter keeps the tagged release, not the search hit
+      [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
+      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    const { fetchRelease } = await import('./discogs.js');
+    expect(fetchRelease).toHaveBeenLastCalledWith('1886376', 'test-token');
   });
 });

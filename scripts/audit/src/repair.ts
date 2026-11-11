@@ -299,6 +299,24 @@ async function guardedRename(from: string, to: string): Promise<void> {
 interface RepairAction {
   label: string;
   run: () => Promise<void>;
+  discogs?: boolean; // the Discogs release tagging action
+}
+
+interface SuggestedRelease {
+  id: string;
+  source: string;
+}
+
+// The release the album is already tagged with, when every tagged track agrees.
+function taggedReleaseId(audit: AlbumAudit): SuggestedRelease | undefined {
+  const ids = new Set(audit.tracks.map((t) => t.tags.discogsReleaseId?.trim()).filter(Boolean));
+  return ids.size === 1 ? { id: [...ids][0] as string, source: 'tags' } : undefined;
+}
+
+async function discogsActionFor(audit: AlbumAudit, token: string, suggested?: SuggestedRelease): Promise<RepairAction> {
+  const meta = albumMetaFromLayout(audit.layout);
+  const files = await musicFilesIn(audit.layout.albumPath);
+  return buildDiscogsAction(audit, token, meta, files, suggested);
 }
 
 function buildDiscogsAction(
@@ -306,19 +324,26 @@ function buildDiscogsAction(
   token: string,
   meta: ReturnType<typeof albumMetaFromLayout>,
   files: { name: string; ext: 'flac' | 'mp3' }[],
+  suggestedRelease?: SuggestedRelease,
 ): RepairAction {
+  // A release the album is known to be (tags, comment, info.txt) beats a search hit:
+  // a search can only find editions by title, not the one with these bonus tracks.
+  const suggested = suggestedRelease ?? taggedReleaseId(audit);
   const topResult = audit.discogsResults?.[0];
-  const label = topResult
-    ? `Tag from Discogs release ID (suggested: ${topResult.id} — ${topResult.title}${
-        topResult.matchScore !== undefined ? `, ${Math.round(topResult.matchScore * 100)}% match` : ''
-      })`
-    : 'Tag from Discogs release ID';
+  const label = suggested
+    ? `Tag from Discogs release ID (suggested: ${suggested.id}, from ${suggested.source})`
+    : topResult
+      ? `Tag from Discogs release ID (suggested: ${topResult.id} — ${topResult.title}${
+          topResult.matchScore !== undefined ? `, ${Math.round(topResult.matchScore * 100)}% match` : ''
+        })`
+      : 'Tag from Discogs release ID';
 
   return {
     label,
+    discogs: true,
     run: async () => {
       const results = audit.discogsResults ?? [];
-      const topId = topResult ? String(topResult.id) : '';
+      const topId = suggested?.id ?? (topResult ? String(topResult.id) : '');
 
       // Retry loop: re-prompt if the fetch fails (e.g. Discogs 500, bad ID).
       let release: Awaited<ReturnType<typeof fetchRelease>> | undefined;
@@ -565,9 +590,7 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
 
       const actions: RepairAction[] = [];
 
-      if (audit.discogsResults?.[0] || token) {
-        actions.push(buildDiscogsAction(audit, token ?? '', meta, files));
-      }
+      if (token) actions.push(buildDiscogsAction(audit, token, meta, files));
 
       // Folder tagging as fallback — no title, but fills artist/album/year/track
       actions.push({
@@ -673,10 +696,10 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       const affected = tracksMissingReleaseId(audit.tracks);
       const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
       const found = releaseIdFrom(audit.tracks, infoTxt);
-      if (!found) return []; // nothing to go on — retag from Discogs instead
-      const url = `https://www.discogs.com/release/${found.id}`;
-      return [
-        {
+      const actions: RepairAction[] = [];
+      if (found) {
+        const url = `https://www.discogs.com/release/${found.id}`;
+        actions.push({
           label: `Write release ID ${found.id} (from ${found.source}) and the Discogs URL comment to ${affected.length} track(s)`,
           run: async () => {
             for (const t of affected) {
@@ -684,8 +707,11 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
               console.log(chalk.green(`  ✓ ${t.fileName}`));
             }
           },
-        },
-      ];
+        });
+      }
+      // Retag the whole album from a release of your choice (the found ID, or another).
+      if (token) actions.push(await discogsActionFor(audit, token, found));
+      return actions;
     }
 
     // ── MODERATE: duplicates — manual only ────────────────────────────────
@@ -879,8 +905,11 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
 
       issueMenuLoop: while (true) {
         if (idx === undefined) {
+          // [d] retags the album from a Discogs release whatever the issue (e.g. pick the
+          // exact edition with bonus tracks), unless the menu already offers it.
+          const offerDiscogs = !!token && !actions.some((a) => a.discogs);
           actions.forEach((a, i) => console.log(`  [${i + 1}] ${a.label}`));
-          console.log('  [l] List files   [s] Skip   [q] Quit repair');
+          console.log(`  [l] List files${offerDiscogs ? '   [d] Tag from Discogs release' : ''}   [s] Skip   [q] Quit repair`);
 
           let choice: string;
           while (true) {
@@ -902,6 +931,10 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
             await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'skipped', result: 'skipped' });
             break issueMenuLoop;
           }
+          if (choice === 'd' && offerDiscogs && token) {
+            actions.push(await discogsActionFor(audit, token));
+            choice = String(actions.length);
+          }
           if (choice === '') choice = '1'; // default to first action
 
           const picked = parseInt(choice, 10) - 1;
@@ -912,7 +945,8 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
           idx = picked;
 
           // Offer per-album bulk for name/tag mismatches.
-          if (issue.code === 'NAME_TAG_MISMATCH' && mismatchBulkIdx < 0) {
+          // Not for a Discogs retag: it covers the whole album at once.
+          if (issue.code === 'NAME_TAG_MISMATCH' && mismatchBulkIdx < 0 && !actions[idx].discogs) {
             const current = issue;
             const hasMore = audit.issues.some(
               (i) => i.code === 'NAME_TAG_MISMATCH' && i !== current && !handled.has(issueKey(i)),

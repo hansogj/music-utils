@@ -108,7 +108,7 @@ scripts/audit/src/
     duplicates.ts — DUPLICATE_TRACKS
     discogs-ids.ts — MISSING_RELEASE_ID: mp3 with a master ID but no release ID (lost by
                     the 81963c0/43bd432 writer); repair restores it from the comment URL
-                    or info.txt
+                    or info.txt, or retags from a chosen release
     year.ts       — YEAR_NOT_ORIGINAL (opt-in: --check-years or MUSIC_AUDIT_CHECK_YEARS=true
                     in the shared .env; needs Discogs + DISCOGS_RELEASE_ID tag)
 ```
@@ -128,7 +128,7 @@ scripts/audit/src/
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release
 - **Folder rename safety**: all renames go through `guardedRename()` which checks for pre-existing target before calling `fs.rename`
-- **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses suggested ID; `b` opens browse list
+- **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses suggested ID (the release already in the tags/comment/info.txt beats the top search hit); `b` opens browse list; `[d]` in any issue menu retags the album from a chosen Discogs release
 
 ### Code style
 

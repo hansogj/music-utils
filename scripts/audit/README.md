@@ -13,7 +13,7 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 | All required tags present | HIGH | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER |
 | Filename matches TITLE tag | MODERATE | |
 | Duplicate track numbers | MODERATE | |
-| MP3 has a Discogs master ID but no release ID | HIGH | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL |
+| MP3 has a Discogs master ID but no release ID | HIGH | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL, or retags the album from a release you choose |
 | Year is the original release year | HIGH | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
 
 ## Usage
@@ -82,7 +82,9 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 
 After each fix the album is scanned again, so the next issue shown matches the files as they are now: Discogs tagging often solves a name/tag mismatch, and that issue is then not shown at all. When you agree to rename the album or artist folder, the rename waits until the album's other fixes are done.
 
-Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release.
+Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release. Tagging from a master picks its main release, so for an edition with bonus tracks enter that edition's release ID: the tracks get its tracklist and release ID, and still get the master ID and the master's year.
+
+Discogs tagging is offered for missing tags and for a missing release ID. On any other issue, press `[d]` to tag the whole album from a release of your choice. The suggested ID is the release the album is already tagged with (or the one found in the comment or `info.txt`); otherwise it is the best search hit. `b` opens the search results.
 
 Logs go to `~/.local/share/music-audit/`:
 
