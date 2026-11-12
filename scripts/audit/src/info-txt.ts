@@ -17,7 +17,7 @@ export async function writeInfoTxt(
   release: ReleaseInfo,
   artistName: string,
   disc?: { discNumber: string; noOfDiscs: string },
-): Promise<void> {
+): Promise<boolean> {
   const artist = release.artists?.[0] ?? artistName;
   const album = release.title ?? '';
   const year = release.year ?? '';
@@ -56,7 +56,7 @@ export async function writeInfoTxt(
 
   lines.push(...infoTxtIdLines(release, disc));
 
-  await fs.writeFile(path.join(albumPath, 'info.txt'), lines.join('\n'), 'utf8');
+  return saveInfoTxt(albumPath, lines.join('\n'));
 }
 
 // Fixed `Key: value` lines at the end of info.txt, for scripts.
@@ -72,7 +72,7 @@ export function infoTxtIdLines(
   ];
 }
 
-export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[]): Promise<void> {
+export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[]): Promise<boolean> {
   const sorted = [...tracks].sort((a, b) => {
     const na = parseInt(a.tags.trackNo ?? '0', 10);
     const nb = parseInt(b.tags.trackNo ?? '0', 10);
@@ -96,5 +96,54 @@ export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[
   }
   lines.push('');
 
-  await fs.writeFile(path.join(albumPath, 'info.txt'), lines.join('\n'), 'utf8');
+  return saveInfoTxt(albumPath, lines.join('\n'));
+}
+
+// ── Changeset: what repair changed, at the bottom of info.txt ───────────────
+
+export const CHANGESET_HEADER = '===============Changeset==============';
+
+// The file's own text and its changeset lines.
+export function splitChangeset(text: string): { body: string; entries: string[] } {
+  const at = text.indexOf(CHANGESET_HEADER);
+  if (at < 0) return { body: text, entries: [] };
+  const entries = text
+    .slice(at + CHANGESET_HEADER.length)
+    .split('\n')
+    .map((l) => l.trimEnd())
+    .filter(Boolean);
+  return { body: text.slice(0, at), entries };
+}
+
+export function joinChangeset(body: string, entries: string[]): string {
+  if (entries.length === 0) return body;
+  const text = body.trimEnd();
+  return `${text ? `${text}\n\n` : ''}${CHANGESET_HEADER}\n${entries.join('\n')}\n`;
+}
+
+async function readInfoTxt(albumPath: string): Promise<string | undefined> {
+  return fs.readFile(path.join(albumPath, 'info.txt'), 'utf8').catch(() => undefined);
+}
+
+// Writes info.txt only when its text changes: a library mirror copies the file
+// again (and rereads the album) whenever its mtime moves. The changeset is kept.
+async function saveInfoTxt(albumPath: string, body: string): Promise<boolean> {
+  const old = await readInfoTxt(albumPath);
+  const text = joinChangeset(body, old !== undefined ? splitChangeset(old).entries : []);
+  if (text === old) return false;
+  await fs.writeFile(path.join(albumPath, 'info.txt'), text, 'utf8');
+  return true;
+}
+
+function stamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// Adds "[2026-11-12 10:45]: <change>" to the changeset; the rest of the file is left as it is.
+export async function appendChangeset(albumPath: string, change: string, now = new Date()): Promise<void> {
+  const old = (await readInfoTxt(albumPath)) ?? '';
+  const { body, entries } = splitChangeset(old);
+  const text = joinChangeset(body, [...entries, `[${stamp(now)}]: ${change}`]);
+  await fs.writeFile(path.join(albumPath, 'info.txt'), text, 'utf8');
 }

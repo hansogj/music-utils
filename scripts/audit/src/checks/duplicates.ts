@@ -1,52 +1,62 @@
 import type { Issue, TrackInfo } from '../types.js';
+import { parseTrackNames } from './names.js';
 
-// Qualifiers that mark a track as a legitimate variant — not a true duplicate
-const VARIANT_RE =
-  /\b(live|alternate|alternative|alt\.?|acoustic|demo|rehearsal|reprise|remix|radio|edit|extended|instrumental|mono|stereo|remaster(?:ed)?|part\s+[1-9ivx]+|pt\.?\s+[1-9ivx]+|version|take\s+\d+)\b/i;
-
-function baseName(raw: string): string {
-  // Strip parenthetical and bracketed qualifiers, then normalize
+// The whole title, qualifiers included: "Sweet Dreams" and "Sweet Dreams (Original Mix)",
+// or "(Live)" and "(Demo)", are different tracks. Only the same title twice is a duplicate.
+function titleKey(raw: string): string {
   return raw
-    .replace(/\s*[\[(][^\])\n]*[\])]?\s*/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[’'`´]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }
 
-function isVariant(raw: string): boolean {
-  const parentheticals = raw.match(/[\[(][^\])\n]*[\])]?/g) ?? [];
-  return parentheticals.some((p) => VARIANT_RE.test(p));
+// The title of each track: its TITLE tag, else the name from the file, also when the
+// file has no track number ("The Frim-Fram Sauce.mp3", a stray second copy).
+function titlesOf(tracks: TrackInfo[]): string[] {
+  const fromNames = parseTrackNames(tracks.map((t) => t.fileName));
+  return tracks.map((t, i) => (t.tags.title ?? t.parsedName ?? fromNames[i].title ?? '').trim());
+}
+
+const hasNumberPrefix = (fileName: string) => /^(?:d\d+t)?\d{1,3}(?!\d)/i.test(fileName);
+
+// How much a file looks like the stray copy: no track number in its name, no TITLE tag.
+function extraScore(t: TrackInfo): number {
+  return (hasNumberPrefix(t.fileName) ? 0 : 2) + (t.tags.title ? 0 : 1);
+}
+
+// The copies that look like extras: those scoring above the best-looking one.
+export function likelyExtras(group: TrackInfo[]): TrackInfo[] {
+  const best = Math.min(...group.map(extraScore));
+  return group.filter((t) => extraScore(t) > best);
 }
 
 export function checkDuplicates(tracks: TrackInfo[]): Issue[] {
-  const byBase = new Map<string, TrackInfo[]>();
+  const titles = titlesOf(tracks);
+  const byTitle = new Map<string, { title: string; tracks: TrackInfo[] }>();
 
-  for (const track of tracks) {
-    const name = (track.tags.title ?? track.parsedName ?? '').trim();
-    if (!name) continue;
-    const key = baseName(name);
-    if (!byBase.has(key)) byBase.set(key, []);
-    byBase.get(key)!.push(track);
-  }
+  tracks.forEach((track, i) => {
+    const key = titleKey(titles[i]);
+    if (!key) return;
+    const entry = byTitle.get(key) ?? { title: titles[i], tracks: [] };
+    entry.tracks.push(track);
+    byTitle.set(key, entry);
+  });
 
-  const issues: Issue[] = [];
-
-  for (const [, group] of byBase) {
-    if (group.length < 2) continue;
-    // Only flag groups where multiple entries are not variants
-    const trueDupes = group.filter((t) => !isVariant(t.tags.title ?? t.parsedName ?? ''));
-    if (trueDupes.length < 2) continue;
-
-    const displayName = trueDupes[0].tags.title ?? trueDupes[0].parsedName ?? '(unknown)';
-    const files = trueDupes.map((t) => t.fileName).join(', ');
-    issues.push({
-      severity: 'MODERATE',
-      code: 'DUPLICATE_TRACKS',
-      message: `Duplicate track name "${displayName}" appears ${trueDupes.length}×: ${files}`,
-      suggestion: `Verify these are not live/alternate-take variants; remove or annotate the extra copy`,
+  return [...byTitle.values()]
+    .filter(({ tracks: group }) => group.length > 1)
+    .map(({ title, tracks: group }) => {
+      const extras = likelyExtras(group);
+      const files = group.map((t) => t.fileName).join(', ');
+      const extra = extras.length > 0 ? ` — likely extra copy: ${extras.map((t) => t.fileName).join(', ')}` : '';
+      return {
+        severity: 'MODERATE' as const,
+        code: 'DUPLICATE_TRACKS',
+        message: `Duplicate track name "${title}" appears ${group.length}×: ${files}${extra}`,
+        suggestion:
+          extras.length > 0
+            ? `Move the extra copy out of the album if it is a second rip of the same track`
+            : `Remove the extra copy, or add a qualifier such as (Live) or (Demo) to the title if it is another version`,
+      };
     });
-  }
-
-  return issues;
 }

@@ -12,8 +12,17 @@ import { folderYear, withFolderYear } from './checks/year.js';
 import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
-import { writeInfoTxt } from './info-txt.js';
-import { checkRenames, pairingProblem, pairWithRelease, sanitizeFilename } from './rename-plan.js';
+import { appendChangeset, writeInfoTxt } from './info-txt.js';
+import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from './rename-plan.js';
+import {
+  albumSetKey,
+  applyOldYear,
+  auxPartOf,
+  customAux,
+  describeOldYear,
+  oldYearBracket,
+  type OldYearAnswer,
+} from './year-bracket.js';
 import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
@@ -28,13 +37,16 @@ function closeRl() {
 
 // ── prompt ───────────────────────────────────────────────────────────────────
 
-let prompt = async (q: string): Promise<string> => {
+// `prefill` is typed into the input line for the user to edit.
+let prompt = async (q: string, prefill?: string): Promise<string> => {
   rl ??= readline.createInterface({ input: process.stdin, output: process.stdout });
-  return rl.question(q);
+  const answer = rl.question(q);
+  if (prefill) rl.write(prefill);
+  return answer;
 };
 
 // Tests answer prompts through this instead of stdin.
-export function setPrompt(fn: (q: string) => Promise<string>): void {
+export function setPrompt(fn: (q: string, prefill?: string) => Promise<string>): void {
   prompt = fn;
 }
 
@@ -44,8 +56,8 @@ class RestartSignal extends Error {
 }
 let restartable = false;
 
-async function ask(q: string): Promise<string> {
-  const answer = (await prompt(q)).trim();
+async function ask(q: string, prefill?: string): Promise<string> {
+  const answer = (await prompt(q, prefill)).trim();
   if (restartable && answer.toLowerCase() === 'o') throw new RestartSignal();
   return answer;
 }
@@ -211,6 +223,66 @@ interface FolderRenamePlan {
   artist?: string;
   album?: string;
   year?: string;
+  oldYear?: OldYearAnswer; // the old year kept as an aux bracket: "live 1978"
+}
+
+// ── old year as an aux bracket ────────────────────────────────────────────────
+
+// One answer per album set for the whole run, so all discs of a set get the same bracket.
+const oldYearAnswers = new Map<string, OldYearAnswer | undefined>();
+
+// Starts a run (and each test) without answers from an earlier one.
+export function resetRepairSession(): void {
+  oldYearAnswers.clear();
+}
+
+// Asks what to do with the old year when a folder's year changes; the folder name only.
+async function askOldYearBracket(
+  layout: AlbumLayout,
+  oldYear: string,
+  newYear: string,
+): Promise<OldYearAnswer | undefined> {
+  const key = albumSetKey(layout.artistName, layout.albumFolder);
+  if (oldYearAnswers.has(key)) {
+    const kept = oldYearAnswers.get(key);
+    console.log(chalk.dim(`  Old year: ${describeOldYear(kept)} (as for the other disc of this set)`));
+    return kept;
+  }
+  const renamed = withFolderYear(layout.albumFolder, newYear);
+  const current = auxPartOf(layout.albumFolder);
+  const preview = (choice: string) => applyOldYear(renamed, oldYearBracket(choice, oldYear));
+  console.log(`\n  Year ${oldYear} → ${newYear}. Keep the old year in the folder name?`);
+  console.log(`    [Enter] no bracket    → ${preview('')}`);
+  console.log(`    l  live               → ${preview('l')}`);
+  console.log(`    r  recorded           → ${preview('r')}`);
+  console.log(`    c  custom text        → edit ${current ? `"${current}"` : 'a new bracket'}`);
+  const choice = (await ask('  Old year [Enter/l/r/c]: ')).trim().toLowerCase();
+  // c: the folder's brackets as they are (or the old year), to edit; the result replaces them.
+  const answer: OldYearAnswer | undefined =
+    choice === 'c'
+      ? { mode: 'replace', aux: customAux(await ask('    Brackets: ', current || `[${oldYear}]`)) }
+      : oldYearBracket(choice, oldYear);
+  oldYearAnswers.set(key, answer);
+  return answer;
+}
+
+// Renames the album folder and notes it in info.txt's changeset.
+async function renameAlbumFolder(layout: AlbumLayout, newName: string): Promise<void> {
+  if (newName === layout.albumFolder) return;
+  const oldName = layout.albumFolder;
+  const newPath = path.join(path.dirname(layout.albumPath), newName);
+  await guardedRename(layout.albumPath, newPath);
+  layout.albumPath = newPath;
+  layout.albumFolder = newName;
+  await noteChange(layout, `folder name was changed from "${oldName}" to "${newName}"`);
+}
+
+async function noteChange(layout: AlbumLayout, change: string): Promise<void> {
+  try {
+    await appendChangeset(layout.albumPath, change);
+  } catch {
+    // Non-fatal: the rename itself is done
+  }
 }
 
 // Folder renames the user said yes to, per album, waiting to run last (see repairAlbum).
@@ -250,37 +322,41 @@ async function askFolderRename(
     console.log(chalk.dim('  Skipped rename.'));
     return undefined;
   }
+  const oldYear = yearMismatch ? await askOldYearBracket(layout, localYear, release.year!) : undefined;
   return {
     ...(artistMismatch ? { artist: discogsArtist } : {}),
     ...(albumMismatch ? { album: discogsAlbum } : {}),
     ...(yearMismatch ? { year: release.year } : {}),
+    ...(oldYear ? { oldYear } : {}),
   };
 }
 
-async function applyFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): Promise<void> {
+// The album folder name a plan leads to: disc part first, then the brackets it had,
+// then the old-year bracket.
+function plannedAlbumFolder(folder: string, plan: FolderRenamePlan): string {
+  if (!plan.album && !plan.year) return folder;
+  const yearPrefix = plan.year ? `${plan.year} ` : (folder.match(/^(\d{4}\s+)/)?.[1] ?? '');
+  const discPart = folder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
+  const auxPart = (folder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
+  const renamed = plan.album ? `${yearPrefix}${plan.album}${discPart}${auxPart}`.trim() : withFolderYear(folder, plan.year!);
+  return applyOldYear(renamed, plan.oldYear);
+}
+
+// Returns the album's folder after the rename ("Artist/YYYY Title [live 1978]"), for the log.
+async function applyFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): Promise<string> {
   // Rename album folder first (artist rename changes its parent path).
-  if (plan.album || plan.year) {
-    const yearPrefix = plan.year ? `${plan.year} ` : (layout.albumFolder.match(/^(\d{4}\s+)/)?.[1] ?? '');
-    const discPart = layout.albumFolder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
-    const auxPart = (layout.albumFolder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
-    const newAlbumFolder = plan.album
-      ? `${yearPrefix}${plan.album}${discPart}${auxPart}`.trim()
-      : withFolderYear(layout.albumFolder, plan.year!);
-    if (newAlbumFolder !== layout.albumFolder) {
-      const newAlbumPath = path.join(path.dirname(layout.albumPath), newAlbumFolder);
-      await guardedRename(layout.albumPath, newAlbumPath);
-      layout.albumPath = newAlbumPath;
-      layout.albumFolder = newAlbumFolder;
-    }
-  }
+  await renameAlbumFolder(layout, plannedAlbumFolder(layout.albumFolder, plan));
 
   if (plan.artist && plan.artist !== layout.artistName) {
+    const oldArtist = layout.artistName;
     const artistDir = path.dirname(layout.albumPath);
     const newArtistDir = path.join(path.dirname(artistDir), plan.artist);
     await guardedRename(artistDir, newArtistDir);
     layout.artistName = plan.artist;
     layout.albumPath = path.join(newArtistDir, layout.albumFolder);
+    await noteChange(layout, `artist folder was changed from "${oldArtist}" to "${plan.artist}"`);
   }
+  return `${layout.artistName}/${layout.albumFolder}`;
 }
 
 // ── safe rename ───────────────────────────────────────────────────────────────
@@ -300,7 +376,8 @@ async function guardedRename(from: string, to: string): Promise<void> {
 
 interface RepairAction {
   label: string;
-  run: () => Promise<void>;
+  // May return what was done, for the repair log, when it differs from the label.
+  run: () => Promise<string | void>;
   discogs?: boolean; // the Discogs release tagging action
 }
 
@@ -462,7 +539,6 @@ function buildDiscogsAction(
         console.log(chalk.dim(`  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`));
       const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
       const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
-      const total = files.length;
 
       // For a "(Disc n∕m)" folder only that disc's part of the release is used.
       const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
@@ -479,31 +555,50 @@ function buildDiscogsAction(
       if (!slice) { console.log(chalk.dim('  Skipped.')); return; }
       const discTracks = slice.tracks;
 
-      if (discTracks.length !== files.length) {
-        const extra = discTracks.length - files.length;
+      const pairing = planPairing(
+        files.map((f) => f.name),
+        files.map((f) => names.get(f.name) ?? ''),
+        discTracks,
+        folderDisc,
+      );
+      const local = pairing.map(({ disc, no }) => ({ disc, no }));
+      const paired = pairing.map((p) => p.track);
+      const titles = paired.map((t) => t?.title?.trim() || undefined);
+      const isExtra = (i: number) => pairing[i].extraOf !== undefined;
+      const extras = files.filter((_, i) => isExtra(i));
+      for (const [i, f] of files.entries()) {
+        if (isExtra(i))
+          console.log(
+            chalk.yellow(`  ⚠ ${f.name} looks like an extra copy of ${files[pairing[i].extraOf!].name}: not tagged — move it out of the album`),
+          );
+      }
+      const localCount = files.length - extras.length;
+
+      if (discTracks.length !== localCount) {
+        const extra = discTracks.length - localCount;
         const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
         const msg = extra > 0
           ? `${what} ${extra} more track(s) — may be a bonus edition`
           : `${what} ${-extra} fewer track(s) — may be a different pressing`;
-        console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${files.length} local)`));
+        console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${localCount} local)`));
         const ok = await ask('  Continue anyway? [y/N] ');
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
-      const local = localNumbering(files.map((f) => f.name), folderDisc);
-      const paired = pairWithRelease(local, discTracks);
-      const titles = paired.map((t) => t?.title?.trim() || undefined);
-      const problem = pairingProblem(titles);
+      const problem = pairingProblem(titles.filter((_, i) => !isExtra(i)));
       if (problem) {
         console.log(chalk.yellow(`  ⚠ The titles don't line up: ${problem}`));
         files.forEach((f, i) =>
-          console.log(chalk.dim(`    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : '?'}`)),
+          console.log(chalk.dim(`    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : isExtra(i) ? '(extra copy)' : '?'}`)),
         );
         const ok = await ask('  Tag anyway? [y/N] ');
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
+      // The release's own count when stray copies are left out (15, not 17).
+      const total = localCount;
       for (const [i, { name, ext }] of files.entries()) {
+        if (isExtra(i)) continue;
         const { no, disc } = local[i];
         const title = titles[i];
         const tags: Record<string, string> = {
@@ -526,11 +621,11 @@ function buildDiscogsAction(
 
       // ── write info.txt ─────────────────────────────────────────────────
       try {
-        await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
+        const written = await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
           discNumber: meta.discNumber,
           noOfDiscs: meta.noOfDiscs,
         });
-        console.log(chalk.dim('  ✓ info.txt written'));
+        console.log(chalk.dim(written ? '  ✓ info.txt written' : '  ✓ info.txt unchanged'));
       } catch {
         // Non-fatal — tag write already succeeded
       }
@@ -595,14 +690,9 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
 
       if (guessedYear) {
         const newName = `${guessedYear} ${layout.albumFolder}`;
-        const newPath = path.join(path.dirname(layout.albumPath), newName);
         yearActions.push({
           label: `Rename folder → "${newName}"`,
-          run: async () => {
-            await guardedRename(layout.albumPath, newPath);
-            layout.albumPath = newPath;
-            layout.albumFolder = newName;
-          },
+          run: () => renameAlbumFolder(layout, newName),
         });
       }
 
@@ -612,11 +702,7 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
           const input = (await ask(`    Year [${guessedYear ?? 'YYYY'}]: `)).trim();
           const year = input || guessedYear;
           if (!year?.match(/^\d{4}$/)) { console.log(chalk.yellow('  Skipped — invalid year')); return; }
-          const newName = `${year} ${layout.albumFolder}`;
-          const newPath = path.join(path.dirname(layout.albumPath), newName);
-          await guardedRename(layout.albumPath, newPath);
-          layout.albumPath = newPath;
-          layout.albumFolder = newName;
+          await renameAlbumFolder(layout, `${year} ${layout.albumFolder}`);
         },
       });
 
@@ -627,33 +713,13 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       const newNameMatch = issue.suggestion?.match(/Rename(?: to)?[: ]+"(.+)"/);
       if (!newNameMatch) return [];
       const newName = newNameMatch[1];
-      const newPath = path.join(path.dirname(layout.albumPath), newName);
-      return [
-        {
-          label: `Rename folder → "${newName}"`,
-          run: async () => {
-            await guardedRename(layout.albumPath, newPath);
-            layout.albumPath = newPath;
-            layout.albumFolder = newName;
-          },
-        },
-      ];
+      return [{ label: `Rename folder → "${newName}"`, run: () => renameAlbumFolder(layout, newName) }];
     }
 
     case 'WRONG_AUX_BRACKETS': {
       // Compute the rename directly — the suggestion string is human-readable and not parseable.
       const newName = layout.albumFolder.replace(/\{([^}]+)\}/g, '[$1]');
-      const newPath = path.join(path.dirname(layout.albumPath), newName);
-      return [
-        {
-          label: `Rename folder → "${newName}"`,
-          run: async () => {
-            await guardedRename(layout.albumPath, newPath);
-            layout.albumPath = newPath;
-            layout.albumFolder = newName;
-          },
-        },
-      ];
+      return [{ label: `Rename folder → "${newName}"`, run: () => renameAlbumFolder(layout, newName) }];
     }
 
     // ── SEVERE: move artist to correct letter dir ──────────────────────────
@@ -724,15 +790,14 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       const local = folderYear(layout.albumFolder);
       if (!local || local === year) return [{ label: `Set DATE/ORIGINALDATE to ${year}`, run: retag }];
       const newName = withFolderYear(layout.albumFolder, year);
-      const newPath = path.join(path.dirname(layout.albumPath), newName);
       return [
         {
           label: `Set DATE/ORIGINALDATE to ${year} and rename folder → "${newName}"`,
           run: async () => {
+            const oldYear = await askOldYearBracket(layout, local, year);
             await retag();
-            await guardedRename(layout.albumPath, newPath);
-            layout.albumPath = newPath;
-            layout.albumFolder = newName;
+            await renameAlbumFolder(layout, applyOldYear(newName, oldYear));
+            return `Set DATE/ORIGINALDATE to ${year} and rename folder → "${layout.albumFolder}"`;
           },
         },
         { label: `Set DATE/ORIGINALDATE to ${year} (keep folder name)`, run: retag },
@@ -1099,8 +1164,9 @@ async function repairAlbumPass(
 
         let result: RepairEvent['result'] = 'fixed';
         let error: string | undefined;
+        let done: string | void = undefined;
         try {
-          await actions[idx].run();
+          done = await actions[idx].run();
         } catch (err) {
           if (err instanceof BackSignal) { idx = undefined; continue issueMenuLoop; } // picker Esc → re-show menu
           if (err instanceof RestartSignal) throw err;
@@ -1108,7 +1174,7 @@ async function repairAlbumPass(
           result = 'failed';
           error = err instanceof Error ? err.message : String(err);
         }
-        await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: actions[idx].label, result, error });
+        await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: done || actions[idx].label, result, error });
         await refresh(issue, result === 'fixed'); // re-scan even after a failure: a partial fix may have changed files
         break issueMenuLoop;
       }
@@ -1171,14 +1237,16 @@ async function repairAlbumPass(
     pendingFolderRenames.delete(layout);
     let result: RepairEvent['result'] = 'fixed';
     let error: string | undefined;
+    let renamedTo: string | undefined;
     try {
-      await applyFolderRename(layout, plan);
+      renamedTo = await applyFolderRename(layout, plan);
     } catch (err) {
       handleRepairError(err);
       result = 'failed';
       error = err instanceof Error ? err.message : String(err);
     }
-    await logEvent({ album: loc, issue: 'FOLDER_RENAME', severity: 'MODERATE', action: 'Rename folder(s) to match Discogs', result, error });
+    const action = `Rename folder(s) to match Discogs${renamedTo ? ` → "${renamedTo}"` : ''}`;
+    await logEvent({ album: loc, issue: 'FOLDER_RENAME', severity: 'MODERATE', action, result, error });
   }
 
   if (quit) return 'quit';
@@ -1198,6 +1266,7 @@ export async function runRepair(
   opts?: { retag?: boolean; reaudit?: (layout: AlbumLayout) => Promise<AlbumAudit> },
 ): Promise<void> {
   const retag = opts?.retag ?? false;
+  resetRepairSession();
 
   const session = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const now = new Date();

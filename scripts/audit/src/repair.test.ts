@@ -67,7 +67,7 @@ vi.mock('./discogs.js', async (importOriginal) => ({
 }));
 
 const { auditAlbum } = await import('./audit-album.js');
-const { repairAlbum, setPrompt } = await import('./repair.js');
+const { repairAlbum, resetRepairSession, setPrompt } = await import('./repair.js');
 type RepairEvent = import('./repair.js').RepairEvent;
 
 let root: string;
@@ -75,12 +75,14 @@ let layout: AlbumLayout;
 let events: Array<Omit<RepairEvent, 'ts' | 'session'>>;
 let output: string[];
 let asked: string[];
+let prefills: Array<string | undefined>;
 
 // Answers prompts in order; fails on a prompt the test didn't expect.
 function answer(script: Array<[RegExp, string]>) {
   const queue = [...script];
-  setPrompt(async (q) => {
+  setPrompt(async (q, prefill) => {
     asked.push(q);
+    prefills.push(prefill);
     const next = queue.shift();
     if (!next || !next[0].test(q)) throw new Error(`Unexpected prompt: ${JSON.stringify(q)}`);
     return next[1];
@@ -110,6 +112,8 @@ beforeEach(async () => {
   events = [];
   output = [];
   asked = [];
+  prefills = [];
+  resetRepairSession();
   vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => void output.push(args.join(' ')));
 });
 
@@ -146,6 +150,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       [/Release ID \[4376665\]/, ''], // use the suggested release
       [/Apply renames\?/, 'y'], // 01 - Give'em → 01 - Give 'Em
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, deferred
+      [/Old year \[Enter\/l\/r\/c\]/, 'r'], // recorded 1976, released 1989
       [/Next album/, ''],
     ]);
 
@@ -161,9 +166,14 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     expect(audit.issues).toEqual([]);
 
     // The folder rename ran after the file renames, and the layout follows it.
-    const newPath = path.join(root, 'Y', 'Yezda Urfa', '1989 Sacred Baboon');
+    const newPath = path.join(root, 'Y', 'Yezda Urfa', '1989 Sacred Baboon [rec. 1976]');
     expect(layout.albumPath).toBe(newPath);
-    expect(layout.albumFolder).toBe('1989 Sacred Baboon');
+    expect(layout.albumFolder).toBe('1989 Sacred Baboon [rec. 1976]');
+    expect(output.join('\n')).toMatch(/r {2}recorded +→ 1989 Sacred Baboon \[rec\. 1976\]/);
+    // The log has the final folder name; info.txt notes the change at the bottom.
+    expect(events.find((e) => e.issue === 'FOLDER_RENAME')?.action).toBe(
+      'Rename folder(s) to match Discogs → "Yezda Urfa/1989 Sacred Baboon [rec. 1976]"',
+    );
     await expect(fs.access(path.join(root, 'Y', 'Yezda Urfa', '1976 Sacred Baboon'))).rejects.toThrow();
 
     const names = (await fs.readdir(newPath)).sort();
@@ -178,6 +188,9 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     });
     const info = await fs.readFile(path.join(newPath, 'info.txt'), 'utf8');
     expect(info).toMatch(/Discogs-Release: 4376665\nDiscogs-Master: 123456\nDisc: 1\/1/);
+    expect(info).toMatch(
+      /\n={15}Changeset={14}\n\[\d{4}-\d\d-\d\d \d\d:\d\d\]: folder name was changed from "1976 Sacred Baboon" to "1989 Sacred Baboon \[rec\. 1976\]"\n$/,
+    );
   });
 
   it('a skipped issue is not asked again in the same pass', async () => {
@@ -290,6 +303,7 @@ describe('repairAlbum — start the album over', () => {
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'n'], // so track 1's file name disagrees with its new title
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
+      [/Old year \[Enter\/l\/r\/c\]/, ''], // no bracket
       [/^ {2}Choice \[1\]/, 'o'], // at the track 1 mismatch: regret
       [/^ {2}Choice \[1\]/, 's'], // the mismatch, shown from the top again
       [/\[r\] Retry/, ''],
@@ -682,5 +696,155 @@ describe('repairAlbum — file names with artist and album, a 2-CD release in on
     done();
     expect(output.join('\n')).toMatch(/titles don't line up: 19 files would get a title another file also gets/);
     expect(await readFake(path.join(madrigal.albumPath, MADRIGAL_FILES[1]))).toEqual({});
+  });
+});
+
+// Discogs release 8082437: 15 tracks. The folder has 17 mp3s: a stray second rip of
+// tracks 1 and 3, without a track number in the name.
+const ART_DECO_TITLES = [
+  'The Frim-Fram Sauce', 'Song Two', 'April Showers', 'Song Four', 'Song Five', 'Song Six', 'Song Seven',
+  'Song Eight', 'Song Nine', 'Song Ten', 'Song Eleven', 'Song Twelve', 'Song Thirteen', 'Song Fourteen',
+  'Song Fifteen',
+];
+const ART_DECO_RELEASE: ReleaseInfo = {
+  releaseId: '8082437',
+  year: '1985',
+  releaseYear: '1985',
+  title: 'Art Deco',
+  artists: ['Ytre Suløens Jass-Ensemble'],
+  tracklist: ART_DECO_TITLES.map((title, i) => ({ position: String(i + 1), title, type_: 'track' })),
+};
+
+describe('repairAlbum — a stray second copy of two tracks (Art Deco)', () => {
+  let artDeco: AlbumLayout;
+
+  beforeEach(async () => {
+    const albumPath = path.join(root, 'Y', 'Ytre Suløens Jass-Ensemble', '1985 Art Deco');
+    await fs.mkdir(albumPath, { recursive: true });
+    for (const [i, t] of ART_DECO_TITLES.entries())
+      await fs.writeFile(path.join(albumPath, `${String(i + 1).padStart(2, '0')} - ${t}.mp3`), '{}');
+    await fs.writeFile(path.join(albumPath, 'The Frim-Fram Sauce.mp3'), '{}');
+    await fs.writeFile(path.join(albumPath, 'April Showers.mp3'), '{}');
+    artDeco = { letterDir: 'Y', artistName: 'Ytre Suløens Jass-Ensemble', albumFolder: '1985 Art Deco', albumPath };
+  });
+
+  it('finds both pairs before tagging, naming the unnumbered file', async () => {
+    const audit = await auditAlbum(artDeco, { skipDiscogs: true });
+    const dupes = audit.issues.filter((i) => i.code === 'DUPLICATE_TRACKS').map((i) => i.message);
+    expect(dupes).toEqual([
+      expect.stringMatching(/"The Frim-Fram Sauce" appears 2×.*likely extra copy: The Frim-Fram Sauce\.mp3$/),
+      expect.stringMatching(/"April Showers" appears 2×.*likely extra copy: April Showers\.mp3$/),
+    ]);
+  });
+
+  it('tags the 15 release tracks n/15 and leaves the two extra copies untagged', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(ART_DECO_RELEASE);
+    const audit = await auditAlbum(artDeco, { skipDiscogs: true });
+    expect(audit.issues[0].code).toBe('NO_TAGS');
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // NO_TAGS → Discogs
+      [/Release ID \[enter ID\]/, '8082437'], // no "fewer tracks" question: 15 vs 15
+      [/^ {2}Choice \[1\]/, 's'], // NO_TAGS: the 2 extra copies, left untagged
+      [/^ {2}Choice \[1\]/, 's'], // DUPLICATE_TRACKS ×2, still there after the re-scan
+      [/^ {2}Choice \[1\]/, 's'],
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    const out = output.join('\n');
+    expect(out).toMatch(/April Showers\.mp3 looks like an extra copy of 03 - April Showers\.mp3: not tagged/);
+    expect(out).toMatch(/The Frim-Fram Sauce\.mp3 looks like an extra copy of 01 - The Frim-Fram Sauce\.mp3/);
+    expect(out).not.toMatch(/fewer track/);
+    expect(await readFake(path.join(artDeco.albumPath, '15 - Song Fifteen.mp3'))).toMatchObject({
+      TITLE: 'Song Fifteen',
+      TRACKNUMBER: '15/15',
+    });
+    expect(await readFake(path.join(artDeco.albumPath, '03 - April Showers.mp3'))).toMatchObject({ TRACKNUMBER: '3/15' });
+    expect(await readFake(path.join(artDeco.albumPath, 'April Showers.mp3'))).toEqual({});
+    expect(await readFake(path.join(artDeco.albumPath, 'The Frim-Fram Sauce.mp3'))).toEqual({});
+  });
+});
+
+describe('repairAlbum — year change keeps the old year in a bracket, one answer per set', () => {
+  const discLayout = async (n: number): Promise<AlbumLayout> => {
+    const albumFolder = `1979 Tourmato (Disc ${n}∕2) [FLAC]`;
+    const albumPath = path.join(root, 'Y', 'Yes', albumFolder);
+    await fs.mkdir(albumPath, { recursive: true });
+    await fs.writeFile(path.join(albumPath, '01 - Song.mp3'), JSON.stringify({ TITLE: 'Song', DATE: '1979' }));
+    await fs.writeFile(path.join(albumPath, 'info.txt'), 'Yes - Tourmato\n\nMy own notes\n');
+    return { letterDir: 'Y', artistName: 'Yes', albumFolder, albumPath };
+  };
+  const yearAudit = async (l: AlbumLayout): Promise<AlbumAudit> => ({
+    ...(await auditAlbum(l, { skipDiscogs: true })),
+    issues: [{ severity: 'HIGH', code: 'YEAR_NOT_ORIGINAL', message: 'Year 1979 is not the original release year 1992' }],
+    originalYear: { releaseId: '1', year: '1992' },
+  });
+
+  it('asks once, with the old year filled in, and gives disc 2 the same bracket', async () => {
+    const disc1 = await discLayout(1);
+    const disc2 = await discLayout(2);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // [1] Set DATE/ORIGINALDATE to 1992 and rename folder
+      [/Old year \[Enter\/l\/r\/c\]/, 'l'],
+      [/Next album/, ''],
+      [/^ {2}Choice \[1\]/, ''], // disc 2: no Old year question
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(await yearAudit(disc1), ctx(false))).toBe('next');
+    expect(await repairAlbum(await yearAudit(disc2), ctx(false))).toBe('next');
+    done();
+
+    const out = output.join('\n');
+    expect(out).toMatch(/Year 1979 → 1992\. Keep the old year in the folder name\?/);
+    expect(out).toMatch(/l {2}live +→ 1992 Tourmato \(Disc 1∕2\) \[FLAC\] \[live 1979\]/);
+    expect(out).toMatch(/Old year: \[live 1979\] \(as for the other disc of this set\)/);
+    expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [FLAC] [live 1979]');
+    expect(disc2.albumFolder).toBe('1992 Tourmato (Disc 2∕2) [FLAC] [live 1979]');
+
+    // Folder name only: the tags get the year, never the bracket.
+    expect(await readFake(path.join(disc1.albumPath, '01 - Song.mp3'))).toMatchObject({ DATE: '1992', ORIGINALDATE: '1992' });
+    expect(events.map((e) => e.action)).toEqual([
+      'Set DATE/ORIGINALDATE to 1992 and rename folder → "1992 Tourmato (Disc 1∕2) [FLAC] [live 1979]"',
+      'Set DATE/ORIGINALDATE to 1992 and rename folder → "1992 Tourmato (Disc 2∕2) [FLAC] [live 1979]"',
+    ]);
+    const info = await fs.readFile(path.join(disc2.albumPath, 'info.txt'), 'utf8');
+    expect(info).toMatch(
+      /^Yes - Tourmato\n\nMy own notes\n\n={15}Changeset={14}\n\[[\d :-]+\]: folder name was changed from "1979 Tourmato \(Disc 2∕2\) \[FLAC\]" to "1992 Tourmato \(Disc 2∕2\) \[FLAC\] \[live 1979\]"\n$/,
+    );
+  });
+
+  it('c puts the folder’s brackets in the input to edit; the result replaces them', async () => {
+    const disc1 = await discLayout(1);
+    const disc2 = await discLayout(2);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Old year/, 'c'],
+      [/ {4}Brackets: /, '[FLAC] [Philadelphia 1979]'], // "[FLAC]" was in the line; the user added to it
+      [/Next album/, ''],
+      [/^ {2}Choice \[1\]/, ''], // disc 2: same answer, no questions
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(await yearAudit(disc1), ctx(false));
+    await repairAlbum(await yearAudit(disc2), ctx(false));
+    done();
+    expect(prefills[asked.findIndex((q) => /Brackets: /.test(q))]).toBe('[FLAC]');
+    expect(output.join('\n')).toMatch(/c {2}custom text +→ edit "\[FLAC\]"/);
+    expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [FLAC] [Philadelphia 1979]');
+    expect(disc2.albumFolder).toBe('1992 Tourmato (Disc 2∕2) [FLAC] [Philadelphia 1979]');
+  });
+
+  it('c can replace the bracket, or drop it', async () => {
+    const disc1 = await discLayout(1);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Old year/, 'c'],
+      [/Brackets: /, 'live 1979'], // "[FLAC]" deleted, plain text typed
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(await yearAudit(disc1), ctx(false));
+    done();
+    expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [live 1979]');
   });
 });
