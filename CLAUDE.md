@@ -101,6 +101,9 @@ scripts/audit/src/
                     buildDiscogsAction() (release prompt, chooseDiscSlice(), tag write,
                     info.txt, file renames, folder rename plan); BackSignal (Esc → action
                     menu); RestartSignal (o → album start); setPrompt() for tests
+  rename-plan.ts  — sanitizeFilename() ("/" and ":" → " - "), pairWithRelease() (by disc/no,
+                    else by order: one folder of a 2-CD release), pairingProblem() (asks
+                    before tagging when titles repeat), checkRenames() (no renames that clash)
   report.ts       — printReport(); terminal-formatted severity sections
   server.ts       — serveReport(): HTML UI mode (--ui flag)
   logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)
@@ -114,7 +117,10 @@ scripts/audit/src/
     folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR,
                     WRONG_AUX_BRACKETS
     tags.ts       — NO_TAGS, MISSING_TAGS, TAG_READ_ERROR
-    names.ts      — NAME_TAG_MISMATCH; parseNameFromFilename()
+    names.ts      — NAME_TAG_MISMATCH; parseTrackNames() (per album: "_" → space, drops
+                    leading " - " parts only when every track has them, then the track
+                    number), localNumbering() (by order when numbers are missing/shared),
+                    matchNames() (local titles for Discogs scoring)
     duplicates.ts — DUPLICATE_TRACKS
     discogs-ids.ts — MISSING_RELEASE_ID: mp3 with a master ID but no release ID (lost by
                     the 81963c0/43bd432 writer); repair restores it from the comment URL

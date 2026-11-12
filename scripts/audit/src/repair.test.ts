@@ -529,3 +529,111 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     expect(await readFake(path.join(disc2.albumPath, '01 - Your Move.mp3'))).toEqual({});
   });
 });
+
+// Release 11198316 as fetchRelease returns it (headings "Medley:" and "-----" dropped):
+// two CDs, 1-1…1-11 and 2-1…2-8, for one folder of 19 files.
+const MADRIGAL_TRACKS: Array<[string, string]> = [
+  ['1-1', 'Opening/Siberian Khatru'],
+  ['1-2', 'Heart Of The Sunrise'],
+  ['1-3', 'A) Future Times / B) Rejoice'],
+  ['1-4', 'Circus Of Heaven'],
+  ['1-5', 'Time And A Word'],
+  ['1-6', 'Long Distance Runaround'],
+  ['1-7', 'The Fish (Include Survival Ritual)'],
+  ['1-8', 'Perpetual Change '],
+  ['1-9', 'The Gates Of Delirium (Soon)'],
+  ['1-10', "Don't Kill The Whale"],
+  ['1-11', 'Madrigal/The Clap'],
+  ['2-1', 'Starship Trooper'],
+  ['2-2', 'Rick Wakeman Solo Include Catherine Of Aragon, Catherine Howard, The Battle'],
+  ['2-3', 'Awaken'],
+  ['2-4', "I've Seen All Good People"],
+  ['2-5', 'Roundabout'],
+  ['2-6', 'Madrigal'],
+  ['2-7', 'On The Silent Wings Of Freedom'],
+  ['2-8', 'And You And I '],
+];
+const MADRIGAL_RELEASE: ReleaseInfo = {
+  releaseId: '11198316',
+  year: '1978',
+  releaseYear: '1997',
+  title: 'Madrigal Mystery Tour',
+  artists: ['Yes'],
+  tracklist: MADRIGAL_TRACKS.map(([position, title]) => ({ position, title, type_: 'track' })),
+};
+// The file names as they were, with artist and album on every one.
+const MADRIGAL_FILES = [
+  'Opening_-_Siberian_Khatru', 'Heart_Of_The_Sunrise', 'Future_Times_-_Rejoice', 'Circus_Of_Heaven',
+  'Time_And_A_Word', 'Long_Distance_Runaround', 'The_Fish', 'Perpetual_Change', 'Soon', "Don't_Kill_The_Whale",
+  'Madrigal_-_Clap', 'Starship_Trooper', 'Rick_Wakeman_Solo', 'Awaken', "I've_Seen_All_Good_People", 'Roundabout',
+  'Madrigal', 'On_The_Silent_Wings_Of_Freedom', 'And_You_And_I',
+].map((t, i) => `Yes_-_Madrigal_Mystery_Tour_-_${String(i + 1).padStart(2, '0')}_-_${t}.mp3`);
+
+describe('repairAlbum — file names with artist and album, a 2-CD release in one folder', () => {
+  let madrigal: AlbumLayout;
+
+  beforeEach(async () => {
+    const albumPath = path.join(root, 'Y', 'Yes', '1978 Madrigal Mystery Tour');
+    await fs.mkdir(albumPath, { recursive: true });
+    for (const name of MADRIGAL_FILES) await fs.writeFile(path.join(albumPath, name), '{}');
+    madrigal = { letterDir: 'Y', artistName: 'Yes', albumFolder: '1978 Madrigal Mystery Tour', albumPath };
+  });
+
+  it('parses the track number after the shared artist and album', async () => {
+    const audit = await auditAlbum(madrigal, { skipDiscogs: true });
+    expect(audit.tracks[0].parsedName).toBe('Opening - Siberian Khatru');
+    expect(audit.tracks[16].parsedName).toBe('Madrigal');
+  });
+
+  it('tags each file with its own release track, CD 2 included, and renames them', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(MADRIGAL_RELEASE);
+    const audit = await auditAlbum(madrigal, { skipDiscogs: true });
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[enter ID\]/, '11198316'],
+      [/Apply renames\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).not.toMatch(/don't line up|would overwrite/);
+
+    const names = (await fs.readdir(madrigal.albumPath)).filter((n) => n.endsWith('.mp3')).sort();
+    expect(names).toHaveLength(19);
+    expect(names[0]).toBe('01 - Opening - Siberian Khatru.mp3');
+    expect(names[2]).toBe('03 - A) Future Times - B) Rejoice.mp3');
+    expect(names[11]).toBe('12 - Starship Trooper.mp3');
+    expect(await readFake(path.join(madrigal.albumPath, '12 - Starship Trooper.mp3'))).toMatchObject({
+      TITLE: 'Starship Trooper',
+      TRACKNUMBER: '12/19',
+      DISCNUMBER: '1/1',
+      DISCOGS_RELEASE_ID: '11198316',
+    });
+    expect(await readFake(path.join(madrigal.albumPath, '19 - And You And I.mp3'))).toMatchObject({
+      TITLE: 'And You And I',
+      TRACKNUMBER: '19/19',
+    });
+  });
+
+  it('stops before tagging when the titles do not line up', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    // A release whose tracks all have one title: every file would get it.
+    vi.mocked(fetchRelease).mockResolvedValueOnce({
+      ...MADRIGAL_RELEASE,
+      tracklist: MADRIGAL_RELEASE.tracklist.map((t) => ({ ...t, title: 'Opening/Siberian Khatru' })),
+    });
+    const audit = await auditAlbum(madrigal, { skipDiscogs: true });
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[enter ID\]/, '11198316'],
+      [/Tag anyway\? \[y\/N\]/, ''],
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/titles don't line up: 19 files would get a title another file also gets/);
+    expect(await readFake(path.join(madrigal.albumPath, MADRIGAL_FILES[1]))).toEqual({});
+  });
+});

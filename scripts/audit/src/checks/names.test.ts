@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseNameFromFilename, checkNameTagMatch } from './names.js';
+import { checkNameTagMatch, localNumbering, matchNames, parseNameFromFilename, parseTrackNames } from './names.js';
 import type { TrackInfo } from '../types.js';
 
 function track(overrides: Partial<TrackInfo> = {}): TrackInfo {
@@ -108,5 +108,122 @@ describe('checkNameTagMatch', () => {
       }),
     );
     expect(issues[0].file).toBe('03 - Wrong.flac');
+  });
+});
+
+const MADRIGAL = [
+  'Yes_-_Madrigal_Mystery_Tour_-_01_-_Opening_-_Siberian_Khatru.mp3',
+  'Yes_-_Madrigal_Mystery_Tour_-_02_-_Heart_Of_The_Sunrise.mp3',
+  'Yes_-_Madrigal_Mystery_Tour_-_11_-_Madrigal_-_Clap.mp3',
+  'Yes_-_Madrigal_Mystery_Tour_-_17_-_Madrigal.mp3',
+];
+
+describe('parseTrackNames — parts every track shares', () => {
+  it('drops the artist and album that are on every file, keeps the title’s own " - "', () => {
+    expect(parseTrackNames(MADRIGAL)).toEqual([
+      { no: 1, title: 'Opening - Siberian Khatru' },
+      { no: 2, title: 'Heart Of The Sunrise' },
+      { no: 11, title: 'Madrigal - Clap' },
+      { no: 17, title: 'Madrigal' }, // part of the album name, but only this track's title
+    ]);
+  });
+
+  it('Yes by Yes with the song "Yes": only the parts before the number are on every track', () => {
+    expect(parseTrackNames(['Yes - Yes - 05 - Yes.mp3', 'Yes - Yes - 06 - Owner.mp3'])).toEqual([
+      { no: 5, title: 'Yes' },
+      { no: 6, title: 'Owner' },
+    ]);
+  });
+
+  it('keeps a part only some tracks have', () => {
+    expect(parseTrackNames(['01 - Yes - Intro.mp3', '02 - No.mp3'])).toEqual([
+      { no: 1, title: 'Yes - Intro' },
+      { no: 2, title: 'No' },
+    ]);
+  });
+
+  it('drops a part after the number that every track has ("d1t01 - Beck - Loser")', () => {
+    expect(parseTrackNames(['d1t01 - Beck - Loser.flac', 'd1t02 - Beck - Pay No Mind.flac'])).toEqual([
+      { disc: 1, no: 1, title: 'Loser' },
+      { disc: 1, no: 2, title: 'Pay No Mind' },
+    ]);
+  });
+
+  it('strips nothing from a single file', () => {
+    expect(parseTrackNames(['Yes - Yes - 05 - Yes.mp3'])).toEqual([{ title: 'Yes - Yes - 05 - Yes' }]);
+    expect(parseTrackNames(['d1t02 - Artist - Song.flac'])).toEqual([{ disc: 1, no: 2, title: 'Artist - Song' }]);
+  });
+
+  it('never strips a title to nothing', () => {
+    expect(parseTrackNames(['01 - Intro.mp3', '02 - Intro.mp3'])).toEqual([
+      { no: 1, title: 'Intro' },
+      { no: 2, title: 'Intro' },
+    ]);
+  });
+
+  it('reads the old formats', () => {
+    expect(parseTrackNames(['01. Song.flac', '02 Other Song.flac', '03-Third.flac', 'd2t04.Fourth.flac'])).toEqual([
+      { no: 1, title: 'Song' },
+      { no: 2, title: 'Other Song' },
+      { no: 3, title: 'Third' },
+      { disc: 2, no: 4, title: 'Fourth' },
+    ]);
+  });
+
+  it('parseNameFromFilename uses the album’s other file names', () => {
+    expect(parseNameFromFilename(MADRIGAL[0], MADRIGAL)).toBe('Opening - Siberian Khatru');
+    expect(parseNameFromFilename(MADRIGAL[0])).toBeUndefined(); // alone: no number first
+  });
+});
+
+describe('localNumbering', () => {
+  it('uses the numbers in the names', () => {
+    expect(localNumbering(MADRIGAL)).toEqual([
+      { disc: 1, no: 1 },
+      { disc: 1, no: 2 },
+      { disc: 1, no: 11 },
+      { disc: 1, no: 17 },
+    ]);
+  });
+
+  it('numbers by natural order when a name has no number', () => {
+    expect(localNumbering(['b.mp3', 'a 10.mp3', 'a 9.mp3'], 2)).toEqual([
+      { disc: 2, no: 3 },
+      { disc: 2, no: 2 },
+      { disc: 2, no: 1 },
+    ]);
+  });
+
+  it('numbers by order when two names share a number', () => {
+    expect(localNumbering(['01 - A.mp3', '01 - B.mp3'])).toEqual([
+      { disc: 1, no: 1 },
+      { disc: 1, no: 2 },
+    ]);
+  });
+});
+
+describe('matchNames', () => {
+  const t = (title: string | undefined, parsedName?: string) => ({ tags: { title }, parsedName });
+
+  it('drops the title parts every track shares', () => {
+    expect(matchNames([t('Yes - Madrigal Mystery Tour - Awaken'), t('Yes - Madrigal Mystery Tour - Soon')])).toEqual([
+      'Awaken',
+      'Soon',
+    ]);
+  });
+
+  it('keeps a title that is also the album name', () => {
+    expect(matchNames([t('Yes'), t('Owner')])).toEqual(['Yes', 'Owner']);
+  });
+
+  it('uses the file names when every title is the same', () => {
+    expect(matchNames([t('Opening/Siberian Khatru', 'Opening - Siberian Khatru'), t('Opening/Siberian Khatru', 'Soon')])).toEqual([
+      'Opening - Siberian Khatru',
+      'Soon',
+    ]);
+  });
+
+  it('falls back to the file name for an untitled track', () => {
+    expect(matchNames([t(undefined, 'Awaken'), t('Soon')])).toEqual(['Awaken', 'Soon']);
   });
 });

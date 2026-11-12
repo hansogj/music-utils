@@ -4,7 +4,7 @@ import path from 'node:path';
 import { checkDiscogsIds } from './checks/discogs-ids.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { checkFolderFormat } from './checks/folder.js';
-import { checkNameTagMatch, parseNameFromFilename } from './checks/names.js';
+import { checkNameTagMatch, matchNames, parseNameFromFilename } from './checks/names.js';
 import { checkTags } from './checks/tags.js';
 import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
 import { fetchOriginalYear, searchDiscogs } from './discogs.js';
@@ -30,6 +30,7 @@ export interface AuditAlbumOptions {
 export async function readTracks(layout: AlbumLayout): Promise<TrackInfo[]> {
   const files = await listMusicFiles(layout.albumPath);
   const tracks: TrackInfo[] = [];
+  const names = files.map((f) => f.name);
 
   for (const { name, ext } of files) {
     const filePath = path.join(layout.albumPath, name);
@@ -39,7 +40,7 @@ export async function readTracks(layout: AlbumLayout): Promise<TrackInfo[]> {
       fileName: name,
       ext,
       tags,
-      parsedName: parseNameFromFilename(name),
+      parsedName: parseNameFromFilename(name, names),
       tagReadError: error,
     });
   }
@@ -82,7 +83,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   let discogsResults = undefined;
   if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways)) {
     try {
-      const localNames = tracks.map((t) => t.tags.title ?? t.parsedName ?? '').filter(Boolean);
+      const localNames = matchNames(tracks).filter(Boolean);
       discogsResults = await searchDiscogs(layout.artistName, layout.albumFolder, token, localNames);
     } catch {
       // Discogs rate-limit or network — silently skip per-album
