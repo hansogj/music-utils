@@ -92,11 +92,21 @@ After each fix the album is scanned again, so the next issue shown matches the f
 | `1`–`9` | issue menu | that action |
 | `d` | issue menu | tag the whole album from a Discogs release you choose |
 | `l` | issue menu | list the album's files |
-| `s` / `q` | issue menu | skip this issue / quit repair |
+| `s` / `q` | issue menu | skip this issue / quit repair; the first skip in an album offers to add a bracket to its folder name (below) |
 | `o` | any prompt | start this album over (below) |
 | `b` | release ID prompt | browse the search results; Esc goes back to the issue menu |
 | `n` | disc pairing | start the disc at another release track |
 | `r` | after an album's issues | go through the ones not fixed again |
+
+**A bracket after a skip.** Skipping often means Discogs doesn't know the album, for instance a bootleg. The first time you skip an issue in an album (also the `--retag` offer), you can note that in the folder name:
+
+```
+  Add to the folder name (e.g. bootleg)? Edit the brackets; Enter leaves them.
+    Brackets: bootleg
+  → folder becomes "1978 Live in Paris [bootleg]" after this album's other fixes
+```
+
+The input starts with the brackets the folder has (`[FLAC]`), to edit or add to: plain text becomes a bracket (`[FLAC] bootleg` → `[FLAC] [bootleg]`), and an empty line removes them all. Enter leaves the name as it is. The rename runs last, with a Discogs rename if there is one, and is noted in `info.txt`.
 
 Regret a choice? Answer `o` at any prompt (or pick `[o] Start album over` in the issue menu) to go back to the album's opening table: the album is scanned again and its issues shown from the top. A folder rename you agreed to but that hasn't run yet is dropped; tags and file renames already written stay (tag again from Discogs to overwrite them).
 

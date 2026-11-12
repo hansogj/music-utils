@@ -22,6 +22,7 @@ import {
   describeOldYear,
   oldYearBracket,
   type OldYearAnswer,
+  withAuxPart,
 } from './year-bracket.js';
 import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
@@ -224,6 +225,24 @@ interface FolderRenamePlan {
   album?: string;
   year?: string;
   oldYear?: OldYearAnswer; // the old year kept as an aux bracket: "live 1978"
+  aux?: string; // the folder's brackets, edited after a skip: "[FLAC] [bootleg]"
+}
+
+// Adds to the album's pending folder rename (a skip's brackets and a Discogs rename combine).
+function planFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): void {
+  pendingFolderRenames.set(layout, { ...pendingFolderRenames.get(layout), ...plan });
+}
+
+// After a skip: lets the user note what the album is in the folder name, e.g. a bootleg
+// Discogs doesn't list: "Artist/1978 Live in Paris [bootleg]". Starts from the folder's
+// brackets; Enter leaves them. Returns the new bracket part, or undefined for no change.
+async function askSkipAux(layout: AlbumLayout): Promise<string | undefined> {
+  const current = auxPartOf(pendingFolderRenames.get(layout)?.aux ?? layout.albumFolder);
+  console.log(chalk.dim('  Add to the folder name (e.g. bootleg)? Edit the brackets; Enter leaves them.'));
+  const aux = customAux(await ask('    Brackets: ', current));
+  if (aux === current) return undefined;
+  console.log(chalk.dim(`  → folder becomes "${withAuxPart(layout.albumFolder, aux)}" after this album's other fixes`));
+  return aux;
 }
 
 // ── old year as an aux bracket ────────────────────────────────────────────────
@@ -333,8 +352,9 @@ async function askFolderRename(
 
 // The album folder name a plan leads to: disc part first, then the brackets it had,
 // then the old-year bracket.
-function plannedAlbumFolder(folder: string, plan: FolderRenamePlan): string {
-  if (!plan.album && !plan.year) return folder;
+function plannedAlbumFolder(original: string, plan: FolderRenamePlan): string {
+  const folder = plan.aux !== undefined ? withAuxPart(original, plan.aux) : original;
+  if (!plan.album && !plan.year) return applyOldYear(folder, plan.oldYear);
   const yearPrefix = plan.year ? `${plan.year} ` : (folder.match(/^(\d{4}\s+)/)?.[1] ?? '');
   const discPart = folder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
   const auxPart = (folder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
@@ -668,7 +688,7 @@ function buildDiscogsAction(
       // ── ask about folder renames; they run after the album's other fixes ─
       const plan = await askFolderRename(audit.layout, meta, release);
       if (plan) {
-        pendingFolderRenames.set(audit.layout, plan);
+        planFolderRename(audit.layout, plan);
         console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
       }
     },
@@ -1077,6 +1097,14 @@ async function repairAlbumPass(
   const handled = new Set<string>();
   let mismatchBulkIdx = -1;
   let quit = false;
+  // The first skip in an album offers to add a bracket to its folder name; once per album.
+  let auxOffered = false;
+  const offerSkipAux = async () => {
+    if (auxOffered) return;
+    auxOffered = true;
+    const aux = await askSkipAux(layout);
+    if (aux !== undefined) planFolderRename(layout, { aux });
+  };
 
   albumLoop: while (true) {
     let issue: Issue | undefined;
@@ -1130,6 +1158,7 @@ async function repairAlbumPass(
           }
           if (choice === 's') {
             await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'skipped', result: 'skipped' });
+            await offerSkipAux();
             break issueMenuLoop;
           }
           if (choice === 'd' && offerDiscogs && token) {
@@ -1226,6 +1255,7 @@ async function repairAlbumPass(
         await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: action.label, result, error });
       } else {
         await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'skipped', result: 'skipped' });
+        await offerSkipAux();
       }
     }
   }
@@ -1245,7 +1275,8 @@ async function repairAlbumPass(
       result = 'failed';
       error = err instanceof Error ? err.message : String(err);
     }
-    const action = `Rename folder(s) to match Discogs${renamedTo ? ` → "${renamedTo}"` : ''}`;
+    const what = plan.artist || plan.album || plan.year ? 'Rename folder(s) to match Discogs' : 'Set folder brackets';
+    const action = `${what}${renamedTo ? ` → "${renamedTo}"` : ''}`;
     await logEvent({ album: loc, issue: 'FOLDER_RENAME', severity: 'MODERATE', action, result, error });
   }
 

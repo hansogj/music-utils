@@ -197,6 +197,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     const audit = await scan();
     const done = answer([
       [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS
+      [/Brackets:/, ''], // first skip in the album: no bracket added
       [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
       [/\[r\] Retry/, ''], // 2 issues not fixed → continue
       [/Next album/, ''],
@@ -280,6 +281,7 @@ describe('repairAlbum — start the album over', () => {
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → [1] Tag from Discogs
       [/Release ID/, 'o'], // regret
       [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS again, from the top
+      [/Brackets:/, ''], // first skip in the album: no bracket added
       [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
       [/\[r\] Retry/, ''],
       [/Next album/, ''],
@@ -306,6 +308,7 @@ describe('repairAlbum — start the album over', () => {
       [/Old year \[Enter\/l\/r\/c\]/, ''], // no bracket
       [/^ {2}Choice \[1\]/, 'o'], // at the track 1 mismatch: regret
       [/^ {2}Choice \[1\]/, 's'], // the mismatch, shown from the top again
+      [/Brackets:/, ''], // first skip in the album: no bracket added
       [/\[r\] Retry/, ''],
       [/Next album/, ''],
     ]);
@@ -360,6 +363,7 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
     vi.mocked(fetchRelease).mockClear();
     const done = answer([
       [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
+      [/Brackets:/, ''], // first skip in the album: no bracket added
       [/^ {2}Choice \[1\]/, ''], // MISSING_RELEASE_ID: the only action, [1] Tag from Discogs release ID
       [/Release ID \[enter ID\]/, '[r1886376]'],
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
@@ -746,6 +750,7 @@ describe('repairAlbum — a stray second copy of two tracks (Art Deco)', () => {
       [/^ {2}Choice \[1\]/, ''], // NO_TAGS → Discogs
       [/Release ID \[enter ID\]/, '8082437'], // no "fewer tracks" question: 15 vs 15
       [/^ {2}Choice \[1\]/, 's'], // NO_TAGS: the 2 extra copies, left untagged
+      [/Brackets:/, ''], // first skip in the album: no bracket added
       [/^ {2}Choice \[1\]/, 's'], // DUPLICATE_TRACKS ×2, still there after the re-scan
       [/^ {2}Choice \[1\]/, 's'],
       [/\[r\] Retry/, ''],
@@ -846,5 +851,72 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     await repairAlbum(await yearAudit(disc1), ctx(false));
     done();
     expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [live 1979]');
+  });
+});
+
+describe('repairAlbum — a bracket for the folder after a skip', () => {
+  it('adds [bootleg] to the folder name after the album, asking only at the first skip', async () => {
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS: Discogs doesn't list this bootleg
+      [/Brackets:/, 'bootleg'],
+      [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH: no second question
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+
+    expect(prefills[1]).toBe(''); // the folder has no brackets to start from
+    const newPath = path.join(root, 'Y', 'Yezda Urfa', '1976 Sacred Baboon [bootleg]');
+    expect(layout.albumPath).toBe(newPath);
+    expect(output.join('\n')).toMatch(/folder becomes "1976 Sacred Baboon \[bootleg\]" after this album's other fixes/);
+    expect(events.at(-1)).toMatchObject({
+      issue: 'FOLDER_RENAME',
+      action: 'Set folder brackets → "Yezda Urfa/1976 Sacred Baboon [bootleg]"',
+      result: 'fixed',
+    });
+    expect(await fs.readFile(path.join(newPath, 'info.txt'), 'utf8')).toMatch(
+      /folder name was changed from "1976 Sacred Baboon" to "1976 Sacred Baboon \[bootleg\]"/,
+    );
+  });
+
+  it('Enter leaves the folder name as it is', async () => {
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 's'],
+      [/Brackets:/, ''],
+      [/^ {2}Choice \[1\]/, 's'],
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+    expect(layout.albumFolder).toBe('1976 Sacred Baboon');
+    expect(events.map((e) => e.issue)).not.toContain('FOLDER_RENAME');
+  });
+
+  it('combines with a Discogs folder rename', async () => {
+    const audit = await scan();
+    audit.discogsResults = [
+      { id: 4376665, title: 'Yezda Urfa - Sacred Baboon', year: '1989', releaseUrl: 'https://www.discogs.com/release/4376665' },
+    ];
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, 'n'], // leaves a name/tag mismatch to skip
+      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989
+      [/Old year \[Enter\/l\/r\/c\]/, 'r'],
+      [/^ {2}Choice \[1\]/, 's'], // the mismatch
+      [/Brackets:/, 'bootleg'],
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+    expect(layout.albumFolder).toBe('1989 Sacred Baboon [bootleg] [rec. 1976]');
+    expect(events.find((e) => e.issue === 'FOLDER_RENAME')?.action).toBe(
+      'Rename folder(s) to match Discogs → "Yezda Urfa/1989 Sacred Baboon [bootleg] [rec. 1976]"',
+    );
   });
 });
