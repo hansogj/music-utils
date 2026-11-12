@@ -34,6 +34,8 @@ describe('c: editing the folder’s brackets', () => {
     expect(customAux('[FLAC] [live 1979')).toBe('[FLAC] [live 1979]'); // unclosed
     expect(customAux('[FLAC] []')).toBe('[FLAC]');
     expect(customAux('  ')).toBe('');
+    expect(customAux('[FLAC] bootleg')).toBe('[FLAC] [bootleg]');
+    expect(customAux('bootleg [FLAC]')).toBe('[bootleg] [FLAC]');
   });
 
   it('applyOldYear replaces the brackets with the edited ones, or drops them', () => {

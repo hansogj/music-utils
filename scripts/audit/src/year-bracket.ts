@@ -35,10 +35,10 @@ export function auxPartOf(folder: string): string {
 }
 
 // What "c" was edited to, as the folder's new bracket part: "[FLAC] [live 1979]" stays as
-// brackets; plain text ("Philadelphia 1979") becomes one bracket; '' removes them all.
+// brackets; plain text ("Philadelphia 1979") becomes one bracket, also next to brackets
+// ("[FLAC] bootleg" → "[FLAC] [bootleg]"); '' removes them all.
 export function customAux(input: string): string {
-  const groups = input.match(/\[[^\]]*\]?/g);
-  const parts = groups ? groups.map((g) => cleanBracketText(g)) : [cleanBracketText(input)];
+  const parts = (input.match(/\[[^\]]*\]?|[^[]+/g) ?? []).map((g) => cleanBracketText(g));
   return parts
     .filter(Boolean)
     .map((p) => `[${p}]`)

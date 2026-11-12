@@ -116,7 +116,8 @@ scripts/audit/src/
                     a Changeset header at the bottom, kept across rewrites)
   year-bracket.ts — oldYearBracket() (l → live YYYY, r → rec. YYYY: appended), customAux()
                     (c: the folder's brackets, pre-filled via ask(q, prefill), edited and
-                    replacing them), applyOldYear(), albumSetKey() (one answer per disc set)
+                    replacing them; plain text → a bracket), applyOldYear(), albumSetKey()
+                    (one answer per disc set). Also used by the skip prompt (askSkipAux)
   disc-split.ts   — sliceForDisc(): the part of a Discogs release one "(Disc n∕m)" folder
                     holds (release disc numbers, else a window placed by the other disc
                     folders' track counts and title match); discOfFolder()
@@ -150,6 +151,7 @@ scripts/audit/src/
 - **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2` for standard frames and `id3-frames.ts` for TXXX (Discogs IDs) and COMM (empty description, full URL). Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, ORIGINALDATE (MP3: TORY), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID and DISCOGS_MASTER_ID (MP3: TXXX with description; JSON report: `tags.discogsReleaseId` / `tags.discogsMasterId`)
 - **Original year & title**: DATE, ORIGINALDATE, ALBUM and the folder's year/title always use the Discogs **master** (falling back to the release), never a reissue's year or title. Tracks are matched by numeric position when all positions are numeric, else by listing order (`numberTracklist()`, for vinyl `A1/B1`). `fetchOriginalYear()` results are cached on disk at `~/.cache/music-audit/original-years.json`
 - **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines); in repair mode only, silently created from existing tags if none exists. Never rewritten with the same text (a library mirror watches its mtime). Album and artist folder renames add a dated line to the Changeset section at the bottom (`renameAlbumFolder()` / `noteChange()` in repair.ts)
+- **Bracket after a skip**: the first `[s]` in an album (issue menu or the `--retag` offer) asks `askSkipAux()` for the folder's brackets, pre-filled with the current ones (e.g. add `bootleg`); stored as `aux` in the pending folder rename (`planFolderRename()` merges it with a Discogs rename) and applied last
 - **Old year bracket**: every repair that changes a folder's year (Discogs folder rename, YEAR_NOT_ORIGINAL) asks `askOldYearBracket()`; the answer is kept per album set for the run (`resetRepairSession()` at run start and in tests). The repair log records the final folder name
 - **Split disc folders**: Discogs tagging uses only the folder's disc (see disc-split.ts); a master entered for a disc folder resolves to a CD version with that many discs (`pickMasterVersion()`); index entries (suites with sub-tracks) count as one track (`flattenTracklist()`)
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext`, also in a `(Disc n∕m)` folder (`dDtNN - Title.ext` only when one folder holds the files of several discs) to prevent NAME_TAG_MISMATCH on next audit run
