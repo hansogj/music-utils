@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { NumberedTrack } from './discogs.js';
-import { checkRenames, pairingProblem, pairWithRelease, sanitizeFilename } from './rename-plan.js';
+import { checkRenames, pairingProblem, pairWithRelease, planPairing, sanitizeFilename } from './rename-plan.js';
 
 describe('sanitizeFilename', () => {
   it('turns a slash or colon inside a title into " - "', () => {
@@ -85,5 +85,77 @@ describe('checkRenames', () => {
   it('allows a rename that only changes case', () => {
     const r = [{ old: '01 - a.mp3', new: '01 - A.mp3' }];
     expect(checkRenames(r, ['01 - a.mp3'])).toEqual({ ok: r });
+  });
+});
+
+describe('planPairing — files without a track number', () => {
+  const release = ['The Frim-Fram Sauce', 'Other Song', 'April Showers', 'Last Song'].map((t, i) => track(1, i + 1, t));
+
+  it('Art Deco: an unnumbered copy of a numbered track is an extra copy, not track 5', () => {
+    const names = [
+      '01 - The Frim-Fram Sauce.mp3',
+      '02 - Other Song.mp3',
+      '03 - April Showers.mp3',
+      '04 - Last Song.mp3',
+      'April Showers.mp3',
+      'The Frim-Fram Sauce.mp3',
+    ];
+    const plan = planPairing(
+      names,
+      names.map(() => ''),
+      release,
+    );
+    expect(plan.map((p) => [p.no, p.track?.title, p.extraOf])).toEqual([
+      [1, 'The Frim-Fram Sauce', undefined],
+      [2, 'Other Song', undefined],
+      [3, 'April Showers', undefined],
+      [4, 'Last Song', undefined],
+      [3, undefined, 2],
+      [1, undefined, 0],
+    ]);
+  });
+
+  it('places an unnumbered file on the free release track its title matches', () => {
+    const names = ['01 - The Frim-Fram Sauce.mp3', '02 - Other Song.mp3', '04 - Last Song.mp3', 'April Showers.mp3'];
+    const plan = planPairing(
+      names,
+      names.map(() => ''),
+      release,
+    );
+    expect(plan.map((p) => [p.no, p.track?.title, p.extraOf])).toEqual([
+      [1, 'The Frim-Fram Sauce', undefined],
+      [2, 'Other Song', undefined],
+      [4, 'Last Song', undefined],
+      [3, 'April Showers', undefined],
+    ]);
+  });
+
+  it('a second unnumbered copy of a placed one is an extra of it', () => {
+    const names = ['01 - The Frim-Fram Sauce.mp3', 'April Showers.mp3', 'April Showers (2).mp3'];
+    const plan = planPairing(names, ['', 'April Showers', 'April Showers'], release);
+    expect(plan.map((p) => [p.no, p.track?.title, p.extraOf])).toEqual([
+      [1, 'The Frim-Fram Sauce', undefined],
+      [3, 'April Showers', undefined],
+      [3, undefined, 1],
+    ]);
+  });
+
+  it('numbers an unnumbered file that matches no title after the others', () => {
+    const names = ['01 - The Frim-Fram Sauce.mp3', '02 - Other Song.mp3', 'Hidden Track.mp3'];
+    const plan = planPairing(
+      names,
+      names.map(() => ''),
+      release,
+    );
+    expect(plan.map((p) => [p.no, p.track?.title, p.extraOf])).toEqual([
+      [1, 'The Frim-Fram Sauce', undefined],
+      [2, 'Other Song', undefined],
+      [3, undefined, undefined],
+    ]);
+  });
+
+  it('without unnumbered files, pairs as pairWithRelease does', () => {
+    const plan = planPairing(['01 - A.mp3', '02 - B.mp3'], ['', ''], release);
+    expect(plan.map((p) => p.track?.title)).toEqual(['The Frim-Fram Sauce', 'Other Song']);
   });
 });

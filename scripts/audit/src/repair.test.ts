@@ -684,3 +684,71 @@ describe('repairAlbum — file names with artist and album, a 2-CD release in on
     expect(await readFake(path.join(madrigal.albumPath, MADRIGAL_FILES[1]))).toEqual({});
   });
 });
+
+// Discogs release 8082437: 15 tracks. The folder has 17 mp3s: a stray second rip of
+// tracks 1 and 3, without a track number in the name.
+const ART_DECO_TITLES = [
+  'The Frim-Fram Sauce', 'Song Two', 'April Showers', 'Song Four', 'Song Five', 'Song Six', 'Song Seven',
+  'Song Eight', 'Song Nine', 'Song Ten', 'Song Eleven', 'Song Twelve', 'Song Thirteen', 'Song Fourteen',
+  'Song Fifteen',
+];
+const ART_DECO_RELEASE: ReleaseInfo = {
+  releaseId: '8082437',
+  year: '1985',
+  releaseYear: '1985',
+  title: 'Art Deco',
+  artists: ['Ytre Suløens Jass-Ensemble'],
+  tracklist: ART_DECO_TITLES.map((title, i) => ({ position: String(i + 1), title, type_: 'track' })),
+};
+
+describe('repairAlbum — a stray second copy of two tracks (Art Deco)', () => {
+  let artDeco: AlbumLayout;
+
+  beforeEach(async () => {
+    const albumPath = path.join(root, 'Y', 'Ytre Suløens Jass-Ensemble', '1985 Art Deco');
+    await fs.mkdir(albumPath, { recursive: true });
+    for (const [i, t] of ART_DECO_TITLES.entries())
+      await fs.writeFile(path.join(albumPath, `${String(i + 1).padStart(2, '0')} - ${t}.mp3`), '{}');
+    await fs.writeFile(path.join(albumPath, 'The Frim-Fram Sauce.mp3'), '{}');
+    await fs.writeFile(path.join(albumPath, 'April Showers.mp3'), '{}');
+    artDeco = { letterDir: 'Y', artistName: 'Ytre Suløens Jass-Ensemble', albumFolder: '1985 Art Deco', albumPath };
+  });
+
+  it('finds both pairs before tagging, naming the unnumbered file', async () => {
+    const audit = await auditAlbum(artDeco, { skipDiscogs: true });
+    const dupes = audit.issues.filter((i) => i.code === 'DUPLICATE_TRACKS').map((i) => i.message);
+    expect(dupes).toEqual([
+      expect.stringMatching(/"The Frim-Fram Sauce" appears 2×.*likely extra copy: The Frim-Fram Sauce\.mp3$/),
+      expect.stringMatching(/"April Showers" appears 2×.*likely extra copy: April Showers\.mp3$/),
+    ]);
+  });
+
+  it('tags the 15 release tracks n/15 and leaves the two extra copies untagged', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(ART_DECO_RELEASE);
+    const audit = await auditAlbum(artDeco, { skipDiscogs: true });
+    expect(audit.issues[0].code).toBe('NO_TAGS');
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // NO_TAGS → Discogs
+      [/Release ID \[enter ID\]/, '8082437'], // no "fewer tracks" question: 15 vs 15
+      [/^ {2}Choice \[1\]/, 's'], // NO_TAGS: the 2 extra copies, left untagged
+      [/^ {2}Choice \[1\]/, 's'], // DUPLICATE_TRACKS ×2, still there after the re-scan
+      [/^ {2}Choice \[1\]/, 's'],
+      [/\[r\] Retry/, ''],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    const out = output.join('\n');
+    expect(out).toMatch(/April Showers\.mp3 looks like an extra copy of 03 - April Showers\.mp3: not tagged/);
+    expect(out).toMatch(/The Frim-Fram Sauce\.mp3 looks like an extra copy of 01 - The Frim-Fram Sauce\.mp3/);
+    expect(out).not.toMatch(/fewer track/);
+    expect(await readFake(path.join(artDeco.albumPath, '15 - Song Fifteen.mp3'))).toMatchObject({
+      TITLE: 'Song Fifteen',
+      TRACKNUMBER: '15/15',
+    });
+    expect(await readFake(path.join(artDeco.albumPath, '03 - April Showers.mp3'))).toMatchObject({ TRACKNUMBER: '3/15' });
+    expect(await readFake(path.join(artDeco.albumPath, 'April Showers.mp3'))).toEqual({});
+    expect(await readFake(path.join(artDeco.albumPath, 'The Frim-Fram Sauce.mp3'))).toEqual({});
+  });
+});

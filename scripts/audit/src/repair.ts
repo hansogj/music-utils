@@ -13,7 +13,7 @@ import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } 
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
 import { writeInfoTxt } from './info-txt.js';
-import { checkRenames, pairingProblem, pairWithRelease, sanitizeFilename } from './rename-plan.js';
+import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from './rename-plan.js';
 import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
@@ -462,7 +462,6 @@ function buildDiscogsAction(
         console.log(chalk.dim(`  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`));
       const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
       const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
-      const total = files.length;
 
       // For a "(Disc n∕m)" folder only that disc's part of the release is used.
       const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
@@ -479,31 +478,50 @@ function buildDiscogsAction(
       if (!slice) { console.log(chalk.dim('  Skipped.')); return; }
       const discTracks = slice.tracks;
 
-      if (discTracks.length !== files.length) {
-        const extra = discTracks.length - files.length;
+      const pairing = planPairing(
+        files.map((f) => f.name),
+        files.map((f) => names.get(f.name) ?? ''),
+        discTracks,
+        folderDisc,
+      );
+      const local = pairing.map(({ disc, no }) => ({ disc, no }));
+      const paired = pairing.map((p) => p.track);
+      const titles = paired.map((t) => t?.title?.trim() || undefined);
+      const isExtra = (i: number) => pairing[i].extraOf !== undefined;
+      const extras = files.filter((_, i) => isExtra(i));
+      for (const [i, f] of files.entries()) {
+        if (isExtra(i))
+          console.log(
+            chalk.yellow(`  ⚠ ${f.name} looks like an extra copy of ${files[pairing[i].extraOf!].name}: not tagged — move it out of the album`),
+          );
+      }
+      const localCount = files.length - extras.length;
+
+      if (discTracks.length !== localCount) {
+        const extra = discTracks.length - localCount;
         const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
         const msg = extra > 0
           ? `${what} ${extra} more track(s) — may be a bonus edition`
           : `${what} ${-extra} fewer track(s) — may be a different pressing`;
-        console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${files.length} local)`));
+        console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${localCount} local)`));
         const ok = await ask('  Continue anyway? [y/N] ');
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
-      const local = localNumbering(files.map((f) => f.name), folderDisc);
-      const paired = pairWithRelease(local, discTracks);
-      const titles = paired.map((t) => t?.title?.trim() || undefined);
-      const problem = pairingProblem(titles);
+      const problem = pairingProblem(titles.filter((_, i) => !isExtra(i)));
       if (problem) {
         console.log(chalk.yellow(`  ⚠ The titles don't line up: ${problem}`));
         files.forEach((f, i) =>
-          console.log(chalk.dim(`    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : '?'}`)),
+          console.log(chalk.dim(`    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : isExtra(i) ? '(extra copy)' : '?'}`)),
         );
         const ok = await ask('  Tag anyway? [y/N] ');
         if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
       }
 
+      // The release's own count when stray copies are left out (15, not 17).
+      const total = localCount;
       for (const [i, { name, ext }] of files.entries()) {
+        if (isExtra(i)) continue;
         const { no, disc } = local[i];
         const title = titles[i];
         const tags: Record<string, string> = {
