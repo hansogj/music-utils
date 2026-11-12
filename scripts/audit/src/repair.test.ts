@@ -471,7 +471,7 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/^ {2}Choice \[1\]/, ''], // [1] Tag from Discogs release ID (suggested: 8270054, from the other disc folder)
       [/Release ID \[8270054\]/, ''],
       [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
-      [/Apply renames\?/, 'n'],
+      // Already "01 - Your Move.mp3": no renames in a disc folder.
       [/Next album/, ''],
     ]);
 
@@ -488,6 +488,54 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     expect(await fs.readFile(path.join(disc2.albumPath, 'info.txt'), 'utf8')).toMatch(/Disc: 2\/2/);
   });
 
+  it('renames "d2t01 - …" files in a disc folder to "01 - Title"', async () => {
+    for (const name of await fs.readdir(disc2.albumPath)) {
+      await fs.rename(path.join(disc2.albumPath, name), path.join(disc2.albumPath, `d2t${name}`));
+    }
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
+    const audit = await auditAlbum(disc2, { skipDiscogs: true });
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[8270054\]/, ''],
+      [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
+      [/Apply renames\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+    done();
+    const names = (await fs.readdir(disc2.albumPath)).filter((n) => n.endsWith('.mp3')).sort();
+    expect(names[0]).toBe('01 - Your Move.mp3');
+    expect(names.every((n) => /^\d\d - /.test(n))).toBe(true);
+    expect(await readFake(path.join(disc2.albumPath, '01 - Your Move.mp3'))).toMatchObject({
+      TRACKNUMBER: '1/7',
+      DISCNUMBER: '2/2',
+    });
+  });
+
+  it('keeps "d1t01 - …" names when one folder holds the files of several discs', async () => {
+    const both = path.join(root, 'Y', 'Yes', '1973 Yessongs');
+    await fs.mkdir(both);
+    for (const [i, [, title]] of YESSONGS.entries()) {
+      const [disc, no] = i < 8 ? [1, i + 1] : [2, i - 7];
+      await fs.writeFile(path.join(both, `d${disc}t${String(no).padStart(2, '0')}. ${title}.mp3`), '{}');
+    }
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
+    const audit = await auditAlbum({ ...disc2, albumFolder: '1973 Yessongs', albumPath: both }, { skipDiscogs: true });
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID/, '8270054'],
+      [/Apply renames\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+    done();
+    const names = (await fs.readdir(both)).filter((n) => n.endsWith('.mp3')).sort();
+    expect(names[0]).toBe('d1t01 - Opening (Excerpt From Firebird Suite).mp3');
+    expect(names[8]).toBe('d2t01 - Your Move.mp3');
+  });
+
   it('[n] moves the disc to another start track', async () => {
     const { fetchRelease } = await import('./discogs.js');
     vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
@@ -500,7 +548,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/\[n\] Start at another track/, 'n'],
       [/Disc 2∕2 starts at release track/, '9'],
       [/\[n\] Start at another track/, ''],
-      [/Apply renames\?/, 'n'],
       [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');

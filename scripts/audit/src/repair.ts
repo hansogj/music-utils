@@ -536,7 +536,9 @@ function buildDiscogsAction(
       }
 
       // ── offer file renames to match Discogs titles ──────────────────────
-      const isMultiDisc = parseInt(meta.noOfDiscs, 10) > 1;
+      // "01 - Title", also in a "(Disc n∕m)" folder; "d2t01 - Title" only when one
+      // folder holds the files of several discs.
+      const isMultiDisc = new Set(local.map((l) => l.disc)).size > 1;
       const planned = files.flatMap(({ name, ext }, i) => {
         const { no, disc } = local[i];
         const title = titles[i];
