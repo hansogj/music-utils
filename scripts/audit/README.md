@@ -12,7 +12,7 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 | Artist under correct `[A-Z]` letter dir | SEVERE | Articles stripped for sorting |
 | All required tags present | HIGH | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER |
 | Filename matches TITLE tag | MODERATE | |
-| Duplicate track names | MODERATE | Same title twice, ignoring variants such as `(live)`, `(demo)`, `(remix)` |
+| Duplicate track names | MODERATE | The same title twice, qualifier included: `Sweet Dreams` and `Sweet Dreams (Original Mix)` are different tracks. Files without a track number count too; the message names the likely extra copy (no number in its name, then no TITLE tag) |
 | MP3 has a Discogs master ID but no release ID | HIGH | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL, or retags the album from a release you choose |
 | Year is the original release year | HIGH | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
 
@@ -77,6 +77,8 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 - **Folder renames** — year prefix, disc separator, bracket style, letter-dir moves
 - **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID (MP3: TXXX frames; in the `--json` report as `tags.discogsReleaseId` / `tags.discogsMasterId`); offers to rename files (`01 - Title.mp3`, also inside a `(Disc n∕m)` folder; `d2t01 - Title.mp3` only when one folder holds several discs) and folders (including the year) to match. DATE/ORIGINALDATE and ALBUM always come from the Discogs **master** (original year and title), not from the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
 - **Original year** — sets DATE/ORIGINALDATE to the master year and renames the folder's year prefix
+- **Old year in a bracket** — whenever a repair changes a folder's year, it asks what to do with the old one: `[Enter]` no bracket, `l` → `[live 1978]`, `r` → `[rec. 1978]`, `c` → your own text. Folder name only (the ALBUM tag gets no bracket); it goes last, after the disc part and any brackets the folder has: `1992 Tourmato (Disc 1∕2) [FLAC] [live 1979]`. The other discs of a set get the same answer without asking
+- **Extra copies** — when tagging from Discogs, a file without a track number whose title matches a release track that already has a file is an extra copy: it is not tagged, and the track total stays the release's
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
 
@@ -132,7 +134,14 @@ Discogs-Master: 123456
 Disc: 1/2
 ```
 
-In repair mode, albums without an `info.txt` also get a basic one built from their tags.
+In repair mode, albums without an `info.txt` also get a basic one built from their tags. An `info.txt` whose text would not change is not written again (its modification time stays).
+
+Folder renames are noted at the bottom of `info.txt`, below the rest of the file, which is left as it is; a later Discogs rewrite keeps the section:
+
+```
+===============Changeset==============
+[2026-11-12 10:45]: folder name was changed from "1979 Tourmato" to "1992 Tourmato [live 1979]"
+```
 
 ## Install the binary system-wide
 
