@@ -13,6 +13,7 @@ import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } 
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
 import { appendChangeset, writeInfoTxt } from './info-txt.js';
+import { interactive } from './rate-limit.js';
 import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from './rename-plan.js';
 import {
   albumSetKey,
@@ -475,7 +476,8 @@ function buildDiscogsAction(
   return {
     label,
     discogs: true,
-    run: async () => {
+    // interactive(): its Discogs requests go ahead of the background scan's.
+    run: () => interactive(async () => {
       const results = audit.discogsResults ?? [];
       const topId = suggested?.id ?? (topResult ? String(topResult.id) : '');
 
@@ -671,7 +673,7 @@ function buildDiscogsAction(
         pendingFolderRenames.set(audit.layout, plan);
         console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
       }
-    },
+    }),
   };
 }
 

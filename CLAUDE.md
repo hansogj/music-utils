@@ -93,9 +93,12 @@ scripts/audit/src/
                     fetchRelease(), fetchMaster(), fetchOriginalYear(), parseDiscogsRef(),
                     resolveReleaseId(), pickMasterVersion() (master → CD version for a disc
                     folder), flattenTracklist() (index entries → one track),
-                    numberTracklist(); all HTTP through discogsGet(), which retries
-                    429/500 with exponential backoff
+                    numberTracklist(); all HTTP through discogsGet(), which waits on
+                    the shared rate limiter and retries 429/500; releases cached per session
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
+  rate-limit.ts   — RateLimiter: moving 60s window sized from X-Discogs-Ratelimit headers
+                    (60/min with a token, 25 without), one shared pause on 429;
+                    interactive() gives repair-prompt requests slots the scan can't use
   repair.ts       — runRepair() → repairAlbum() per album; AuditStream (background scan
                     queue); repairActions() (per issue code); discogsActionFor() /
                     buildDiscogsAction() (release prompt, chooseDiscSlice(), tag write,
@@ -138,6 +141,7 @@ scripts/audit/src/
 ### Key behaviours
 
 - **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel, ranks by fuzzy title similarity (`scoreTracklist`)
+- **Discogs rate limit**: every request waits for a slot in `discogsLimiter` (rate-limit.ts), so the background scan stays under the limit instead of retrying 429s; a 429 that still happens (same token used elsewhere) pauses all requests 5→10→20→40→60s, up to 8 attempts. The Discogs action in repair runs inside `interactive()`
 - **Streaming repair**: `AuditStream` producer/consumer queue — scan runs in background while user handles already-found albums interactively
 - **Per-album repair** (`repairAlbum()`): after every fix the album is re-scanned from disk (no new Discogs search), so issues a Discogs retag solved or changed are never shown out of date. A folder rename the user agrees to is stored and applied last, after all file-level fixes for that album, so nothing points at the old path. Answering `o` at any prompt throws `RestartSignal`: the album starts over from its opening table (re-scan, pending folder rename dropped, written changes kept). Tests answer prompts through `setPrompt()`
 - **Repair log**: JSON Lines at `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-repair.log`; each event written immediately (crash-safe). Log is audit history only — issues are always shown if audit detects them (no auto-skip on resume)

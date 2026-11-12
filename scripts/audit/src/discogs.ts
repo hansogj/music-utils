@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { discOfFolder, sliceForDisc } from './disc-split.js';
+import { RateLimiter } from './rate-limit.js';
 import { userHome } from './env.js';
 import { scoreTracklist } from './similarity.js';
 import type { DiscogsSearchResult, OriginalYear } from './types.js';
@@ -9,23 +10,37 @@ import type { DiscogsSearchResult, OriginalYear } from './types.js';
 const API = 'https://api.discogs.com';
 const UA = 'MusicLibraryAudit/1.0 +https://github.com/hansogj/music-utils';
 
-// Discogs returns 429 when rate-limited and occasionally 500 under load.
-// Retry both with exponential backoff, honouring the Retry-After header.
+// Every request waits for a slot in the shared rate limit (see rate-limit.ts), so the scan
+// doesn't run into 429s. A 429 that still happens (the same token in use elsewhere) pauses
+// all requests with a growing pause; enough attempts to outlast a full 60s window. A 500
+// (Discogs under load) is retried a few times with backoff.
+export const discogsLimiter = new RateLimiter({ log: (m) => process.stderr.write(`  ${m}\n`) });
+
+const MAX_429 = 8; // pauses of 5+10+20+40+60+60+60s: well past a full window
+const MAX_500 = 3;
+
 async function discogsGet(url: string, headers: Record<string, string>): Promise<Response> {
-  const MAX = 4;
-  for (let attempt = 0; attempt < MAX; attempt++) {
+  for (let attempt = 0, errors = 0; ; ) {
+    await discogsLimiter.acquire();
     const res = await fetch(url, { headers });
-    if (res.ok) return res;
-    if ((res.status === 429 || res.status === 500) && attempt < MAX - 1) {
-      const retryAfter = res.headers.get('Retry-After');
-      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (2 ** attempt) * 1500;
-      process.stderr.write(`  Discogs ${res.status} — retrying in ${Math.round(waitMs / 1000)}s…\n`);
+    discogsLimiter.observe(res.headers);
+    if (res.ok) {
+      discogsLimiter.succeeded();
+      return res;
+    }
+    if (res.status === 429 && ++attempt < MAX_429) {
+      const retryAfter = parseInt(res.headers.get('Retry-After') ?? '', 10);
+      discogsLimiter.rateLimited(Number.isNaN(retryAfter) ? undefined : retryAfter);
+      continue;
+    }
+    if (res.status === 500 && ++errors < MAX_500) {
+      const waitMs = 2 ** errors * 1500;
+      process.stderr.write(`  Discogs 500 — retrying in ${Math.round(waitMs / 1000)}s…\n`);
       await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
     throw new Error(`Discogs ${res.status}: ${res.statusText}`);
   }
-  throw new Error('Discogs: max retries exceeded');
 }
 
 function authHeaders(token: string): Record<string, string> {
@@ -205,15 +220,45 @@ function cleanAlbumTitle(folderName: string): string {
     .trim();
 }
 
+interface RawRelease {
+  tracklist?: RawTrack[];
+  year?: number | string;
+  master_id?: number;
+  title?: string;
+  artists?: Array<{ name: string }>;
+  genres?: string[];
+  styles?: string[];
+  country?: string;
+  extraartists?: Array<{ name: string; role: string }>;
+}
+
+// Releases fetched to score search results are usually fetched again when one is picked
+// for tagging: keep the most recent ones for the session.
+const RELEASE_CACHE_SIZE = 200;
+const releaseCache = new Map<string, Promise<RawRelease>>();
+
+function getRelease(releaseId: string, token: string): Promise<RawRelease> {
+  let cached = releaseCache.get(releaseId);
+  if (cached) {
+    releaseCache.delete(releaseId); // re-insert: most recently used last
+  } else {
+    cached = discogsGet(`${API}/releases/${releaseId}`, authHeaders(token)).then((res) => res.json() as Promise<RawRelease>);
+    const pending = cached;
+    // Don't cache failures.
+    pending.catch(() => releaseCache.get(releaseId) === pending && releaseCache.delete(releaseId));
+  }
+  releaseCache.set(releaseId, cached);
+  if (releaseCache.size > RELEASE_CACHE_SIZE) releaseCache.delete(releaseCache.keys().next().value!);
+  return cached;
+}
+
 async function fetchReleaseTracks(releaseId: number, token: string): Promise<NumberedTrack[]> {
-  let res: Response;
   try {
-    res = await discogsGet(`${API}/releases/${releaseId}`, authHeaders(token));
+    const data = await getRelease(String(releaseId), token);
+    return numberTracklist(flattenTracklist(data.tracklist ?? []));
   } catch {
     return [];
   }
-  const data = (await res.json()) as { tracklist?: RawTrack[] };
-  return numberTracklist(flattenTracklist(data.tracklist ?? []));
 }
 
 // How well local track names match a release. For a "(Disc n∕m)" folder only that
@@ -332,18 +377,7 @@ export interface ReleaseInfo {
 // The returned `year` is the master's (original) year, so a 1989 reissue of a 1970 album
 // is tagged 1970; `releaseYear` keeps the reissue year.
 export async function fetchRelease(releaseId: string, token: string): Promise<ReleaseInfo> {
-  const res = await discogsGet(`${API}/releases/${releaseId}`, authHeaders(token));
-  const data = (await res.json()) as {
-    tracklist?: RawTrack[];
-    year?: number | string;
-    master_id?: number;
-    title?: string;
-    artists?: Array<{ name: string }>;
-    genres?: string[];
-    styles?: string[];
-    country?: string;
-    extraartists?: Array<{ name: string; role: string }>;
-  };
+  const data = await getRelease(releaseId, token);
   const releaseYear = data.year && String(data.year) !== '0' ? String(data.year) : undefined;
   const master = data.master_id ? await fetchMaster(data.master_id, token) : undefined;
   return {
@@ -405,5 +439,7 @@ export async function fetchOriginalYear(releaseId: string, token: string): Promi
 /** Test helper: forget in-memory caches. */
 export function resetDiscogsCaches(): void {
   masterCache.clear();
+  releaseCache.clear();
+  discogsLimiter.reset();
   yearCache = undefined;
 }
