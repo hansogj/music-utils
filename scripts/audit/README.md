@@ -47,6 +47,8 @@ With `--no-discogs`, nothing leaves your machine. Otherwise requests go to `api.
 
 File names, paths and track titles are never sent; tracklist matching happens locally.
 
+Discogs allows 60 requests a minute with a token (25 without). music-audit keeps under that limit by itself: when the budget is used up, the scan waits for it to free up again. A release you ask for at a repair prompt goes ahead of the scan. If Discogs still answers "429 Too Many Requests" (for example when the same token is in use on another machine), all requests pause together, for 5s, then 10, 20, 40 and 60s, and one line says so.
+
 To turn the year check on permanently, add this to `~/.config/music-utils/.env` (override per run with `--no-check-years`):
 
 ```

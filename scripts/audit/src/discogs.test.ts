@@ -15,6 +15,7 @@ import {
   pickMasterVersion,
   resetDiscogsCaches,
   resolveReleaseId,
+  searchDiscogs,
 } from './discogs.js';
 
 const RESPONSES: Record<string, unknown> = {
@@ -94,6 +95,51 @@ describe('fetchRelease', () => {
 
   it('falls back to the release year when the master year is unknown (0)', async () => {
     expect((await fetchRelease('600', 'token')).year).toBe('2001');
+  });
+});
+
+describe('rate limiting', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('pauses after a 429 and retries, with one message', async () => {
+    vi.useFakeTimers();
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const ok = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementationOnce(async () => new Response('', { status: 429, statusText: 'Too Many Requests' }));
+    fetchMock.mockImplementation(ok);
+
+    const master = fetchMaster(1439, 'token');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect((await master).year).toBe('1970');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(stderr.mock.calls.map(([m]) => String(m))).toEqual([expect.stringMatching(/rate limit.*pausing 5s/)]);
+    stderr.mockRestore();
+  });
+
+  it('gives up after repeated 429s', async () => {
+    vi.useFakeTimers();
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    fetchMock.mockImplementation(async () => new Response('', { status: 429, statusText: 'Too Many Requests' }));
+    const master = fetchMaster(1439, 'token').catch((e: Error) => e);
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    expect(await master).toEqual(new Error('Discogs 429: Too Many Requests'));
+    expect(fetchMock).toHaveBeenCalledTimes(8);
+    stderr.mockRestore();
+  });
+
+  it('does not fetch a release scored for the search again when it is picked', async () => {
+    RESPONSES['/database/search'] = { results: [{ id: 902, title: 'Yes - Yessongs', master_id: 35063 }] };
+    try {
+      const results = await searchDiscogs('Yes', '1973 Yessongs', 'token', ['T1.1', 'T1.2']);
+      expect(results[0].id).toBe(902);
+      fetchMock.mockClear();
+      expect((await fetchRelease('902', 'token')).tracklist).toHaveLength(13);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      delete RESPONSES['/database/search'];
+    }
   });
 });
 
