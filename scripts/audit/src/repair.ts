@@ -526,11 +526,11 @@ function buildDiscogsAction(
 
       // ── write info.txt ─────────────────────────────────────────────────
       try {
-        await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
+        const written = await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
           discNumber: meta.discNumber,
           noOfDiscs: meta.noOfDiscs,
         });
-        console.log(chalk.dim('  ✓ info.txt written'));
+        console.log(chalk.dim(written ? '  ✓ info.txt written' : '  ✓ info.txt unchanged'));
       } catch {
         // Non-fatal — tag write already succeeded
       }
