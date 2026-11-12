@@ -111,8 +111,9 @@ scripts/audit/src/
   info-txt.ts     — writeInfoTxt() (Discogs-rich); writeInfoTxtFromTags() (fallback); both skip
                     the write when the text is unchanged; appendChangeset() (dated lines under
                     a Changeset header at the bottom, kept across rewrites)
-  year-bracket.ts — oldYearBracket() (l → live YYYY, r → rec. YYYY, c → own text),
-                    withAuxBracket() (added last), albumSetKey() (one answer per disc set)
+  year-bracket.ts — oldYearBracket() (l → live YYYY, r → rec. YYYY: appended), customAux()
+                    (c: the folder's brackets, pre-filled via ask(q, prefill), edited and
+                    replacing them), applyOldYear(), albumSetKey() (one answer per disc set)
   disc-split.ts   — sliceForDisc(): the part of a Discogs release one "(Disc n∕m)" folder
                     holds (release disc numbers, else a window placed by the other disc
                     folders' track counts and title match); discOfFolder()

@@ -75,12 +75,14 @@ let layout: AlbumLayout;
 let events: Array<Omit<RepairEvent, 'ts' | 'session'>>;
 let output: string[];
 let asked: string[];
+let prefills: Array<string | undefined>;
 
 // Answers prompts in order; fails on a prompt the test didn't expect.
 function answer(script: Array<[RegExp, string]>) {
   const queue = [...script];
-  setPrompt(async (q) => {
+  setPrompt(async (q, prefill) => {
     asked.push(q);
+    prefills.push(prefill);
     const next = queue.shift();
     if (!next || !next[0].test(q)) throw new Error(`Unexpected prompt: ${JSON.stringify(q)}`);
     return next[1];
@@ -110,6 +112,7 @@ beforeEach(async () => {
   events = [];
   output = [];
   asked = [];
+  prefills = [];
   resetRepairSession();
   vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => void output.push(args.join(' ')));
 });
@@ -812,16 +815,36 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     );
   });
 
-  it('c asks for the text; Enter keeps no bracket', async () => {
+  it('c puts the folder’s brackets in the input to edit; the result replaces them', async () => {
+    const disc1 = await discLayout(1);
+    const disc2 = await discLayout(2);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Old year/, 'c'],
+      [/ {4}Brackets: /, '[FLAC] [Philadelphia 1979]'], // "[FLAC]" was in the line; the user added to it
+      [/Next album/, ''],
+      [/^ {2}Choice \[1\]/, ''], // disc 2: same answer, no questions
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(await yearAudit(disc1), ctx(false));
+    await repairAlbum(await yearAudit(disc2), ctx(false));
+    done();
+    expect(prefills[asked.findIndex((q) => /Brackets: /.test(q))]).toBe('[FLAC]');
+    expect(output.join('\n')).toMatch(/c {2}custom text +→ edit "\[FLAC\]"/);
+    expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [FLAC] [Philadelphia 1979]');
+    expect(disc2.albumFolder).toBe('1992 Tourmato (Disc 2∕2) [FLAC] [Philadelphia 1979]');
+  });
+
+  it('c can replace the bracket, or drop it', async () => {
     const disc1 = await discLayout(1);
     const done = answer([
       [/^ {2}Choice \[1\]/, ''],
       [/Old year/, 'c'],
-      [/Bracket text: /, 'Philadelphia 1979'],
+      [/Brackets: /, 'live 1979'], // "[FLAC]" deleted, plain text typed
       [/Next album/, ''],
     ]);
     await repairAlbum(await yearAudit(disc1), ctx(false));
     done();
-    expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [FLAC] [Philadelphia 1979]');
+    expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [live 1979]');
   });
 });

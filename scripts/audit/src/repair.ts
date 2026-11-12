@@ -14,7 +14,15 @@ import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, win
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
 import { appendChangeset, writeInfoTxt } from './info-txt.js';
 import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from './rename-plan.js';
-import { albumSetKey, oldYearBracket, withAuxBracket } from './year-bracket.js';
+import {
+  albumSetKey,
+  applyOldYear,
+  auxPartOf,
+  customAux,
+  describeOldYear,
+  oldYearBracket,
+  type OldYearAnswer,
+} from './year-bracket.js';
 import { writeTags } from './tag-write.js';
 import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
@@ -29,13 +37,16 @@ function closeRl() {
 
 // ── prompt ───────────────────────────────────────────────────────────────────
 
-let prompt = async (q: string): Promise<string> => {
+// `prefill` is typed into the input line for the user to edit.
+let prompt = async (q: string, prefill?: string): Promise<string> => {
   rl ??= readline.createInterface({ input: process.stdin, output: process.stdout });
-  return rl.question(q);
+  const answer = rl.question(q);
+  if (prefill) rl.write(prefill);
+  return answer;
 };
 
 // Tests answer prompts through this instead of stdin.
-export function setPrompt(fn: (q: string) => Promise<string>): void {
+export function setPrompt(fn: (q: string, prefill?: string) => Promise<string>): void {
   prompt = fn;
 }
 
@@ -45,8 +56,8 @@ class RestartSignal extends Error {
 }
 let restartable = false;
 
-async function ask(q: string): Promise<string> {
-  const answer = (await prompt(q)).trim();
+async function ask(q: string, prefill?: string): Promise<string> {
+  const answer = (await prompt(q, prefill)).trim();
   if (restartable && answer.toLowerCase() === 'o') throw new RestartSignal();
   return answer;
 }
@@ -212,13 +223,13 @@ interface FolderRenamePlan {
   artist?: string;
   album?: string;
   year?: string;
-  bracket?: string; // the old year kept as an aux bracket: "live 1978"
+  oldYear?: OldYearAnswer; // the old year kept as an aux bracket: "live 1978"
 }
 
 // ── old year as an aux bracket ────────────────────────────────────────────────
 
 // One answer per album set for the whole run, so all discs of a set get the same bracket.
-const oldYearAnswers = new Map<string, string | undefined>();
+const oldYearAnswers = new Map<string, OldYearAnswer | undefined>();
 
 // Starts a run (and each test) without answers from an earlier one.
 export function resetRepairSession(): void {
@@ -226,24 +237,33 @@ export function resetRepairSession(): void {
 }
 
 // Asks what to do with the old year when a folder's year changes; the folder name only.
-async function askOldYearBracket(layout: AlbumLayout, oldYear: string, newYear: string): Promise<string | undefined> {
+async function askOldYearBracket(
+  layout: AlbumLayout,
+  oldYear: string,
+  newYear: string,
+): Promise<OldYearAnswer | undefined> {
   const key = albumSetKey(layout.artistName, layout.albumFolder);
   if (oldYearAnswers.has(key)) {
     const kept = oldYearAnswers.get(key);
-    console.log(chalk.dim(`  Old year: ${kept ? `[${kept}]` : 'no bracket'} (as for the other disc of this set)`));
+    console.log(chalk.dim(`  Old year: ${describeOldYear(kept)} (as for the other disc of this set)`));
     return kept;
   }
-  const preview = (text?: string) => withAuxBracket(withFolderYear(layout.albumFolder, newYear), text);
+  const renamed = withFolderYear(layout.albumFolder, newYear);
+  const current = auxPartOf(layout.albumFolder);
+  const preview = (choice: string) => applyOldYear(renamed, oldYearBracket(choice, oldYear));
   console.log(`\n  Year ${oldYear} → ${newYear}. Keep the old year in the folder name?`);
-  console.log(`    [Enter] no bracket    → ${preview()}`);
-  console.log(`    l  live               → ${preview(`live ${oldYear}`)}`);
-  console.log(`    r  recorded           → ${preview(`rec. ${oldYear}`)}`);
-  console.log(`    c  custom text        → ${preview('<text>')}`);
+  console.log(`    [Enter] no bracket    → ${preview('')}`);
+  console.log(`    l  live               → ${preview('l')}`);
+  console.log(`    r  recorded           → ${preview('r')}`);
+  console.log(`    c  custom text        → edit ${current ? `"${current}"` : 'a new bracket'}`);
   const choice = (await ask('  Old year [Enter/l/r/c]: ')).trim().toLowerCase();
-  const custom = choice === 'c' ? await ask('    Bracket text: ') : '';
-  const text = oldYearBracket(choice, oldYear, custom);
-  oldYearAnswers.set(key, text);
-  return text;
+  // c: the folder's brackets as they are (or the old year), to edit; the result replaces them.
+  const answer: OldYearAnswer | undefined =
+    choice === 'c'
+      ? { mode: 'replace', aux: customAux(await ask('    Brackets: ', current || `[${oldYear}]`)) }
+      : oldYearBracket(choice, oldYear);
+  oldYearAnswers.set(key, answer);
+  return answer;
 }
 
 // Renames the album folder and notes it in info.txt's changeset.
@@ -302,12 +322,12 @@ async function askFolderRename(
     console.log(chalk.dim('  Skipped rename.'));
     return undefined;
   }
-  const bracket = yearMismatch ? await askOldYearBracket(layout, localYear, release.year!) : undefined;
+  const oldYear = yearMismatch ? await askOldYearBracket(layout, localYear, release.year!) : undefined;
   return {
     ...(artistMismatch ? { artist: discogsArtist } : {}),
     ...(albumMismatch ? { album: discogsAlbum } : {}),
     ...(yearMismatch ? { year: release.year } : {}),
-    ...(bracket ? { bracket } : {}),
+    ...(oldYear ? { oldYear } : {}),
   };
 }
 
@@ -319,7 +339,7 @@ function plannedAlbumFolder(folder: string, plan: FolderRenamePlan): string {
   const discPart = folder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
   const auxPart = (folder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
   const renamed = plan.album ? `${yearPrefix}${plan.album}${discPart}${auxPart}`.trim() : withFolderYear(folder, plan.year!);
-  return withAuxBracket(renamed, plan.bracket);
+  return applyOldYear(renamed, plan.oldYear);
 }
 
 // Returns the album's folder after the rename ("Artist/YYYY Title [live 1978]"), for the log.
@@ -774,9 +794,9 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
         {
           label: `Set DATE/ORIGINALDATE to ${year} and rename folder → "${newName}"`,
           run: async () => {
-            const bracket = await askOldYearBracket(layout, local, year);
+            const oldYear = await askOldYearBracket(layout, local, year);
             await retag();
-            await renameAlbumFolder(layout, withAuxBracket(newName, bracket));
+            await renameAlbumFolder(layout, applyOldYear(newName, oldYear));
             return `Set DATE/ORIGINALDATE to ${year} and rename folder → "${layout.albumFolder}"`;
           },
         },
