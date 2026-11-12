@@ -13,6 +13,7 @@ import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } 
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
 import { appendChangeset, writeInfoTxt } from './info-txt.js';
+import { LiveProgress, progressBar } from './progress.js';
 import { interactive } from './rate-limit.js';
 import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from './rename-plan.js';
 import {
@@ -996,6 +997,22 @@ export class AuditStream {
   private buffer: AlbumAudit[] = [];
   private waiter?: () => void;
   private closed = false;
+  /** Albums scanned so far, of `total` found by the walk. */
+  progress = { done: 0, total: 0 };
+
+  constructor(total = 0) {
+    this.progress.total = total;
+  }
+
+  /** One more album scanned (whether or not it has issues). */
+  scanned(): void {
+    this.progress.done++;
+  }
+
+  /** True while nothing is ready and the scan is still running: next() will wait. */
+  get waiting(): boolean {
+    return this.buffer.length === 0 && !this.closed;
+  }
 
   push(audit: AlbumAudit): void {
     this.buffer.push(audit);
@@ -1025,6 +1042,8 @@ export interface RepairAlbumContext {
   // reflects the files as they are now (a Discogs retag can solve or change later issues).
   reaudit?: (layout: AlbumLayout) => Promise<AlbumAudit>;
   logEvent: (e: Omit<RepairEvent, 'ts' | 'session'>) => Promise<void>;
+  /** Background scan progress, shown in the album header. */
+  scanProgress?: { done: number; total: number };
 }
 
 // Re-reads the album from disk into `audit`. False when there's no re-scan or it failed.
@@ -1070,6 +1089,11 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
 
 // One pass over the album from its opening table: its issues, then any folder rename
 // the user agreed to, last.
+// "Scan ▕████░░░░▏ 120/340  35%" while the background scan runs, then the total.
+export function scanLine({ done, total }: { done: number; total: number }): string {
+  return done < total ? `   Scan ${progressBar(done, total)}` : `   Scan done: ${total} album${total !== 1 ? 's' : ''}`;
+}
+
 async function repairAlbumPass(
   audit: AlbumAudit,
   ctx: RepairAlbumContext,
@@ -1081,6 +1105,7 @@ async function repairAlbumPass(
 
   console.log(chalk.bold(`\n${'─'.repeat(60)}`));
   console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${audit.tracks.length} track${audit.tracks.length !== 1 ? 's' : ''})`));
+  if (ctx.scanProgress) console.log(chalk.dim(scanLine(ctx.scanProgress)));
   console.log(chalk.bold('─'.repeat(60)));
   printAlbumTable(audit);
   console.log(chalk.dim('  Answer o at any prompt to start this album over.'));
@@ -1325,9 +1350,15 @@ export async function runRepair(
   console.log(chalk.dim(`  Scanning in background — albums appear as they\'re found. Press Ctrl-C to abort.\n`));
 
   while (true) {
+    // Everything found so far is handled: show the scan until it finds the next album.
+    const live = stream.waiting
+      ? new LiveProgress('albums scanned…', () => stream.progress).start()
+      : undefined;
     const audit = await stream.next();
+    live?.stop();
     if (!audit) break;
-    if ((await repairAlbum(audit, { token, retag, reaudit: opts?.reaudit, logEvent })) === 'quit') break;
+    const ctx = { token, retag, reaudit: opts?.reaudit, logEvent, scanProgress: stream.progress };
+    if ((await repairAlbum(audit, ctx)) === 'quit') break;
   }
 
   // ── session summary ────────────────────────────────────────────────────────

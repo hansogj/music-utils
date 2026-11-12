@@ -8,6 +8,7 @@ loadEnv();
 import { auditAlbum } from './audit-album.js';
 import { walkLibrary } from './walk.js';
 import { AuditLogger } from './logger.js';
+import { LiveProgress } from './progress.js';
 import { printReport } from './report.js';
 import { runRepair, AuditStream } from './repair.js';
 import { serveReport } from './server.js';
@@ -138,13 +139,14 @@ Examples:
   if (repairMode) {
     process.stderr.write(`Found ${layouts.length} album(s) — scanning in background.\n`);
     // Stream mode: scan in background while user interacts with found albums.
-    const stream = new AuditStream();
+    const stream = new AuditStream(layouts.length);
     const allAudits: AlbumAudit[] = [];
 
     const scanTask = (async () => {
       for (const layout of layouts) {
         const audit = await auditAlbum(layout, { ...auditOpts, writeInfo: true });
         allAudits.push(audit);
+        stream.scanned();
         await logger?.logAlbum(audit);
         if (retagMode || audit.issues.length > 0) stream.push(audit);
       }
@@ -160,21 +162,17 @@ Examples:
     const summary = buildSummary(allAudits);
     await logger?.logSummary(summary);
   } else {
-    const frames = ['|', '/', '-', '\\'];
-    let fi = 0;
     const total = layouts.length;
-    const spin = (n: number) =>
-      process.stderr.write(`\r  ${frames[fi++ % frames.length]}  ${n} / ${total} albums`);
-
     const audits: AlbumAudit[] = [];
+    const live = new LiveProgress('albums', () => ({ done: audits.length, total })).start();
     for (const layout of layouts) {
-      spin(audits.length);
       const audit = await auditAlbum(layout, auditOpts);
       audits.push(audit);
       await logger?.logAlbum(audit);
     }
+    live.stop();
     const issues = audits.reduce((s, a) => s + a.issues.length, 0);
-    process.stderr.write(`\r  ✓  ${total} album(s) scanned — ${issues} issue(s) found\n`);
+    process.stderr.write(`  ✓  ${total} album(s) scanned — ${issues} issue(s) found\n`);
 
     const summary = buildSummary(audits);
     await logger?.logSummary(summary);

@@ -84,6 +84,8 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
 
+The library is scanned in the background while you repair. Each album's header shows how far the scan has come (`Scan ▕████░░░░▏ 120/340  35%`), and when you have handled every album found so far, a live bar runs until the next one turns up. Report mode shows the same bar while it scans.
+
 After each fix the album is scanned again, so the next issue shown matches the files as they are now: Discogs tagging often solves a name/tag mismatch, and that issue is then not shown at all. When you agree to rename the album or artist folder, the rename waits until the album's other fixes are done.
 
 ### Prompt keys

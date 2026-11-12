@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { discOfFolder, sliceForDisc } from './disc-split.js';
+import { CLEAR_LINE } from './progress.js';
 import { RateLimiter } from './rate-limit.js';
 import { userHome } from './env.js';
 import { scoreTracklist } from './similarity.js';
@@ -14,7 +15,9 @@ const UA = 'MusicLibraryAudit/1.0 +https://github.com/hansogj/music-utils';
 // doesn't run into 429s. A 429 that still happens (the same token in use elsewhere) pauses
 // all requests with a growing pause; enough attempts to outlast a full 60s window. A 500
 // (Discogs under load) is retried a few times with backoff.
-export const discogsLimiter = new RateLimiter({ log: (m) => process.stderr.write(`  ${m}\n`) });
+// Messages start by erasing a live progress line, so they don't run into it.
+const logLine = (m: string) => process.stderr.write(`${process.stderr.isTTY ? CLEAR_LINE : ''}  ${m}\n`);
+export const discogsLimiter = new RateLimiter({ log: logLine });
 
 const MAX_429 = 8; // pauses of 5+10+20+40+60+60+60s: well past a full window
 const MAX_500 = 3;
@@ -35,7 +38,7 @@ async function discogsGet(url: string, headers: Record<string, string>): Promise
     }
     if (res.status === 500 && ++errors < MAX_500) {
       const waitMs = 2 ** errors * 1500;
-      process.stderr.write(`  Discogs 500 — retrying in ${Math.round(waitMs / 1000)}s…\n`);
+      logLine(`Discogs 500 — retrying in ${Math.round(waitMs / 1000)}s…`);
       await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
