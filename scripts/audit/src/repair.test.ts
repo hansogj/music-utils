@@ -942,3 +942,45 @@ describe('formatSummary', () => {
     expect(formatSummary(files)).toEqual(expected);
   });
 });
+
+describe('repairAlbum — a Discogs artist credit that differs from the artist folder', () => {
+  it('moves only this album to the new artist folder; the title differing only in case is no rename', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({
+      ...RELEASE,
+      year: '1976',
+      title: 'Sacred Baboon (The Rawhide Years)',
+      artists: ['Yezda Urfa And Friends'],
+    });
+    // As in "David Sancious/1976 Transformation (The Speed of Love)": the folder has the full
+    // title, with another case; the artist folder holds another album and a cover.
+    const artistDir = path.dirname(layout.albumPath);
+    const folder = '1976 Sacred Baboon (the Rawhide years)';
+    await fs.rename(layout.albumPath, path.join(artistDir, folder));
+    Object.assign(layout, { albumFolder: folder, albumPath: path.join(artistDir, folder) });
+    await fs.mkdir(path.join(artistDir, '1975 Boris'));
+    await fs.writeFile(path.join(artistDir, 'cover.jpg'), '');
+
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
+      [/Release ID/, '4376665'],
+      [/Apply renames\?/, 'y'],
+      [/Rename folder\(s\) to match Discogs\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+
+    const out = output.join('\n');
+    expect(out).toMatch(/artist : "Yezda Urfa" {2}→ {2}"Yezda Urfa And Friends"/);
+    expect(out).not.toMatch(/album  :/);
+    const moved = path.join(root, 'Y', 'Yezda Urfa And Friends', folder);
+    expect(layout).toMatchObject({ artistName: 'Yezda Urfa And Friends', albumPath: moved });
+    expect(out).toMatch(/Yezda Urfa\/ still has 1 album: kept/);
+    expect((await fs.readdir(artistDir)).sort()).toEqual(['1975 Boris', 'cover.jpg']);
+    expect(await fs.readFile(path.join(moved, 'info.txt'), 'utf8')).toMatch(
+      /album was moved from artist folder "Yezda Urfa" to "Yezda Urfa And Friends"/,
+    );
+  });
+});
