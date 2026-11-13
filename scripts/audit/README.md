@@ -86,7 +86,7 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 
 Each album opens with a table: artist, album, year and disc from the folder name, how many tracks have tags, the audio formats in the folder (`FLAC`, `FLAC 5 · MP3 2`; formats music-audit doesn't read, such as WAV or M4A, are marked `(not checked)`: those files aren't checked or tagged) and the path.
 
-The library is scanned in the background while you repair. Each album's header shows how far the scan has come (`Scan ▕████░░░░▏ 120/340  35%`), and when you have handled every album found so far, a live bar runs until the next one turns up. Report mode shows the same bar while it scans.
+The library is scanned in the background while you repair. Each album's header shows which album this is and how far the scan has come (`Album 3 of 17 so far · Scan ▕████░░░░▏ 120/340  35%`; the count of albums to repair grows while the scan finds more, and loses "so far" once it's done: `Album 18 of 41 · Scan done: 340 albums`), and when you have handled every album found so far, a live bar runs until the next one turns up. Report mode shows the same bar while it scans.
 
 After each fix the album is scanned again, so the next issue shown matches the files as they are now: Discogs tagging often solves a name/tag mismatch, and that issue is then not shown at all. When you agree to rename the album or artist folder, the rename waits until the album's other fixes are done.
 

@@ -67,17 +67,27 @@ describe('scan progress in repair mode', () => {
     stream.scanned();
     stream.scanned();
     stream.push({} as AlbumAudit);
-    expect(stream.progress).toEqual({ done: 2, total: 3 });
+    expect(stream.progress).toEqual({ done: 2, total: 3, found: 1, taken: 0 });
     expect(stream.waiting).toBe(false);
     await stream.next();
+    expect(stream.progress).toMatchObject({ found: 1, taken: 1 });
     expect(stream.waiting).toBe(true);
     stream.close();
     expect(stream.waiting).toBe(false);
+    expect(await stream.next()).toBeNull();
+    expect(stream.progress.taken).toBe(1); // the end of the stream isn't an album
   });
 
   it('shows the bar while scanning and the total when done', () => {
     expect(scanLine({ done: 120, total: 340 })).toMatch(/^ {3}Scan ▕█+░+▏ 120\/340 {2}35%$/);
     expect(scanLine({ done: 340, total: 340 })).toBe('   Scan done: 340 albums');
     expect(scanLine({ done: 1, total: 1 })).toBe('   Scan done: 1 album');
+  });
+
+  it('numbers the album being repaired: of the albums found so far, then of all', () => {
+    expect(scanLine({ done: 120, total: 340, found: 17, taken: 3 })).toMatch(
+      /^ {3}Album 3 of 17 so far · Scan ▕█+░+▏ 120\/340 {2}35%$/,
+    );
+    expect(scanLine({ done: 340, total: 340, found: 41, taken: 18 })).toBe('   Album 18 of 41 · Scan done: 340 albums');
   });
 });
