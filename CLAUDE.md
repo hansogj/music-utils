@@ -100,7 +100,8 @@ scripts/audit/src/
   rate-limit.ts   — RateLimiter: moving 60s window sized from X-Discogs-Ratelimit headers
                     (60/min with a token, 25 without), one shared pause on 429;
                     interactive() gives repair-prompt requests slots the scan can't use
-  repair.ts       — runRepair() → repairAlbum() per album; AuditStream (background scan
+  repair.ts       — runRepair() → repairAlbum() per album; printAlbumTable() (opening table, Format
+                    row from formatSummary(): only mp3/flac are read, others "(not checked)"); AuditStream (background scan
                     queue); repairActions() (per issue code); discogsActionFor() /
                     buildDiscogsAction() (release prompt, chooseDiscSlice(), tag write,
                     info.txt, file renames, folder rename plan); BackSignal (Esc → action

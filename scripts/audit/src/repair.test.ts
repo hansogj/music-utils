@@ -67,7 +67,7 @@ vi.mock('./discogs.js', async (importOriginal) => ({
 }));
 
 const { auditAlbum } = await import('./audit-album.js');
-const { repairAlbum, resetRepairSession, setPrompt } = await import('./repair.js');
+const { formatSummary, repairAlbum, resetRepairSession, setPrompt } = await import('./repair.js');
 type RepairEvent = import('./repair.js').RepairEvent;
 
 let root: string;
@@ -207,6 +207,16 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     done();
     expect(output.join('\n')).toMatch(/2 issue\(s\) not fixed/);
     expect(events.map((e) => e.result)).toEqual(['skipped', 'skipped']);
+  });
+
+  it('shows the formats in the album table, with the ones the audit does not read', async () => {
+    await fs.writeFile(path.join(layout.albumPath, 'bonus.wav'), '');
+    const audit = await scan();
+    answer([
+      [/^ {2}Choice \[1\]/, 'q'],
+    ]);
+    await repairAlbum(audit, ctx());
+    expect(output.join('\n')).toMatch(/Format +│ MP3 \d+ · WAV 1 \(not checked\)/);
   });
 
   it('without a re-scan, a fixed issue still drops out', async () => {
@@ -918,5 +928,17 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
     expect(events.find((e) => e.issue === 'FOLDER_RENAME')?.action).toBe(
       'Rename folder(s) to match Discogs → "Yezda Urfa/1989 Sacred Baboon [bootleg] [rec. 1976]"',
     );
+  });
+});
+
+describe('formatSummary', () => {
+  it.each([
+    [['01.flac', '02.FLAC', 'cover.jpg', 'info.txt'], { checked: 'FLAC', other: '' }],
+    [['1.mp3', '2.flac', '3.flac'], { checked: 'FLAC 2 · MP3 1', other: '' }],
+    [['1.flac', '2.wav', '3.wav', '4.m4a'], { checked: 'FLAC 1', other: 'WAV 2 · M4A 1 (not checked)' }],
+    [['1.ape', '2.ape'], { checked: '', other: 'APE (not checked)' }],
+    [['cover.jpg'], { checked: '', other: '' }],
+  ])('%j', (files, expected) => {
+    expect(formatSummary(files)).toEqual(expected);
   });
 });
