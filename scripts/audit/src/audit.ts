@@ -80,6 +80,8 @@ Options:
                       Discogs (cached after the first run). Default: off, or on when
                       MUSIC_AUDIT_CHECK_YEARS=true is set in ~/.config/music-utils/.env
   --no-check-years    Turn the year check off for this run, overriding the .env setting
+  --no-covers         Skip the cover checks (cover.jpg in album and artist folders, and
+                      whether it is the Discogs release's or master's cover)
   --repair            Interactive repair mode — step through issues and fix them
   --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
   --ui                Serve audit report as HTML in browser at http://localhost:7171
@@ -131,7 +133,8 @@ Examples:
   process.stderr.write(`Scanning ${root} ...\n`);
 
   const mode = retagMode ? 'retag' : repairMode ? 'repair' : 'audit';
-  const auditOpts = { token, skipDiscogs, searchAlways: retagMode, checkYears };
+  const checkCovers = !hasFlag(args, 'no-covers');
+  const auditOpts = { token, skipDiscogs, searchAlways: retagMode, checkYears, checkCovers };
   await logger?.logSession(mode, root);
 
   const layouts = await walkLibrary(root);
