@@ -111,9 +111,10 @@ scripts/audit/src/
                     else by order: one folder of a 2-CD release), pairingProblem() (asks
                     before tagging when titles repeat), checkRenames() (no renames that clash),
                     planPairing() (an unnumbered file is placed by title, or is an extra copy)
-  cover.ts        — checkCovers(): MISSING_COVER, COVER_MISMATCH (perceptual hash via `magick`,
-                    pHash of a 32×32 thumbnail, ≤10 bits = same cover; release's cover, then the
-                    master's), ARTIST_COVER_MISSING; writeCover(), artistCoverCandidates(),
+  cover.ts        — checkCovers(): cover.jpg and folder.jpg are equals (coversIn()); MISSING_COVER
+                    (neither), per cover file BAD_COVER (not an image) and COVER_MISMATCH
+                    (perceptual hash via `magick`, pHash of a 32×32 thumbnail, ≤16 bits = same
+                    cover; release's cover, then the master's), ARTIST_COVER_MISSING (no readable one); writeCover(), artistCoverCandidates(),
                     withoutSolvedCoverIssues() (runRepair drops an artist cover issue solved since)
   folder-move.ts  — guardedRename() (no overwrite; case-only renames via a temp name),
                     moveAlbumToArtist() (one album to another artist folder; old one removed when empty)
@@ -170,7 +171,7 @@ scripts/audit/src/
 - **Suggested release ID**: the album's own (tags, else the comment URL / `info.txt` via `releaseIdFrom()`), then the other disc folders' (`siblingReleaseId()`), then the top search hit
 - **Folder rename safety**: all renames go through `guardedRename()` (folder-move.ts), which refuses to overwrite and does a case-only rename ("Speed of Love" → "Speed Of Love") via a temporary name: on an SMB share the target "exists" already, being the folder itself. Albums are compared by `folderTitle()` (parentheses kept), so a case difference isn't offered as a rename
 - **Artist change** (`moveAlbumToArtist()`): only the album moves, into the new artist folder (created, or joined when it exists); the old artist folder is kept while it has other albums, else its files (cover.jpg) follow and it is removed, `@eaDir`/`.DS_Store`/`Thumbs.db` and all. A change of case only renames the whole artist folder
-- **Covers** (`cover.ts`, on unless `--no-covers`; `auditAlbum({ checkCovers })` defaults off, so tests opt in): `cover.jpg` in every album and artist folder; with Discogs, the album's cover is compared with the release's front image (150px thumbnail), then the master's. Repair downloads the release/master/entered cover (600px `uri`), copies another image (`folder.jpg` first when it is the Discogs cover), or copies an album cover to the artist folder; cover changes are noted in info.txt's Changeset. Images from `i.discogs.com` don't go through the rate limiter
+- **Covers** (`cover.ts`, on unless `--no-covers`; `auditAlbum({ checkCovers })` defaults off, so tests opt in): `cover.jpg` or `folder.jpg` (equals) in every album and artist folder; with Discogs, each cover file is compared with the release's front image (150px thumbnail), then the master's. Repair writes under the issue's file name (`issue.file`; cover.jpg when none): the release/master/entered cover (600px `uri`), the folder's other good cover file, or another image (one matching Discogs first); or copies an album cover to the artist folder; cover changes are noted in info.txt's Changeset. Images from `i.discogs.com` don't go through the rate limiter
 - **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses the suggested ID; `b` opens browse list; `[d]` in any issue menu retags the album from a chosen Discogs release; `o` at any prompt starts the album over
 
 ### Testing (audit)

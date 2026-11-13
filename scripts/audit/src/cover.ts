@@ -10,13 +10,25 @@ import { releaseIdFrom } from './checks/discogs-ids.js';
 // image and a 1400px scan of the same cover match, and another cover doesn't.
 
 export const COVER = 'cover.jpg';
-const COVER_FILE = /^cover\.jpe?g$/i;
+// cover.jpg and folder.jpg are equals: either is the folder's cover.
+const COVER_FILE = /^(cover|folder)\.jpe?g$/i;
 const IMAGE_FILE = /\.(jpe?g|png|webp)$/i;
 
-/** The album or artist folder's cover file name ("cover.jpg", "Cover.JPG"), if any. */
-export async function coverIn(dir: string): Promise<string | undefined> {
+/** The folder's cover files (cover.jpg, folder.jpg, any case), cover.jpg first. */
+export async function coversIn(dir: string): Promise<string[]> {
   const names = await fs.readdir(dir).catch(() => [] as string[]);
-  return names.find((n) => COVER_FILE.test(n));
+  return names.filter((n) => COVER_FILE.test(n)).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+}
+
+/** The folder's first cover file, if any. */
+export async function coverIn(dir: string): Promise<string | undefined> {
+  return (await coversIn(dir))[0];
+}
+
+/** The folder's first cover file that is a readable image (or can't be checked). */
+export async function readableCoverIn(dir: string): Promise<string | undefined> {
+  for (const n of await coversIn(dir)) if ((await isImage(path.join(dir, n))) !== false) return n;
+  return undefined;
 }
 
 /** Other images that are readable (or can't be checked): candidates for cover.jpg. */
@@ -26,7 +38,7 @@ export async function readableImagesIn(dir: string): Promise<string[]> {
   return out;
 }
 
-/** Other images in the folder (folder.jpg, front.png): candidates for cover.jpg. */
+/** Other images in the folder (front.jpg, cover.png): candidates for cover.jpg. */
 export async function imagesIn(dir: string): Promise<string[]> {
   const names = await fs.readdir(dir).catch(() => [] as string[]);
   return names.filter((n) => IMAGE_FILE.test(n) && !COVER_FILE.test(n) && !n.startsWith('.')).sort();
@@ -181,57 +193,71 @@ const refLabel = (ref: AlbumRef) =>
     .join(' or ');
 
 /**
- * MISSING_COVER: no cover.jpg in the album folder. BAD_COVER: it isn't an image. COVER_MISMATCH: cover.jpg isn't the
- * cover of the album's Discogs release or master (only with a source). ARTIST_COVER_MISSING:
- * the artist folder has no cover.jpg.
+ * MISSING_COVER: neither cover.jpg nor folder.jpg in the album folder. Each one there is
+ * checked: BAD_COVER, it isn't an image; COVER_MISMATCH, it isn't the cover of the album's
+ * Discogs release or master (only with a source). ARTIST_COVER_MISSING: the artist folder
+ * has no readable cover.jpg or folder.jpg.
  */
 export async function checkCovers(layout: AlbumLayout, tracks: TrackInfo[], source?: CoverSource): Promise<Issue[]> {
   const issues: Issue[] = [];
-  const cover = await coverIn(layout.albumPath);
-  if (!cover) {
+  const covers = await coversIn(layout.albumPath);
+  if (covers.length === 0) {
     const others = await readableImagesIn(layout.albumPath);
     issues.push({
       severity: 'MODERATE',
       code: 'MISSING_COVER',
-      message: 'No cover.jpg in the album folder',
+      message: 'No cover.jpg or folder.jpg in the album folder',
       ...(others.length ? { suggestion: `Other images: ${others.join(', ')}` } : {}),
     });
-  } else if ((await isImage(path.join(layout.albumPath, cover))) === false) {
-    issues.push({ severity: 'MODERATE', code: 'BAD_COVER', message: `${cover} can't be read as an image` });
-  } else if (source) {
-    const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
-    const ref = albumRef(tracks, infoTxt);
+  }
+  let ref: AlbumRef | undefined;
+  for (const cover of covers) {
+    const file = path.join(layout.albumPath, cover);
+    if ((await isImage(file)) === false) {
+      issues.push({
+        severity: 'MODERATE',
+        code: 'BAD_COVER',
+        file: cover,
+        message: `${cover} can't be read as an image`,
+      });
+      continue;
+    }
+    if (!source) continue;
+    if (!ref) {
+      const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
+      ref = albumRef(tracks, infoTxt);
+    }
     try {
-      if ((await matchesDiscogs(path.join(layout.albumPath, cover), ref, source)) === false) {
+      if ((await matchesDiscogs(file, ref, source)) === false) {
         issues.push({
           severity: 'MODERATE',
           code: 'COVER_MISMATCH',
+          file: cover,
           message: `${cover} isn't the cover of Discogs ${refLabel(ref)}`,
         });
       }
     } catch {
-      // Unreadable image, no magick, Discogs down: nothing to say about the cover.
+      // No magick, Discogs down: nothing to say about the cover.
     }
   }
-  const artistCover = layout.artistName ? await coverIn(artistDirOf(layout)) : COVER;
-  const artistCoverBad = artistCover && (await isImage(path.join(artistDirOf(layout), artistCover))) === false;
-  if (!artistCover || artistCoverBad) {
+  if (layout.artistName && !(await readableCoverIn(artistDirOf(layout)))) {
+    const bad = await coversIn(artistDirOf(layout));
     issues.push({
       severity: 'MODERATE',
       code: 'ARTIST_COVER_MISSING',
-      message: artistCoverBad
-        ? `${artistCover} in the artist folder "${layout.artistName}" can't be read as an image`
-        : `No cover.jpg in the artist folder "${layout.artistName}"`,
+      message: bad.length
+        ? `${bad.join(' and ')} in the artist folder "${layout.artistName}" can't be read as an image`
+        : `No cover.jpg or folder.jpg in the artist folder "${layout.artistName}"`,
     });
   }
   return issues;
 }
 
-/** Drops cover issues another album's repair has solved since the scan (the artist's cover.jpg). */
+/** Drops cover issues another album's repair has solved since the scan (the artist's cover). */
 export async function withoutSolvedCoverIssues(audit: AlbumAudit): Promise<Issue[]> {
   const keep: Issue[] = [];
   for (const i of audit.issues) {
-    if (i.code === 'ARTIST_COVER_MISSING' && (await coverIn(artistDirOf(audit.layout)))) continue;
+    if (i.code === 'ARTIST_COVER_MISSING' && (await readableCoverIn(artistDirOf(audit.layout)))) continue;
     if (i.code === 'MISSING_COVER' && (await coverIn(audit.layout.albumPath))) continue;
     keep.push(i);
   }
@@ -240,33 +266,38 @@ export async function withoutSolvedCoverIssues(audit: AlbumAudit): Promise<Issue
 
 // ── writes ────────────────────────────────────────────────────────────────────
 
-/** Writes `dir/cover.jpg` (via a temporary file), replacing any differently spelled cover file. */
-export async function writeCover(dir: string, image: Buffer): Promise<void> {
-  const tmp = path.join(dir, `.${COVER}.music-audit-${process.pid}`);
-  await fs.writeFile(tmp, image);
-  try {
-    const old = await coverIn(dir);
-    if (old && old !== COVER) await fs.rm(path.join(dir, old));
-    await fs.rename(tmp, path.join(dir, COVER));
-  } catch (err) {
-    await fs.rm(tmp, { force: true });
-    throw err;
+/**
+ * Writes the image (via a temporary file) to `names`; by default to the folder's cover
+ * files as they are named (folder.jpg stays folder.jpg), or cover.jpg when it has none.
+ * Returns the names written.
+ */
+export async function writeCover(dir: string, image: Buffer, names?: string[]): Promise<string[]> {
+  const targets = names?.length ? names : (await coversIn(dir)).length ? await coversIn(dir) : [COVER];
+  for (const name of targets) {
+    const tmp = path.join(dir, `.${name}.music-audit-${process.pid}`);
+    await fs.writeFile(tmp, image);
+    try {
+      await fs.rename(tmp, path.join(dir, name));
+    } catch (err) {
+      await fs.rm(tmp, { force: true });
+      throw err;
+    }
   }
+  return targets;
 }
 
 /** Covers in the artist's album folders, this album's first: candidates for the artist's cover.jpg. */
 export async function artistCoverCandidates(layout: AlbumLayout, max = 4): Promise<string[]> {
   const artistDir = artistDirOf(layout);
-  const own = await coverIn(layout.albumPath);
-  const out =
-    own && (await isImage(path.join(layout.albumPath, own))) !== false ? [path.join(layout.albumPath, own)] : [];
+  const own = await readableCoverIn(layout.albumPath);
+  const out = own ? [path.join(layout.albumPath, own)] : [];
   const entries = await fs.readdir(artistDir, { withFileTypes: true }).catch(() => []);
   for (const e of entries
     .filter((d) => d.isDirectory() && d.name !== layout.albumFolder)
     .sort((a, b) => a.name.localeCompare(b.name))) {
     if (out.length >= max) break;
-    const c = await coverIn(path.join(artistDir, e.name));
-    if (c && (await isImage(path.join(artistDir, e.name, c))) !== false) out.push(path.join(artistDir, e.name, c));
+    const c = await readableCoverIn(path.join(artistDir, e.name));
+    if (c) out.push(path.join(artistDir, e.name, c));
   }
   return out;
 }

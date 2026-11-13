@@ -12,6 +12,7 @@ import {
   checkCovers,
   type CoverSource,
   coverIn,
+  coversIn,
   hashDistance,
   imageHash,
   imagesIn,
@@ -119,10 +120,13 @@ describe.skipIf(!hasMagick)('imageHash', () => {
 });
 
 describe('coverIn / imagesIn', () => {
-  it('finds cover.jpg in any case, and the other images', async () => {
-    await make('A/Cover.JPG', 'A/folder.jpg', 'A/back.png', 'A/.hidden.jpg', 'A/01.flac');
+  it('finds cover.jpg and folder.jpg in any case (cover.jpg first), and the other images', async () => {
+    await make('A/Folder.jpg', 'A/Cover.JPG', 'A/front.jpg', 'A/back.png', 'A/.hidden.jpg', 'A/01.flac');
+    expect(await coversIn(path.join(root, 'A'))).toEqual(['Cover.JPG', 'Folder.jpg']);
     expect(await coverIn(path.join(root, 'A'))).toBe('Cover.JPG');
-    expect(await imagesIn(path.join(root, 'A'))).toEqual(['back.png', 'folder.jpg']);
+    expect(await imagesIn(path.join(root, 'A'))).toEqual(['back.png', 'front.jpg']);
+    await make('B/folder.jpg');
+    expect(await coverIn(path.join(root, 'B'))).toBe('folder.jpg');
     expect(await coverIn(path.join(root, 'missing'))).toBeUndefined();
     expect(await imagesIn(path.join(root, 'missing'))).toEqual([]);
   });
@@ -184,12 +188,17 @@ describe.skipIf(!hasMagick)('matchesDiscogs', () => {
 
 describe('checkCovers', () => {
   it('reports a missing album cover (naming other images) and a missing artist cover', async () => {
-    await make('D/Yes/1971 Fragile/01.flac', 'D/Yes/1971 Fragile/folder.jpg');
+    await make('D/Yes/1971 Fragile/01.flac', 'D/Yes/1971 Fragile/front.jpg');
     const issues = await checkCovers(layoutOf('Yes', '1971 Fragile'), []);
-    expect(issues.map((i) => [i.code, i.suggestion])).toEqual([
-      ['MISSING_COVER', 'Other images: folder.jpg'],
-      ['ARTIST_COVER_MISSING', undefined],
+    expect(issues.map((i) => [i.code, i.message, i.suggestion])).toEqual([
+      ['MISSING_COVER', 'No cover.jpg or folder.jpg in the album folder', 'Other images: front.jpg'],
+      ['ARTIST_COVER_MISSING', 'No cover.jpg or folder.jpg in the artist folder "Yes"', undefined],
     ]);
+  });
+
+  it('takes folder.jpg as the cover, in the album and in the artist folder', async () => {
+    await make('D/Yes/1971 Fragile/folder.jpg', 'D/Yes/folder.jpg');
+    expect(await checkCovers(layoutOf('Yes', '1971 Fragile'), [])).toEqual([]);
   });
 
   it('is quiet when both are there and there is nothing to compare with', async () => {
@@ -229,11 +238,24 @@ describe.skipIf(!hasMagick)('checkCovers — files that are not images', () => {
     expect(await artistCoverCandidates(layout)).toEqual([]);
   });
 
-  it('leaves an unreadable folder.jpg out of the other images', async () => {
-    await make('D/Yes/1971 Fragile/front.jpg', 'D/Yes/cover.jpg');
+  it('checks each cover file: a good cover.jpg does not excuse a broken folder.jpg', async () => {
+    await make('D/Yes/1971 Fragile/cover.jpg', 'D/Yes/cover.jpg');
     await fs.writeFile(path.join(root, 'D/Yes/1971 Fragile/folder.jpg'), '<html>');
     const issues = await checkCovers(layoutOf('Yes', '1971 Fragile'), []);
+    expect(issues.map((i) => [i.code, i.file])).toEqual([['BAD_COVER', 'folder.jpg']]);
+  });
+
+  it('leaves an unreadable image out of the other images', async () => {
+    await make('D/Yes/1971 Fragile/front.jpg', 'D/Yes/cover.jpg');
+    await fs.writeFile(path.join(root, 'D/Yes/1971 Fragile/back.jpg'), '<html>');
+    const issues = await checkCovers(layoutOf('Yes', '1971 Fragile'), []);
     expect(issues.map((i) => [i.code, i.suggestion])).toEqual([['MISSING_COVER', 'Other images: front.jpg']]);
+  });
+
+  it('accepts a good folder.jpg in the artist folder next to a broken cover.jpg', async () => {
+    await make('D/Yes/1971 Fragile/cover.jpg', 'D/Yes/folder.jpg');
+    await fs.writeFile(path.join(root, 'D/Yes/cover.jpg'), '<html>');
+    expect(await checkCovers(layoutOf('Yes', '1971 Fragile'), [])).toEqual([]);
   });
 });
 
@@ -251,11 +273,15 @@ describe('withoutSolvedCoverIssues', () => {
 });
 
 describe('writeCover / artistCoverCandidates / asJpeg', () => {
-  it('writes cover.jpg, replacing a differently spelled one', async () => {
-    await make('A/Cover.JPG');
-    await writeCover(path.join(root, 'A'), Buffer.from('new'));
-    expect(await fs.readdir(path.join(root, 'A'))).toEqual(['cover.jpg']);
-    expect(await fs.readFile(path.join(root, 'A/cover.jpg'), 'utf8')).toBe('new');
+  it('writes the cover files under their own names, or cover.jpg when there is none', async () => {
+    await make('A/Cover.JPG', 'A/folder.jpg');
+    expect(await writeCover(path.join(root, 'A'), Buffer.from('new'))).toEqual(['Cover.JPG', 'folder.jpg']);
+    expect(await fs.readFile(path.join(root, 'A/folder.jpg'), 'utf8')).toBe('new');
+    expect(await writeCover(path.join(root, 'A'), Buffer.from('only'), ['folder.jpg'])).toEqual(['folder.jpg']);
+    expect(await fs.readFile(path.join(root, 'A/Cover.JPG'), 'utf8')).toBe('new');
+    await make('B/01.flac');
+    expect(await writeCover(path.join(root, 'B'), Buffer.from('x'))).toEqual(['cover.jpg']);
+    expect((await fs.readdir(path.join(root, 'B'))).sort()).toEqual(['01.flac', 'cover.jpg']);
   });
 
   it('cleans up and throws when the folder is gone', async () => {

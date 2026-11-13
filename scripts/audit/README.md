@@ -14,9 +14,9 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 | Filename matches TITLE tag | MODERATE | |
 | Duplicate track names | MODERATE | The same title twice, qualifier included: `Sweet Dreams` and `Sweet Dreams (Original Mix)` are different tracks. Files without a track number count too; the message names the likely extra copy (no number in its name, then no TITLE tag) |
 | MP3 has a Discogs master ID but no release ID | HIGH | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL, or retags the album from a release you choose |
-| Album has `cover.jpg` | MODERATE | Any case (`Cover.JPG`). The message names other images in the folder (`folder.jpg`, `front.jpg`, `cover.png`) |
-| `cover.jpg` is the Discogs cover | MODERATE | Albums with a Discogs release ID (tags, the comment URL or `info.txt`): compared with the release's front cover, then the master's. Images are compared by a perceptual hash (ImageMagick `magick`), so a 1400px scan with a white margin matches the 600px Discogs image; another cover doesn't. Needs Discogs; hashes are cached in `~/.cache/music-audit/cover-hashes.json` |
-| Artist folder has `cover.jpg` | MODERATE | Any of the artist's album covers will do |
+| Album has `cover.jpg` or `folder.jpg` | MODERATE | The two are equals: either one is the cover, any case (`Cover.JPG`). The message names other images in the folder (`front.jpg`, `cover.png`). Each cover file there must be a readable image (some are saved web pages) |
+| The cover is the Discogs cover | MODERATE | Each of `cover.jpg` and `folder.jpg`, for albums with a Discogs release ID (tags, the comment URL or `info.txt`): compared with the release's front cover, then the master's. Images are compared by a perceptual hash (ImageMagick `magick`), so a 1400px scan with a white margin matches the 600px Discogs image; another cover doesn't. Needs Discogs; hashes are cached in `~/.cache/music-audit/cover-hashes.json` |
+| Artist folder has `cover.jpg` or `folder.jpg` | MODERATE | A readable one. Any of the artist's album covers will do |
 | Year is the original release year | HIGH | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
 
 ## Usage
@@ -47,7 +47,7 @@ With `--no-discogs`, nothing leaves your machine. Otherwise requests go to `api.
 
 - artist and album title (from the folder name) for albums with issues — every album with `--retag`
 - with the year check on: the Discogs release ID from the tags of every tagged album (once; then cached)
-- for the cover check: the release ID of every album with a `cover.jpg` and a release ID (once; then cached), and its master ID when the release's cover doesn't match. Cover images come from `i.discogs.com`, which doesn't count against the rate limit
+- for the cover check: the release ID of every album with a `cover.jpg` or `folder.jpg` and a release ID (once; then cached), and its master ID when the release's cover doesn't match. Cover images come from `i.discogs.com`, which doesn't count against the rate limit
 
 File names, paths and track titles are never sent; tracklist matching happens locally.
 
@@ -67,7 +67,7 @@ MUSIC_AUDIT_CHECK_YEARS=true
 |------|-------------|
 | `--root=<path>` | Root of music library (default: cwd) |
 | `--token=<token>` | Discogs personal access token |
-| `--no-discogs` | Skip all Discogs API calls (the cover checks still look for `cover.jpg`, without comparing it) |
+| `--no-discogs` | Skip all Discogs API calls (the cover checks still look for `cover.jpg`/`folder.jpg`, without comparing them) |
 | `--no-covers` | Skip the cover checks |
 | `--repair` | Interactive repair mode |
 | `--retag` | Like `--repair` but visits clean albums too |
@@ -88,7 +88,7 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 - **Extra copies** — when tagging from Discogs, a file without a track number whose title matches a release track that already has a file is an extra copy: it is not tagged, and the track total stays the release's
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names. When the artist differs, only this album moves into the new artist folder (created, or joined when it exists): the old artist folder may hold other albums credited to the old name, and they stay. When it has no albums left, its other files (`cover.jpg`) follow and the empty folder is removed (NAS metadata such as `@eaDir` doesn't count). A difference in case only (`Speed of Love` / `Speed Of Love`) isn't offered as an album rename, and a case-only rename works on SMB shares
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
-- **Covers** — no `cover.jpg`, or not the Discogs cover: download the front cover of the album's release, or of its master, or of a release or master ID you enter (`r123`, `m456`, a URL), as `cover.jpg` (up to 600px: Discogs' size). A missing cover can also be a copy of another image in the folder; a `folder.jpg` that is the Discogs cover is offered first. The change is noted in `info.txt`. An artist folder without `cover.jpg` gets a copy of this album's cover, or of another of the artist's albums'. The terminal can't show the images: when in doubt, look in the folder, and skip (`s`) to keep yours
+- **Covers** — `cover.jpg` and `folder.jpg` are treated the same. A cover file that is broken or not the Discogs cover is replaced under its own name (`folder.jpg` stays `folder.jpg`) with the front cover of the album's release, of its master, or of a release or master ID you enter (`r123`, `m456`, a URL), up to 600px (Discogs' size). A broken one can also be replaced by the folder's other cover file when that one is good. No cover at all: download one as `cover.jpg`, or copy another image in the folder (one that is the Discogs cover is offered first). The change is noted in `info.txt`. An artist folder without a cover gets a copy of this album's cover, or of another of the artist's albums'. The terminal can't show the images: when in doubt, look in the folder, and skip (`s`) to keep yours
 
 Each album opens with a table: artist, album, year and disc from the folder name, how many tracks have tags, the audio formats in the folder (`FLAC`, `FLAC 5 · MP3 2`; formats music-audit doesn't read, such as WAV or M4A, are marked `(not checked)`: those files aren't checked or tagged) and the path.
 

@@ -1039,13 +1039,14 @@ describe('repairAlbum — covers', () => {
   });
 
   it('offers another image in the folder, and a release or master you enter', async () => {
-    await fs.copyFile(TINY_JPEG, path.join(layout.albumPath, 'folder.jpg'));
-    await fs.copyFile(TINY_JPEG, path.join(path.dirname(layout.albumPath), 'cover.jpg'));
+    await fs.copyFile(TINY_JPEG, path.join(layout.albumPath, 'front.jpg'));
+    await fs.copyFile(TINY_JPEG, path.join(path.dirname(layout.albumPath), 'folder.jpg')); // the artist's cover
     const covers = (l: AlbumLayout) => auditAlbum(l, { skipDiscogs: true, checkCovers: true });
     const audit = await covers(layout);
+    expect(audit.issues.filter((i) => /COVER/.test(i.code)).map((i) => i.code)).toEqual(['MISSING_COVER']);
     audit.issues = audit.issues.filter((i) => i.code === 'MISSING_COVER');
     const done = answer([
-      [/^ {2}Choice \[1\]/, '1'], // [1] Use folder.jpg as cover.jpg (no release ID in the tags)
+      [/^ {2}Choice \[1\]/, '1'], // [1] Use front.jpg as cover.jpg (no release ID in the tags)
       [/Next album/, ''],
     ]);
     await repairAlbum(audit, { ...ctx(), reaudit: undefined });
@@ -1053,6 +1054,25 @@ describe('repairAlbum — covers', () => {
     expect(output.join('\n')).toMatch(/\[2\] Download the cover of a Discogs release or master you enter/);
     const tiny = await fs.readFile(TINY_JPEG);
     expect(await fs.readFile(path.join(layout.albumPath, 'cover.jpg'))).toEqual(tiny);
-    expect(await fs.readFile(path.join(layout.albumPath, 'folder.jpg'))).toEqual(tiny);
+    expect(await fs.readFile(path.join(layout.albumPath, 'front.jpg'))).toEqual(tiny);
+  });
+
+  it('a broken folder.jpg is replaced under its own name, from the good cover.jpg or Discogs', async () => {
+    await fs.copyFile(TINY_JPEG, path.join(layout.albumPath, 'cover.jpg'));
+    await fs.writeFile(path.join(layout.albumPath, 'folder.jpg'), '<html>');
+    await fs.copyFile(TINY_JPEG, path.join(path.dirname(layout.albumPath), 'cover.jpg'));
+    const audit: AlbumAudit = {
+      layout,
+      tracks: [],
+      issues: [{ severity: 'MODERATE', code: 'BAD_COVER', file: 'folder.jpg', message: "folder.jpg can't be read as an image" }],
+    };
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // [1] Replace folder.jpg with a copy of cover.jpg
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, { ...ctx(), reaudit: undefined });
+    done();
+    expect(output.join('\n')).toMatch(/\[1\] Replace folder\.jpg with a copy of cover\.jpg/);
+    expect(await fs.readFile(path.join(layout.albumPath, 'folder.jpg'))).toEqual(await fs.readFile(TINY_JPEG));
   });
 });
