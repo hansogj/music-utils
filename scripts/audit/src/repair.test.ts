@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ReleaseInfo } from './discogs.js';
 import type { AlbumAudit, AlbumLayout, TrackTags } from './types.js';
@@ -64,7 +64,18 @@ const RELEASE: ReleaseInfo = {
 vi.mock('./discogs.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./discogs.js')>()),
   fetchRelease: vi.fn(async () => RELEASE),
+  fetchReleaseCover: vi.fn(async () => ({ cover: { uri: 'https://i.discogs.com/600', uri150: 'https://i.discogs.com/150' } })),
+  downloadImage: vi.fn(async () => (await import('node:fs/promises')).readFile(TINY_JPEG)),
 }));
+
+// A real image where ImageMagick is installed (the cover check reads it), else any bytes.
+const TINY_JPEG = path.join(os.tmpdir(), `audit-repair-cover-${process.pid}.jpg`);
+try {
+  (await import('node:child_process')).execFileSync('magick', ['-size', '4x4', 'xc:gray', TINY_JPEG]);
+} catch {
+  await fs.writeFile(TINY_JPEG, 'JPEG');
+}
+afterAll(() => fs.rm(TINY_JPEG, { force: true }));
 
 const { auditAlbum } = await import('./audit-album.js');
 const { formatSummary, repairAlbum, resetRepairSession, setPrompt } = await import('./repair.js');
@@ -982,5 +993,66 @@ describe('repairAlbum — a Discogs artist credit that differs from the artist f
     expect(await fs.readFile(path.join(moved, 'info.txt'), 'utf8')).toMatch(
       /album was moved from artist folder "Yezda Urfa" to "Yezda Urfa And Friends"/,
     );
+  });
+});
+
+describe('repairAlbum — covers', () => {
+  it("downloads the release's cover, then copies it to the artist folder", async () => {
+    // Fully tagged from release 4376665, but no cover.jpg anywhere.
+    for (const [i, name] of (await fs.readdir(layout.albumPath)).sort().entries()) {
+      const tags = {
+        TITLE: TITLES[i], ARTIST: 'Yezda Urfa', ALBUMARTIST: 'Yezda Urfa', ALBUM: 'Sacred Baboon', DATE: '1976',
+        TRACKNUMBER: `${i + 1}/7`, DISCNUMBER: '1/1', DISCOGS_RELEASE_ID: '4376665',
+      };
+      await fs.rm(path.join(layout.albumPath, name));
+      await fs.writeFile(path.join(layout.albumPath, `0${i + 1} - ${TITLES[i]}.mp3`), JSON.stringify(tags));
+    }
+    const covers = (l: AlbumLayout) => auditAlbum(l, { skipDiscogs: true, checkCovers: true });
+    const audit = await covers(layout);
+    expect(audit.issues.map((i) => i.code)).toEqual(['MISSING_COVER', 'ARTIST_COVER_MISSING']);
+
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_COVER → [1] Download the cover of Discogs release r4376665
+      [/^ {2}Choice \[1\]/, ''], // ARTIST_COVER_MISSING → [1] Copy cover.jpg from "1976 Sacred Baboon"
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, { ...ctx(), reaudit: covers });
+    done();
+
+    const out = output.join('\n');
+    expect(out).toMatch(/\[1\] Download the cover of Discogs release r4376665/);
+    expect(out).toMatch(/\[1\] Copy cover\.jpg from "1976 Sacred Baboon" to the artist folder "Yezda Urfa"/);
+    const artistDir = path.dirname(layout.albumPath);
+    const { downloadImage } = await import('./discogs.js');
+    expect(vi.mocked(downloadImage)).toHaveBeenCalledWith('https://i.discogs.com/600');
+    const tiny = await fs.readFile(TINY_JPEG);
+    expect(await fs.readFile(path.join(layout.albumPath, 'cover.jpg'))).toEqual(tiny);
+    expect(await fs.readFile(path.join(artistDir, 'cover.jpg'))).toEqual(tiny);
+    expect(await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8')).toMatch(
+      /cover\.jpg was set to the cover of Discogs release r4376665/,
+    );
+    expect(events.map((e) => [e.issue, e.result, e.action])).toEqual([
+      ['MISSING_COVER', 'fixed', 'cover.jpg from Discogs release r4376665'],
+      ['ARTIST_COVER_MISSING', 'fixed', 'Copy cover.jpg from "1976 Sacred Baboon" to the artist folder "Yezda Urfa"'],
+    ]);
+    expect(audit.issues).toEqual([]);
+  });
+
+  it('offers another image in the folder, and a release or master you enter', async () => {
+    await fs.copyFile(TINY_JPEG, path.join(layout.albumPath, 'folder.jpg'));
+    await fs.copyFile(TINY_JPEG, path.join(path.dirname(layout.albumPath), 'cover.jpg'));
+    const covers = (l: AlbumLayout) => auditAlbum(l, { skipDiscogs: true, checkCovers: true });
+    const audit = await covers(layout);
+    audit.issues = audit.issues.filter((i) => i.code === 'MISSING_COVER');
+    const done = answer([
+      [/^ {2}Choice \[1\]/, '1'], // [1] Use folder.jpg as cover.jpg (no release ID in the tags)
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, { ...ctx(), reaudit: undefined });
+    done();
+    expect(output.join('\n')).toMatch(/\[2\] Download the cover of a Discogs release or master you enter/);
+    const tiny = await fs.readFile(TINY_JPEG);
+    expect(await fs.readFile(path.join(layout.albumPath, 'cover.jpg'))).toEqual(tiny);
+    expect(await fs.readFile(path.join(layout.albumPath, 'folder.jpg'))).toEqual(tiny);
   });
 });

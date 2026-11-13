@@ -7,7 +7,8 @@ import { checkFolderFormat } from './checks/folder.js';
 import { checkNameTagMatch, matchNames, parseNameFromFilename } from './checks/names.js';
 import { checkTags } from './checks/tags.js';
 import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
-import { fetchOriginalYear, searchDiscogs } from './discogs.js';
+import { checkCovers } from './cover.js';
+import { discogsCoverSource, fetchOriginalYear, searchDiscogs } from './discogs.js';
 import { writeInfoTxtFromTags } from './info-txt.js';
 import { readTags } from './tags.js';
 import type { AlbumAudit, AlbumLayout, Issue, TrackInfo } from './types.js';
@@ -25,6 +26,9 @@ export interface AuditAlbumOptions {
   checkYears?: boolean;
   // Repair mode only: write a basic info.txt from tags when the album has none.
   writeInfo?: boolean;
+  // cover.jpg in the album and artist folders; compared with the Discogs cover when
+  // Discogs is on (hashes cached on disk).
+  checkCovers?: boolean;
 }
 
 export async function readTracks(layout: AlbumLayout): Promise<TrackInfo[]> {
@@ -56,6 +60,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
     searchAlways = false,
     checkYears = false,
     writeInfo = false,
+    checkCovers: covers = false,
   } = opts;
   const tracks = await readTracks(layout);
   const issues: Issue[] = [];
@@ -79,6 +84,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   for (const t of tracks) issues.push(...checkNameTagMatch(t));
   issues.push(...checkDuplicates(tracks));
   issues.push(...checkDiscogsIds(tracks));
+  if (covers) issues.push(...(await checkCovers(layout, tracks, !skipDiscogs && token ? discogsCoverSource(token) : undefined)));
 
   let discogsResults = undefined;
   if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways)) {

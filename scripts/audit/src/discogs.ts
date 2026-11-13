@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { type CoverSource, imageHash } from './cover.js';
 import { discOfFolder, sliceForDisc } from './disc-split.js';
 import { CLEAR_LINE } from './progress.js';
 import { RateLimiter } from './rate-limit.js';
@@ -71,6 +72,25 @@ export interface MasterInfo {
   title?: string;
   year?: string; // undefined when Discogs reports 0 (unknown)
   mainRelease?: number;
+  cover?: CoverImage;
+}
+
+interface RawImage {
+  type?: string;
+  uri?: string;
+  uri150?: string;
+}
+
+/** A Discogs image: `uri` is up to 600px, `uri150` a 150px thumbnail. */
+export interface CoverImage {
+  uri: string;
+  uri150: string;
+}
+
+// The primary image (the front cover), else the first.
+function primaryImage(images?: RawImage[]): CoverImage | undefined {
+  const img = images?.find((i) => i.type === 'primary') ?? images?.[0];
+  return img?.uri ? { uri: img.uri, uri150: img.uri150 || img.uri } : undefined;
 }
 
 // Masters are shared by every pressing and disc of an album — cache per session.
@@ -80,12 +100,13 @@ export function fetchMaster(masterId: number, token: string): Promise<MasterInfo
   let cached = masterCache.get(masterId);
   if (!cached) {
     cached = discogsGet(`${API}/masters/${masterId}`, authHeaders(token))
-      .then((res) => res.json() as Promise<{ title?: string; year?: number; main_release?: number }>)
+      .then((res) => res.json() as Promise<{ title?: string; year?: number; main_release?: number; images?: RawImage[] }>)
       .then((data) => ({
         id: masterId,
         title: data.title?.trim() || undefined,
         year: data.year ? String(data.year) : undefined,
         mainRelease: data.main_release,
+        cover: primaryImage(data.images),
       }));
     cached.catch(() => masterCache.delete(masterId)); // don't cache failures
     masterCache.set(masterId, cached);
@@ -233,6 +254,7 @@ interface RawRelease {
   styles?: string[];
   country?: string;
   extraartists?: Array<{ name: string; role: string }>;
+  images?: RawImage[];
 }
 
 // Releases fetched to score search results are usually fetched again when one is picked
@@ -439,10 +461,81 @@ export async function fetchOriginalYear(releaseId: string, token: string): Promi
   return original;
 }
 
+// ── covers ────────────────────────────────────────────────────────────────────
+
+/** The release's front cover (else its master's), and the master ID. */
+export async function fetchReleaseCover(releaseId: string, token: string): Promise<{ cover?: CoverImage; masterId?: number }> {
+  const data = await getRelease(releaseId, token);
+  const cover = primaryImage(data.images) ?? (data.master_id ? (await fetchMaster(data.master_id, token)).cover : undefined);
+  return { ...(cover ? { cover } : {}), ...(data.master_id ? { masterId: data.master_id } : {}) };
+}
+
+export async function fetchMasterCover(masterId: number, token: string): Promise<CoverImage | undefined> {
+  return (await fetchMaster(masterId, token)).cover;
+}
+
+// Images are served by i.discogs.com, outside the API's rate limit.
+export async function downloadImage(url: string): Promise<Buffer> {
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) throw new Error(`Discogs image ${res.status}: ${res.statusText}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+// Hashes of Discogs covers, persisted like the year cache: "r123" → { hash, masterId },
+// "m456" → { hash }. A repeat audit compares covers without a Discogs request.
+interface CoverHashEntry {
+  hash?: string;
+  masterId?: number;
+}
+const coverCachePath = () => path.join(userHome(), '.cache', 'music-audit', 'cover-hashes.json');
+let coverCache: Promise<Record<string, CoverHashEntry>> | undefined;
+
+function loadCoverCache(): Promise<Record<string, CoverHashEntry>> {
+  coverCache ??= fs
+    .readFile(coverCachePath(), 'utf8')
+    .then((s) => JSON.parse(s) as Record<string, CoverHashEntry>)
+    .catch(() => ({}));
+  return coverCache;
+}
+
+async function cachedCoverHash(key: string, load: () => Promise<CoverHashEntry>): Promise<CoverHashEntry> {
+  const cache = await loadCoverCache();
+  if (cache[key]) return cache[key];
+  const entry = await load();
+  cache[key] = entry;
+  try {
+    await fs.mkdir(path.dirname(coverCachePath()), { recursive: true });
+    await fs.writeFile(coverCachePath(), JSON.stringify(cache), 'utf8');
+  } catch {
+    // Non-fatal, as for the year cache
+  }
+  return entry;
+}
+
+/** Discogs cover hashes for checkCovers() (cover.ts), from the 150px thumbnails. */
+export function discogsCoverSource(token: string): CoverSource {
+  return {
+    release: (releaseId) =>
+      cachedCoverHash(`r${releaseId}`, async () => {
+        const { cover, masterId } = await fetchReleaseCover(releaseId, token);
+        const hash = cover ? await imageHash(await downloadImage(cover.uri150)) : undefined;
+        return { ...(hash ? { hash } : {}), ...(masterId ? { masterId } : {}) };
+      }),
+    master: async (masterId) =>
+      (
+        await cachedCoverHash(`m${masterId}`, async () => {
+          const cover = await fetchMasterCover(masterId, token);
+          return cover ? { hash: await imageHash(await downloadImage(cover.uri150)) } : {};
+        })
+      ).hash,
+  };
+}
+
 /** Test helper: forget in-memory caches. */
 export function resetDiscogsCaches(): void {
   masterCache.clear();
   releaseCache.clear();
   discogsLimiter.reset();
   yearCache = undefined;
+  coverCache = undefined;
 }
