@@ -1031,8 +1031,9 @@ export class AuditStream {
   private buffer: AlbumAudit[] = [];
   private waiter?: () => void;
   private closed = false;
-  /** Albums scanned so far, of `total` found by the walk. */
-  progress = { done: 0, total: 0 };
+  /** Albums scanned so far (`done` of `total` found by the walk); albums to repair found so
+   *  far (`found`) and handed out (`taken`, the number of the album being repaired). */
+  progress: Required<ScanProgress> = { done: 0, total: 0, found: 0, taken: 0 };
 
   constructor(total = 0) {
     this.progress.total = total;
@@ -1049,6 +1050,7 @@ export class AuditStream {
   }
 
   push(audit: AlbumAudit): void {
+    this.progress.found++;
     this.buffer.push(audit);
     this.waiter?.();
     this.waiter = undefined;
@@ -1063,7 +1065,10 @@ export class AuditStream {
     while (this.buffer.length === 0 && !this.closed) {
       await new Promise<void>((r) => { this.waiter = r; });
     }
-    return this.buffer.shift() ?? null;
+    const audit = this.buffer.shift();
+    if (!audit) return null;
+    this.progress.taken++;
+    return audit;
   }
 }
 
@@ -1077,7 +1082,7 @@ export interface RepairAlbumContext {
   reaudit?: (layout: AlbumLayout) => Promise<AlbumAudit>;
   logEvent: (e: Omit<RepairEvent, 'ts' | 'session'>) => Promise<void>;
   /** Background scan progress, shown in the album header. */
-  scanProgress?: { done: number; total: number };
+  scanProgress?: ScanProgress;
 }
 
 // Re-reads the album from disk into `audit`. False when there's no re-scan or it failed.
@@ -1124,8 +1129,20 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
 // One pass over the album from its opening table: its issues, then any folder rename
 // the user agreed to, last.
 // "Scan ▕████░░░░▏ 120/340  35%" while the background scan runs, then the total.
-export function scanLine({ done, total }: { done: number; total: number }): string {
-  return done < total ? `   Scan ${progressBar(done, total)}` : `   Scan done: ${total} album${total !== 1 ? 's' : ''}`;
+export interface ScanProgress {
+  done: number;
+  total: number;
+  found?: number;
+  taken?: number;
+}
+
+// "Album 3 of 17 so far · Scan ▕████░░░░▏ 120/340  35%" while the background scan runs —
+// the album count grows as the scan finds more — then "Album 18 of 41 · Scan done: 340 albums".
+export function scanLine({ done, total, found, taken }: ScanProgress): string {
+  const scanning = done < total;
+  const album = taken ? `Album ${taken} of ${found ?? taken}${scanning ? ' so far' : ''} · ` : '';
+  const scan = scanning ? `Scan ${progressBar(done, total)}` : `Scan done: ${total} album${total !== 1 ? 's' : ''}`;
+  return `   ${album}${scan}`;
 }
 
 async function repairAlbumPass(
