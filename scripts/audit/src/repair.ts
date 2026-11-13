@@ -12,6 +12,7 @@ import { folderYear, withFolderYear } from './checks/year.js';
 import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import { fetchRelease, numberTracklist, parseDiscogsRef, pickMasterVersion, resolveReleaseId } from './discogs.js';
+import { guardedRename as renameSafely, moveAlbumToArtist } from './folder-move.js';
 import { appendChangeset, writeInfoTxt } from './info-txt.js';
 import { LiveProgress, progressBar } from './progress.js';
 import { interactive } from './rate-limit.js';
@@ -204,6 +205,17 @@ function albumMetaFromLayout(layout: AlbumLayout): {
   };
 }
 
+// The album title as the folder has it: without year prefix, disc part and brackets, but
+// with any other parentheses ("1976 Transformation (The Speed of Love) [FLAC]").
+export function folderTitle(folder: string): string {
+  return folder
+    .replace(/^\d{4}\s+/, '')
+    .replace(/\s*\(\s*[Dd]isc\s+\d+\s*[∕/\-]\s*\d+\s*\)/, '')
+    .replace(/\s*\[[^\]]*\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function musicFilesIn(dir: string): Promise<{ name: string; ext: 'flac' | 'mp3' }[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   return entries
@@ -323,8 +335,11 @@ async function askFolderRename(
 
   const artistMismatch =
     discogsArtist && normName(discogsArtist) !== normName(layout.artistName);
+  // The folder's title with its parentheses ("Transformation (The Speed of Love)"): only
+  // the year, the disc part and the brackets are left out. Case and punctuation don't count.
+  const localTitle = folderTitle(layout.albumFolder);
   const albumMismatch =
-    discogsAlbum && normName(discogsAlbum) !== normName(meta.album);
+    discogsAlbum && normName(discogsAlbum) !== normName(localTitle) && normName(discogsAlbum) !== normName(meta.album);
   // Only correct an existing year prefix; a missing one is MISSING_YEAR_PREFIX's job.
   const yearMismatch = localYear && release.year && localYear !== release.year;
 
@@ -334,7 +349,7 @@ async function askFolderRename(
   if (artistMismatch)
     console.log(`    artist : "${layout.artistName}"  →  "${discogsArtist}"`);
   if (albumMismatch)
-    console.log(`    album  : "${meta.album}"  →  "${discogsAlbum}"`);
+    console.log(`    album  : "${localTitle}"  →  "${discogsAlbum}"`);
   if (yearMismatch)
     console.log(`    year   : ${localYear}  →  ${release.year} (original release)`);
 
@@ -369,28 +384,39 @@ async function applyFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): P
   // Rename album folder first (artist rename changes its parent path).
   await renameAlbumFolder(layout, plannedAlbumFolder(layout.albumFolder, plan));
 
-  if (plan.artist && plan.artist !== layout.artistName) {
-    const oldArtist = layout.artistName;
-    const artistDir = path.dirname(layout.albumPath);
-    const newArtistDir = path.join(path.dirname(artistDir), plan.artist);
-    await guardedRename(artistDir, newArtistDir);
-    layout.artistName = plan.artist;
-    layout.albumPath = path.join(newArtistDir, layout.albumFolder);
-    await noteChange(layout, `artist folder was changed from "${oldArtist}" to "${plan.artist}"`);
-  }
+  if (plan.artist && plan.artist !== layout.artistName) await moveToArtist(layout, plan.artist);
   return `${layout.artistName}/${layout.albumFolder}`;
+}
+
+// Moves the album to another artist folder (see moveAlbumToArtist): only this album moves;
+// the old artist folder goes when it has no albums left.
+async function moveToArtist(layout: AlbumLayout, newArtist: string): Promise<void> {
+  const oldArtist = layout.artistName;
+  const move = await moveAlbumToArtist(layout.albumPath, newArtist);
+  layout.artistName = newArtist;
+  layout.albumPath = move.albumPath;
+  if (move.oldArtistDir === 'renamed') {
+    console.log(chalk.green(`  ✓ Renamed artist folder to ${newArtist}`));
+    await noteChange(layout, `artist folder was changed from "${oldArtist}" to "${newArtist}"`);
+    return;
+  }
+  console.log(chalk.green(`  ✓ Moved to ${newArtist}/${layout.albumFolder}`));
+  if (move.oldArtistDir === 'kept' && move.albumsLeft.length > 0) {
+    const n = move.albumsLeft.length;
+    console.log(chalk.dim(`  ${oldArtist}/ still has ${n} album${n !== 1 ? 's' : ''}: kept`));
+  }
+  if (move.filesMoved.length > 0) console.log(chalk.dim(`  Moved ${move.filesMoved.join(', ')} to ${newArtist}/`));
+  if (move.filesKept.length > 0) {
+    console.log(chalk.yellow(`  ${oldArtist}/ kept: ${newArtist}/ already has ${move.filesKept.join(', ')}`));
+  }
+  if (move.oldArtistDir === 'removed') console.log(chalk.dim(`  Removed the empty folder ${oldArtist}/`));
+  await noteChange(layout, `album was moved from artist folder "${oldArtist}" to "${newArtist}"`);
 }
 
 // ── safe rename ───────────────────────────────────────────────────────────────
 
 async function guardedRename(from: string, to: string): Promise<void> {
-  try {
-    await fs.access(to);
-    throw new Error(`Target already exists: ${to}`);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-  }
-  await fs.rename(from, to);
+  await renameSafely(from, to); // refuses to overwrite; handles case-only renames
   console.log(chalk.green(`  ✓ Renamed to ${path.basename(to)}`));
 }
 

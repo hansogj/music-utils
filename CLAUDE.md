@@ -110,6 +110,8 @@ scripts/audit/src/
                     else by order: one folder of a 2-CD release), pairingProblem() (asks
                     before tagging when titles repeat), checkRenames() (no renames that clash),
                     planPairing() (an unnumbered file is placed by title, or is an extra copy)
+  folder-move.ts  — guardedRename() (no overwrite; case-only renames via a temp name),
+                    moveAlbumToArtist() (one album to another artist folder; old one removed when empty)
   report.ts       — printReport(); terminal-formatted severity sections
   server.ts       — serveReport(): HTML UI mode (--ui flag)
   logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)
@@ -161,7 +163,8 @@ scripts/audit/src/
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release (for a disc folder: `pickMasterVersion()`)
 - **Suggested release ID**: the album's own (tags, else the comment URL / `info.txt` via `releaseIdFrom()`), then the other disc folders' (`siblingReleaseId()`), then the top search hit
-- **Folder rename safety**: all renames go through `guardedRename()` which checks for pre-existing target before calling `fs.rename`
+- **Folder rename safety**: all renames go through `guardedRename()` (folder-move.ts), which refuses to overwrite and does a case-only rename ("Speed of Love" → "Speed Of Love") via a temporary name: on an SMB share the target "exists" already, being the folder itself. Albums are compared by `folderTitle()` (parentheses kept), so a case difference isn't offered as a rename
+- **Artist change** (`moveAlbumToArtist()`): only the album moves, into the new artist folder (created, or joined when it exists); the old artist folder is kept while it has other albums, else its files (cover.jpg) follow and it is removed, `@eaDir`/`.DS_Store`/`Thumbs.db` and all. A change of case only renames the whole artist folder
 - **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses the suggested ID; `b` opens browse list; `[d]` in any issue menu retags the album from a chosen Discogs release; `o` at any prompt starts the album over
 
 ### Testing (audit)
