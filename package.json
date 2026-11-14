@@ -22,9 +22,10 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@changesets/cli": "2.31.1",
+    "@typescript/native": "npm:typescript@7.0.2",
     "husky": "9.1.7",
     "npm-run-all2": "9.0.4",
-    "typescript": "6.0.3"
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "packageManager": "pnpm@12.9.1",
   "engines": {
