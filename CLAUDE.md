@@ -69,6 +69,8 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 - Strict mode with `strictNullChecks: true`
 - ESNext target, Node16 module resolution
 - `tsconfig.build.json` excludes tests and mocks; `tsconfig.ci.json` is used for CI integration test compilation
+- TypeScript 7 (the native compiler) runs side by side with TypeScript 6, as the TS 7 release notes describe: `"@typescript/native": "npm:typescript@7.0.2"` gives `tsc` (7), and `"typescript": "npm:@typescript/typescript6@6.0.2"` gives tools that need the compiler API (typescript-eslint, tsup's `.d.ts` build) TypeScript 6, plus a `tsc6` binary. TS 7 ships no JS API; drop the alias once typescript-eslint and tsup support TS 7.1's new API
+- The full `tsconfig.json` of music-utils and discogs-item-lookup (with tests) doesn't type-check today (vitest globals aren't in `types`, old mocks); only the build configs are checked
 
 ## `scripts/audit/` — music-audit
 

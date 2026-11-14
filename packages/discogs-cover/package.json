@@ -66,9 +66,10 @@
   },
   "devDependencies": {
     "@types/node": "26.6.6",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "prettier": "3.9.10",
     "tsup": "9.0.0",
-    "typescript": "6.0.3",
-    "vitest": "4.1.12",
-    "prettier": "3.9.10"
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "4.1.12"
   }
 }
