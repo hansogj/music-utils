@@ -84,7 +84,8 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   for (const t of tracks) issues.push(...checkNameTagMatch(t));
   issues.push(...checkDuplicates(tracks));
   issues.push(...checkDiscogsIds(tracks));
-  if (covers) issues.push(...(await checkCovers(layout, tracks, !skipDiscogs && token ? discogsCoverSource(token) : undefined)));
+  if (covers)
+    issues.push(...(await checkCovers(layout, tracks, !skipDiscogs && token ? discogsCoverSource(token) : undefined)));
 
   let discogsResults = undefined;
   if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways)) {

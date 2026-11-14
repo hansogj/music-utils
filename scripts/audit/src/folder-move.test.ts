@@ -68,7 +68,10 @@ describe('moveAlbumToArtist', () => {
       'D/David Sancious/1976 Transformation/01.flac',
       'D/David Sancious/cover.jpg',
     );
-    const move = await moveAlbumToArtist(path.join(root, 'D/David Sancious/1976 Transformation'), 'David Sancious And Tone');
+    const move = await moveAlbumToArtist(
+      path.join(root, 'D/David Sancious/1976 Transformation'),
+      'David Sancious And Tone',
+    );
     expect(move).toMatchObject({
       albumPath: path.join(root, 'D/David Sancious And Tone/1976 Transformation'),
       oldArtistDir: 'kept',
@@ -129,9 +132,9 @@ describe('moveAlbumToArtist', () => {
 
   it('refuses to move onto an album the new artist folder already has', async () => {
     await make('D/Wolf/1973 Saturation Point/01.flac', "D/Darryl Way's Wolf/1973 Saturation Point/01.flac");
-    await expect(moveAlbumToArtist(path.join(root, 'D/Wolf/1973 Saturation Point'), "Darryl Way's Wolf")).rejects.toThrow(
-      /Target already exists/,
-    );
+    await expect(
+      moveAlbumToArtist(path.join(root, 'D/Wolf/1973 Saturation Point'), "Darryl Way's Wolf"),
+    ).rejects.toThrow(/Target already exists/);
     expect(await tree()).toContain('D/Wolf/1973 Saturation Point/01.flac');
   });
 

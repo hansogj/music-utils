@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type { AlbumLayout } from './types.js';
 
 // Matches single-character letter/digit/symbol directories used in the [A-Z] layer

@@ -1,16 +1,14 @@
-import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import readline from 'node:readline/promises';
 import { emitKeypressEvents } from 'node:readline';
-import { termLink } from './term-link.js';
-import { albumLocation } from './walk.js';
+import readline from 'node:readline/promises';
+
+import chalk from 'chalk';
+
 import { releaseIdFrom, tracksMissingReleaseId } from './checks/discogs-ids.js';
 import { localNumbering, matchNames } from './checks/names.js';
 import { folderYear, withFolderYear } from './checks/year.js';
-import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
-import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import {
   albumRef,
   artistCoverCandidates,
@@ -24,9 +22,11 @@ import {
   withoutSolvedCoverIssues,
   writeCover,
 } from './cover.js';
+import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
+import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import {
-  type DiscogsRef,
   discogsCoverSource,
+  type DiscogsRef,
   downloadImage,
   fetchMasterCover,
   fetchRelease,
@@ -41,18 +41,20 @@ import { appendChangeset, writeInfoTxt } from './info-txt.js';
 import { LiveProgress, progressBar } from './progress.js';
 import { interactive } from './rate-limit.js';
 import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from './rename-plan.js';
+import { writeTags } from './tag-write.js';
+import { termLink } from './term-link.js';
+import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
+import { albumLocation } from './walk.js';
 import {
   albumSetKey,
   applyOldYear,
   auxPartOf,
   customAux,
   describeOldYear,
-  oldYearBracket,
   type OldYearAnswer,
+  oldYearBracket,
   withAuxPart,
 } from './year-bracket.js';
-import { writeTags } from './tag-write.js';
-import type { AlbumAudit, AlbumLayout, Issue } from './types.js';
 
 // Created lazily on first prompt: an eager readline at import time resumes stdin,
 // which keeps non-interactive runs (--json, plain report) alive forever on a TTY.
@@ -80,7 +82,9 @@ export function setPrompt(fn: (q: string, prefill?: string) => Promise<string>):
 
 // Answering "o" at any prompt while an album is being repaired starts that album over.
 class RestartSignal extends Error {
-  constructor() { super('restart album'); }
+  constructor() {
+    super('restart album');
+  }
 }
 let restartable = false;
 
@@ -101,7 +105,9 @@ function yearLabel(r: DiscogsSearchResult): string {
 }
 
 class BackSignal extends Error {
-  constructor() { super('back'); }
+  constructor() {
+    super('back');
+  }
 }
 
 // Returns: selected release ID string, undefined = "enter different ID", null = Esc (go back)
@@ -115,9 +121,10 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
     ...results.map((r) => {
       const yr = yearLabel(r);
       const isBest = r.matchScore !== undefined && r.matchScore === bestScore;
-      const score = r.matchScore !== undefined
-        ? ` ${Math.round(r.matchScore * 100)}%${r.trackCount ? ` · ${r.trackCount}tr` : ''}`
-        : '';
+      const score =
+        r.matchScore !== undefined
+          ? ` ${Math.round(r.matchScore * 100)}%${r.trackCount ? ` · ${r.trackCount}tr` : ''}`
+          : '';
       return { id: String(r.id), label: `[${r.id}] ${r.title}${yr}`, score, isBest };
     }),
     { id: '', label: 'Enter a different release ID…', score: '', isBest: false },
@@ -142,8 +149,7 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
 
   const redraw = () => {
     process.stdout.write(`\x1b[${items.length}A`);
-    for (const [i, item] of items.entries())
-      process.stdout.write(`\x1b[2K${renderItem(item, i === idx)}\n`);
+    for (const [i, item] of items.entries()) process.stdout.write(`\x1b[2K${renderItem(item, i === idx)}\n`);
   };
 
   process.stdout.write(chalk.dim('  Select release (↑↓  Enter  Esc = back to menu):\n'));
@@ -153,7 +159,9 @@ async function pickRelease(results: DiscogsSearchResult[]): Promise<string | nul
     // Ignore any keypress events that fire in the first event-loop tick —
     // they are buffered input from the previous readline prompt, not user intent.
     let ready = false;
-    setImmediate(() => { ready = true; });
+    setImmediate(() => {
+      ready = true;
+    });
 
     const cleanup = (result: string | null | undefined) => {
       if (done) return;
@@ -200,7 +208,9 @@ function parseReleaseRef(raw: string) {
   const ref = parseDiscogsRef(raw);
   if (!ref)
     console.log(
-      chalk.yellow(`  ⚠ Unrecognised format. Enter a release ID (4565937, r4565937), a master ID (m1439) or a Discogs URL.`),
+      chalk.yellow(
+        `  ⚠ Unrecognised format. Enter a release ID (4565937, r4565937), a master ID (m1439) or a Discogs URL.`,
+      ),
     );
   return ref;
 }
@@ -215,7 +225,7 @@ function albumMetaFromLayout(layout: AlbumLayout): {
 } {
   const { artistName, albumFolder } = layout;
   const year = albumFolder.match(/^(\d{4})\s+/)?.[1];
-  const discMatch = albumFolder.match(/\(\s*[Dd]isc\s+(\d+)[∕\/\-](\d+)\s*\)/);
+  const discMatch = albumFolder.match(/\(\s*[Dd]isc\s+(\d+)[∕/-](\d+)\s*\)/);
   return {
     artist: artistName,
     album: albumFolder
@@ -234,7 +244,7 @@ function albumMetaFromLayout(layout: AlbumLayout): {
 export function folderTitle(folder: string): string {
   return folder
     .replace(/^\d{4}\s+/, '')
-    .replace(/\s*\(\s*[Dd]isc\s+\d+\s*[∕/\-]\s*\d+\s*\)/, '')
+    .replace(/\s*\(\s*[Dd]isc\s+\d+\s*[∕/-]\s*\d+\s*\)/, '')
     .replace(/\s*\[[^\]]*\]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -247,8 +257,6 @@ async function musicFilesIn(dir: string): Promise<{ name: string; ext: 'flac' | 
     .map((e) => ({ name: e.name, ext: path.extname(e.name).slice(1).toLowerCase() as 'flac' | 'mp3' }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
-
-
 
 // ── folder rename helpers ─────────────────────────────────────────────────────
 
@@ -357,8 +365,7 @@ async function askFolderRename(
   const discogsAlbum = release.title;
   const localYear = folderYear(layout.albumFolder);
 
-  const artistMismatch =
-    discogsArtist && normName(discogsArtist) !== normName(layout.artistName);
+  const artistMismatch = discogsArtist && normName(discogsArtist) !== normName(layout.artistName);
   // The folder's title with its parentheses ("Transformation (The Speed of Love)"): only
   // the year, the disc part and the brackets are left out. Case and punctuation don't count.
   const localTitle = folderTitle(layout.albumFolder);
@@ -370,12 +377,9 @@ async function askFolderRename(
   if (!artistMismatch && !albumMismatch && !yearMismatch) return undefined;
 
   console.log(chalk.yellow('\n  Discogs name differs from local folder:'));
-  if (artistMismatch)
-    console.log(`    artist : "${layout.artistName}"  →  "${discogsArtist}"`);
-  if (albumMismatch)
-    console.log(`    album  : "${localTitle}"  →  "${discogsAlbum}"`);
-  if (yearMismatch)
-    console.log(`    year   : ${localYear}  →  ${release.year} (original release)`);
+  if (artistMismatch) console.log(`    artist : "${layout.artistName}"  →  "${discogsArtist}"`);
+  if (albumMismatch) console.log(`    album  : "${localTitle}"  →  "${discogsAlbum}"`);
+  if (yearMismatch) console.log(`    year   : ${localYear}  →  ${release.year} (original release)`);
 
   const answer = await ask('  Rename folder(s) to match Discogs? [y/N] ');
   if (answer.toLowerCase() !== 'y') {
@@ -399,7 +403,9 @@ function plannedAlbumFolder(original: string, plan: FolderRenamePlan): string {
   const yearPrefix = plan.year ? `${plan.year} ` : (folder.match(/^(\d{4}\s+)/)?.[1] ?? '');
   const discPart = folder.match(/(\s*\([Dd]isc[^)]+\))/)?.[0] ?? '';
   const auxPart = (folder.match(/\s*\[[^\]]+\]/g) ?? []).join('');
-  const renamed = plan.album ? `${yearPrefix}${plan.album}${discPart}${auxPart}`.trim() : withFolderYear(folder, plan.year!);
+  const renamed = plan.album
+    ? `${yearPrefix}${plan.album}${discPart}${auxPart}`.trim()
+    : withFolderYear(folder, plan.year!);
   return applyOldYear(renamed, plan.oldYear);
 }
 
@@ -487,7 +493,11 @@ async function chooseDiscSlice(
     // Placed by position, not by the release's own disc numbering: show the pairing.
     if (slice.method !== 'positions') {
       slice.tracks.forEach((t, i) =>
-        console.log(chalk.dim(`    ${String(i + 1).padStart(2, '0')} ${ctx.localNames[i] || '?'}  →  ${t.position ? `${t.position} ` : ''}${t.title}`)),
+        console.log(
+          chalk.dim(
+            `    ${String(i + 1).padStart(2, '0')} ${ctx.localNames[i] || '?'}  →  ${t.position ? `${t.position} ` : ''}${t.title}`,
+          ),
+        ),
       );
     }
   };
@@ -496,16 +506,26 @@ async function chooseDiscSlice(
     return slice;
   }
   if (ctx.localTotal !== undefined && ctx.localTotal !== slice.total) {
-    console.log(chalk.yellow(`  ⚠ The release has ${slice.total} tracks, your ${ctx.noOfDiscs} disc folders ${ctx.localTotal}: it may split the songs differently`));
+    console.log(
+      chalk.yellow(
+        `  ⚠ The release has ${slice.total} tracks, your ${ctx.noOfDiscs} disc folders ${ctx.localTotal}: it may split the songs differently`,
+      ),
+    );
   }
   if (slice.method === 'unknown') {
-    console.log(chalk.yellow(`  ⚠ The release has no disc split, and neither the titles nor the other disc folders tell where ${disc} starts.`));
+    console.log(
+      chalk.yellow(
+        `  ⚠ The release has no disc split, and neither the titles nor the other disc folders tell where ${disc} starts.`,
+      ),
+    );
   } else {
     show();
   }
   while (true) {
     const again =
-      slice.method === 'unknown' ? 'n' : (await ask('  [Enter] OK   [n] Start at another track: ')).trim().toLowerCase();
+      slice.method === 'unknown'
+        ? 'n'
+        : (await ask('  [Enter] OK   [n] Start at another track: ')).trim().toLowerCase();
     if (again !== 'n') return slice;
     const n = parseInt(await ask(`  ${disc} starts at release track (1–${slice.total}): `), 10);
     if (!(n >= 1 && n <= slice.total)) {
@@ -548,203 +568,241 @@ function buildDiscogsAction(
     label,
     discogs: true,
     // interactive(): its Discogs requests go ahead of the background scan's.
-    run: () => interactive(async () => {
-      const results = audit.discogsResults ?? [];
-      const topId = suggested?.id ?? (topResult ? String(topResult.id) : '');
+    run: () =>
+      interactive(async () => {
+        const results = audit.discogsResults ?? [];
+        const topId = suggested?.id ?? (topResult ? String(topResult.id) : '');
 
-      // Retry loop: re-prompt if the fetch fails (e.g. Discogs 500, bad ID).
-      let release: Awaited<ReturnType<typeof fetchRelease>> | undefined;
-      let releaseId = '';
-      while (!release) {
-        const browseHint = results.length > 0 ? '  (b to browse list)' : '';
-        const input = (await ask(`    Release ID [${releaseId || topId || 'enter ID'}]${browseHint}: `)).trim();
+        // Retry loop: re-prompt if the fetch fails (e.g. Discogs 500, bad ID).
+        let release: Awaited<ReturnType<typeof fetchRelease>> | undefined;
+        let releaseId = '';
+        while (!release) {
+          const browseHint = results.length > 0 ? '  (b to browse list)' : '';
+          const input = (await ask(`    Release ID [${releaseId || topId || 'enter ID'}]${browseHint}: `)).trim();
 
-        if (input === 'b' && results.length > 0) {
-          const picked = await pickRelease(results);
-          if (picked === null) throw new BackSignal(); // Esc → back to action menu
-          if (picked !== undefined) releaseId = picked;
-          // undefined = "enter different ID" row selected — fall through to re-prompt
-        } else if (input) {
-          const ref = parseReleaseRef(input);
-          releaseId = ref?.id ?? '';
-          if (ref?.type === 'master') {
-            try {
-              if (noOfDiscs > 1) {
-                const picked = await pickMasterVersion(ref.id, token, { disc: folderDisc, noOfDiscs, localCount: files.length });
-                releaseId = picked.releaseId;
-                console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
-              } else {
-                releaseId = await resolveReleaseId(ref, token);
-                console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+          if (input === 'b' && results.length > 0) {
+            const picked = await pickRelease(results);
+            if (picked === null) throw new BackSignal(); // Esc → back to action menu
+            if (picked !== undefined) releaseId = picked;
+            // undefined = "enter different ID" row selected — fall through to re-prompt
+          } else if (input) {
+            const ref = parseReleaseRef(input);
+            releaseId = ref?.id ?? '';
+            if (ref?.type === 'master') {
+              try {
+                if (noOfDiscs > 1) {
+                  const picked = await pickMasterVersion(ref.id, token, {
+                    disc: folderDisc,
+                    noOfDiscs,
+                    localCount: files.length,
+                  });
+                  releaseId = picked.releaseId;
+                  console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
+                } else {
+                  releaseId = await resolveReleaseId(ref, token);
+                  console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+                }
+              } catch (err) {
+                console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
+                releaseId = '';
+                continue;
               }
-            } catch (err) {
-              console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
-              releaseId = '';
-              continue;
             }
+          } else if (!releaseId) {
+            releaseId = topId; // Enter with no input → use suggested ID
           }
-        } else if (!releaseId) {
-          releaseId = topId; // Enter with no input → use suggested ID
+          // Enter with existing releaseId (retry after error) → keep it
+
+          if (!releaseId) {
+            console.log(chalk.yellow('  Skipped — no release ID'));
+            return;
+          }
+
+          console.log(chalk.dim(`  Fetching release ${releaseId}...`));
+          try {
+            release = await fetchRelease(releaseId, token);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.log(chalk.red(`  ✗ ${msg}`));
+            const retry = await ask('  Try a different release ID? [y/N] ');
+            if (retry.toLowerCase() !== 'y') return;
+            releaseId = ''; // clear so prompt shows fresh
+          }
         }
-        // Enter with existing releaseId (retry after error) → keep it
 
-        if (!releaseId) { console.log(chalk.yellow('  Skipped — no release ID')); return; }
-
-        console.log(chalk.dim(`  Fetching release ${releaseId}...`));
-        try {
-          release = await fetchRelease(releaseId, token);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.log(chalk.red(`  ✗ ${msg}`));
-          const retry = await ask('  Try a different release ID? [y/N] ');
-          if (retry.toLowerCase() !== 'y') return;
-          releaseId = ''; // clear so prompt shows fresh
+        const { tracklist } = release;
+        if (tracklist.length === 0) {
+          console.log(chalk.yellow('  No tracks found on this release'));
+          return;
         }
-      }
 
-      const { tracklist } = release;
-      if (tracklist.length === 0) { console.log(chalk.yellow('  No tracks found on this release')); return; }
-
-      // Always the original (master) year and title — a 1989 reissue of a 1970 album is tagged 1970.
-      const year = release.year ?? meta.year;
-      const album = release.title?.trim() || meta.album;
-      if (release.year && release.releaseYear && release.releaseYear !== release.year)
-        console.log(chalk.dim(`  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`));
-      const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
-      const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
-
-      // For a "(Disc n∕m)" folder only that disc's part of the release is used.
-      const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
-      const slice = await chooseDiscSlice(numberTracklist(tracklist), {
-        disc: folderDisc,
-        noOfDiscs,
-        localNames: files.map((f) => names.get(f.name) ?? ''),
-        localCount: files.length,
-        expectedFirst: expectedFirstTrack(folderDisc, siblings),
-        // All disc folders present: their tracks together, to compare with the release.
-        localTotal:
-          siblings.length === noOfDiscs - 1 ? siblings.reduce((n, s) => n + s.trackCount, files.length) : undefined,
-      });
-      if (!slice) { console.log(chalk.dim('  Skipped.')); return; }
-      const discTracks = slice.tracks;
-
-      const pairing = planPairing(
-        files.map((f) => f.name),
-        files.map((f) => names.get(f.name) ?? ''),
-        discTracks,
-        folderDisc,
-      );
-      const local = pairing.map(({ disc, no }) => ({ disc, no }));
-      const paired = pairing.map((p) => p.track);
-      const titles = paired.map((t) => t?.title?.trim() || undefined);
-      const isExtra = (i: number) => pairing[i].extraOf !== undefined;
-      const extras = files.filter((_, i) => isExtra(i));
-      for (const [i, f] of files.entries()) {
-        if (isExtra(i))
+        // Always the original (master) year and title — a 1989 reissue of a 1970 album is tagged 1970.
+        const year = release.year ?? meta.year;
+        const album = release.title?.trim() || meta.album;
+        if (release.year && release.releaseYear && release.releaseYear !== release.year)
           console.log(
-            chalk.yellow(`  ⚠ ${f.name} looks like an extra copy of ${files[pairing[i].extraOf!].name}: not tagged — move it out of the album`),
+            chalk.dim(
+              `  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`,
+            ),
           );
-      }
-      const localCount = files.length - extras.length;
+        const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
+        const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
 
-      if (discTracks.length !== localCount) {
-        const extra = discTracks.length - localCount;
-        const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
-        const msg = extra > 0
-          ? `${what} ${extra} more track(s) — may be a bonus edition`
-          : `${what} ${-extra} fewer track(s) — may be a different pressing`;
-        console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${localCount} local)`));
-        const ok = await ask('  Continue anyway? [y/N] ');
-        if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
-      }
-
-      const problem = pairingProblem(titles.filter((_, i) => !isExtra(i)));
-      if (problem) {
-        console.log(chalk.yellow(`  ⚠ The titles don't line up: ${problem}`));
-        files.forEach((f, i) =>
-          console.log(chalk.dim(`    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : isExtra(i) ? '(extra copy)' : '?'}`)),
-        );
-        const ok = await ask('  Tag anyway? [y/N] ');
-        if (ok.toLowerCase() !== 'y') { console.log(chalk.dim('  Skipped.')); return; }
-      }
-
-      // The release's own count when stray copies are left out (15, not 17).
-      const total = localCount;
-      for (const [i, { name, ext }] of files.entries()) {
-        if (isExtra(i)) continue;
-        const { no, disc } = local[i];
-        const title = titles[i];
-        const tags: Record<string, string> = {
-          ARTIST: meta.artist,
-          ALBUMARTIST: meta.artist,
-          ALBUM: album,
-          TRACKNUMBER: `${no}/${total}`,
-          DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
-          ...(year ? { DATE: year, ORIGINALDATE: year } : {}),
-          ...(title ? { TITLE: title } : {}),
-          ...(genreValue ? { GENRE: genreValue } : {}),
-          COMMENT: releaseUrl,
-          DISCOGS_RELEASE_ID: releaseId,
-          // Same across pressings (FLAC rip vs mp3 copy); empty clears a stale one.
-          DISCOGS_MASTER_ID: release.masterId ? String(release.masterId) : '',
-        };
-        await writeTags(path.join(audit.layout.albumPath, name), ext, tags);
-        console.log(chalk.green(`  ✓ Tagged ${name}${title ? ` → "${title}"` : ' (no title match)'}`));
-      }
-
-      // ── write info.txt ─────────────────────────────────────────────────
-      try {
-        const written = await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
-          discNumber: meta.discNumber,
-          noOfDiscs: meta.noOfDiscs,
+        // For a "(Disc n∕m)" folder only that disc's part of the release is used.
+        const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
+        const slice = await chooseDiscSlice(numberTracklist(tracklist), {
+          disc: folderDisc,
+          noOfDiscs,
+          localNames: files.map((f) => names.get(f.name) ?? ''),
+          localCount: files.length,
+          expectedFirst: expectedFirstTrack(folderDisc, siblings),
+          // All disc folders present: their tracks together, to compare with the release.
+          localTotal:
+            siblings.length === noOfDiscs - 1 ? siblings.reduce((n, s) => n + s.trackCount, files.length) : undefined,
         });
-        console.log(chalk.dim(written ? '  ✓ info.txt written' : '  ✓ info.txt unchanged'));
-      } catch {
-        // Non-fatal — tag write already succeeded
-      }
+        if (!slice) {
+          console.log(chalk.dim('  Skipped.'));
+          return;
+        }
+        const discTracks = slice.tracks;
 
-      // ── offer file renames to match Discogs titles ──────────────────────
-      // "01 - Title", also in a "(Disc n∕m)" folder; "d2t01 - Title" only when one
-      // folder holds the files of several discs.
-      const isMultiDisc = new Set(local.map((l) => l.disc)).size > 1;
-      const planned = files.flatMap(({ name, ext }, i) => {
-        const { no, disc } = local[i];
-        const title = titles[i];
-        if (!title) return [];
-        const safe = sanitizeFilename(title);
-        const newName = isMultiDisc
-          ? `d${disc}t${String(no).padStart(2, '0')} - ${safe}.${ext}`
-          : `${String(no).padStart(2, '0')} - ${safe}.${ext}`;
-        return newName !== name ? [{ old: name, new: newName }] : [];
-      });
-      const { ok: pending, clash } = checkRenames(planned, files.map((f) => f.name));
-      if (clash) {
-        console.log(chalk.yellow(`  ⚠ No file renames: they would overwrite files (${clash.slice(0, 3).join(', ')}${clash.length > 3 ? ', …' : ''})`));
-      }
+        const pairing = planPairing(
+          files.map((f) => f.name),
+          files.map((f) => names.get(f.name) ?? ''),
+          discTracks,
+          folderDisc,
+        );
+        const local = pairing.map(({ disc, no }) => ({ disc, no }));
+        const paired = pairing.map((p) => p.track);
+        const titles = paired.map((t) => t?.title?.trim() || undefined);
+        const isExtra = (i: number) => pairing[i].extraOf !== undefined;
+        const extras = files.filter((_, i) => isExtra(i));
+        for (const [i, f] of files.entries()) {
+          if (isExtra(i))
+            console.log(
+              chalk.yellow(
+                `  ⚠ ${f.name} looks like an extra copy of ${files[pairing[i].extraOf!].name}: not tagged — move it out of the album`,
+              ),
+            );
+        }
+        const localCount = files.length - extras.length;
 
-      if (pending.length > 0) {
-        console.log(chalk.dim(`\n  File renames to match Discogs titles (${pending.length} of ${files.length}):`));
-        for (const p of pending) console.log(`    ${chalk.dim(p.old)}  →  ${p.new}`);
-        const doRename = await ask('  Apply renames? [y/N] ');
-        if (doRename.toLowerCase() === 'y') {
-          for (const p of pending) {
-            try {
-              await fs.rename(path.join(audit.layout.albumPath, p.old), path.join(audit.layout.albumPath, p.new));
-              console.log(chalk.green(`  ✓ ${p.new}`));
-            } catch (err) {
-              console.log(chalk.red(`  ✗ ${p.old}: ${err instanceof Error ? err.message : String(err)}`));
+        if (discTracks.length !== localCount) {
+          const extra = discTracks.length - localCount;
+          const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
+          const msg =
+            extra > 0
+              ? `${what} ${extra} more track(s) — may be a bonus edition`
+              : `${what} ${-extra} fewer track(s) — may be a different pressing`;
+          console.log(chalk.yellow(`  ⚠ ${msg} (${discTracks.length} vs ${localCount} local)`));
+          const ok = await ask('  Continue anyway? [y/N] ');
+          if (ok.toLowerCase() !== 'y') {
+            console.log(chalk.dim('  Skipped.'));
+            return;
+          }
+        }
+
+        const problem = pairingProblem(titles.filter((_, i) => !isExtra(i)));
+        if (problem) {
+          console.log(chalk.yellow(`  ⚠ The titles don't line up: ${problem}`));
+          files.forEach((f, i) =>
+            console.log(
+              chalk.dim(
+                `    ${f.name}  →  ${paired[i] ? `${paired[i]!.position ? `${paired[i]!.position} ` : ''}${paired[i]!.title}` : isExtra(i) ? '(extra copy)' : '?'}`,
+              ),
+            ),
+          );
+          const ok = await ask('  Tag anyway? [y/N] ');
+          if (ok.toLowerCase() !== 'y') {
+            console.log(chalk.dim('  Skipped.'));
+            return;
+          }
+        }
+
+        // The release's own count when stray copies are left out (15, not 17).
+        const total = localCount;
+        for (const [i, { name, ext }] of files.entries()) {
+          if (isExtra(i)) continue;
+          const { no, disc } = local[i];
+          const title = titles[i];
+          const tags: Record<string, string> = {
+            ARTIST: meta.artist,
+            ALBUMARTIST: meta.artist,
+            ALBUM: album,
+            TRACKNUMBER: `${no}/${total}`,
+            DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
+            ...(year ? { DATE: year, ORIGINALDATE: year } : {}),
+            ...(title ? { TITLE: title } : {}),
+            ...(genreValue ? { GENRE: genreValue } : {}),
+            COMMENT: releaseUrl,
+            DISCOGS_RELEASE_ID: releaseId,
+            // Same across pressings (FLAC rip vs mp3 copy); empty clears a stale one.
+            DISCOGS_MASTER_ID: release.masterId ? String(release.masterId) : '',
+          };
+          await writeTags(path.join(audit.layout.albumPath, name), ext, tags);
+          console.log(chalk.green(`  ✓ Tagged ${name}${title ? ` → "${title}"` : ' (no title match)'}`));
+        }
+
+        // ── write info.txt ─────────────────────────────────────────────────
+        try {
+          const written = await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
+            discNumber: meta.discNumber,
+            noOfDiscs: meta.noOfDiscs,
+          });
+          console.log(chalk.dim(written ? '  ✓ info.txt written' : '  ✓ info.txt unchanged'));
+        } catch {
+          // Non-fatal — tag write already succeeded
+        }
+
+        // ── offer file renames to match Discogs titles ──────────────────────
+        // "01 - Title", also in a "(Disc n∕m)" folder; "d2t01 - Title" only when one
+        // folder holds the files of several discs.
+        const isMultiDisc = new Set(local.map((l) => l.disc)).size > 1;
+        const planned = files.flatMap(({ name, ext }, i) => {
+          const { no, disc } = local[i];
+          const title = titles[i];
+          if (!title) return [];
+          const safe = sanitizeFilename(title);
+          const newName = isMultiDisc
+            ? `d${disc}t${String(no).padStart(2, '0')} - ${safe}.${ext}`
+            : `${String(no).padStart(2, '0')} - ${safe}.${ext}`;
+          return newName !== name ? [{ old: name, new: newName }] : [];
+        });
+        const { ok: pending, clash } = checkRenames(
+          planned,
+          files.map((f) => f.name),
+        );
+        if (clash) {
+          console.log(
+            chalk.yellow(
+              `  ⚠ No file renames: they would overwrite files (${clash.slice(0, 3).join(', ')}${clash.length > 3 ? ', …' : ''})`,
+            ),
+          );
+        }
+
+        if (pending.length > 0) {
+          console.log(chalk.dim(`\n  File renames to match Discogs titles (${pending.length} of ${files.length}):`));
+          for (const p of pending) console.log(`    ${chalk.dim(p.old)}  →  ${p.new}`);
+          const doRename = await ask('  Apply renames? [y/N] ');
+          if (doRename.toLowerCase() === 'y') {
+            for (const p of pending) {
+              try {
+                await fs.rename(path.join(audit.layout.albumPath, p.old), path.join(audit.layout.albumPath, p.new));
+                console.log(chalk.green(`  ✓ ${p.new}`));
+              } catch (err) {
+                console.log(chalk.red(`  ✗ ${p.old}: ${err instanceof Error ? err.message : String(err)}`));
+              }
             }
           }
         }
-      }
 
-      // ── ask about folder renames; they run after the album's other fixes ─
-      const plan = await askFolderRename(audit.layout, meta, release);
-      if (plan) {
-        planFolderRename(audit.layout, plan);
-        console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
-      }
-    }),
+        // ── ask about folder renames; they run after the album's other fixes ─
+        const plan = await askFolderRename(audit.layout, meta, release);
+        if (plan) {
+          planFolderRename(audit.layout, plan);
+          console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
+        }
+      }),
   };
 }
 
@@ -774,7 +832,10 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
         run: async () => {
           const input = (await ask(`    Year [${guessedYear ?? 'YYYY'}]: `)).trim();
           const year = input || guessedYear;
-          if (!year?.match(/^\d{4}$/)) { console.log(chalk.yellow('  Skipped — invalid year')); return; }
+          if (!year?.match(/^\d{4}$/)) {
+            console.log(chalk.yellow('  Skipped — invalid year'));
+            return;
+          }
           await renameAlbumFolder(layout, `${year} ${layout.albumFolder}`);
         },
       });
@@ -797,7 +858,10 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
 
     // ── SEVERE: move artist to correct letter dir ──────────────────────────
     case 'WRONG_LETTER_DIR': {
-      const expected = layout.artistName.replace(/^(the|a|an|los|il|la|el|le)\s+/i, '').charAt(0).toUpperCase();
+      const expected = layout.artistName
+        .replace(/^(the|a|an|los|il|la|el|le)\s+/i, '')
+        .charAt(0)
+        .toUpperCase();
       const root = path.dirname(path.dirname(layout.albumPath)); // ROOT
       const targetArtist = path.join(root, expected, layout.artistName);
       const sourceArtist = path.join(root, layout.letterDir!, layout.artistName);
@@ -829,7 +893,10 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       actions.push({
         label: `Tag from folder (${meta.artist} — ${meta.year ?? '?'} ${meta.album}) — title will be empty`,
         run: async () => {
-          const local = localNumbering(files.map((f) => f.name), parseInt(meta.discNumber, 10));
+          const local = localNumbering(
+            files.map((f) => f.name),
+            parseInt(meta.discNumber, 10),
+          );
           for (const [i, { name, ext }] of files.entries()) {
             const { no, disc } = local[i];
             const tags: Record<string, string> = {
@@ -1011,11 +1078,17 @@ async function coverActions(issue: Issue, audit: AlbumAudit, token?: string): Pr
   const actions: RepairAction[] = [];
   if (token && ref.releaseId) {
     const r: DiscogsRef = { type: 'release', id: ref.releaseId };
-    actions.push({ label: `Download the cover of Discogs ${refName(r)} as ${name}`, run: () => downloadCover(layout, r, token, target) });
+    actions.push({
+      label: `Download the cover of Discogs ${refName(r)} as ${name}`,
+      run: () => downloadCover(layout, r, token, target),
+    });
   }
   if (token && ref.masterId) {
     const m: DiscogsRef = { type: 'master', id: String(ref.masterId) };
-    actions.push({ label: `Download the cover of Discogs ${refName(m)} as ${name}`, run: () => downloadCover(layout, m, token, target) });
+    actions.push({
+      label: `Download the cover of Discogs ${refName(m)} as ${name}`,
+      run: () => downloadCover(layout, m, token, target),
+    });
   }
   if (issue.code === 'BAD_COVER' && target) {
     // The folder's other cover file, when that one is a good image.
@@ -1050,11 +1123,16 @@ async function coverActions(issue: Issue, audit: AlbumAudit, token?: string): Pr
     }
   }
   if (token) {
-    const suggested = ref.releaseId ? `r${ref.releaseId}` : audit.discogsResults?.[0] ? `r${audit.discogsResults[0].id}` : undefined;
+    const suggested = ref.releaseId
+      ? `r${ref.releaseId}`
+      : audit.discogsResults?.[0]
+        ? `r${audit.discogsResults[0].id}`
+        : undefined;
     actions.push({
       label: 'Download the cover of a Discogs release or master you enter',
       run: async () => {
-        const input = (await ask(`    Release or master ID${suggested ? ` [${suggested}]` : ''}: `)).trim() || suggested || '';
+        const input =
+          (await ask(`    Release or master ID${suggested ? ` [${suggested}]` : ''}: `)).trim() || suggested || '';
         const entered = parseDiscogsRef(input);
         if (!entered) {
           console.log(chalk.yellow('  Skipped — not a release or master ID'));
@@ -1070,7 +1148,22 @@ async function coverActions(issue: Issue, audit: AlbumAudit, token?: string): Pr
 // ── album info table ──────────────────────────────────────────────────────────
 
 // Audio formats seen in album folders. Only mp3 and flac are read and checked.
-const AUDIO_EXTS = ['flac', 'mp3', 'wav', 'aiff', 'aif', 'm4a', 'alac', 'ape', 'wv', 'ogg', 'opus', 'dsf', 'dff', 'wma'];
+const AUDIO_EXTS = [
+  'flac',
+  'mp3',
+  'wav',
+  'aiff',
+  'aif',
+  'm4a',
+  'alac',
+  'ape',
+  'wv',
+  'ogg',
+  'opus',
+  'dsf',
+  'dff',
+  'wma',
+];
 const CHECKED_EXTS = new Set(['flac', 'mp3']);
 
 // The audio files in the folder by format, most first: "FLAC" · "FLAC 5 · MP3 2" ·
@@ -1105,8 +1198,7 @@ function printAlbumTable(audit: AlbumAudit, fileNames: string[]): void {
   const tagStatus =
     taggedTracks.length === tracks.length
       ? chalk.green(`${tracks.length} / ${tracks.length}`)
-      : chalk.yellow(`${taggedTracks.length} / ${tracks.length}`) +
-        chalk.dim(` (${missingTitle} missing title)`);
+      : chalk.yellow(`${taggedTracks.length} / ${tracks.length}`) + chalk.dim(` (${missingTitle} missing title)`);
 
   // Formats the audit doesn't read in yellow: those files aren't checked or tagged.
   const formats = formatSummary(fileNames);
@@ -1131,9 +1223,10 @@ function printAlbumTable(audit: AlbumAudit, fileNames: string[]): void {
     for (const r of discogsResults) {
       const yr = yearLabel(r);
       const star = r.matchScore !== undefined && r.matchScore === bestScore ? '★ ' : '  ';
-      const score = r.matchScore !== undefined
-        ? chalk.dim(` ${Math.round(r.matchScore * 100)}%${r.trackCount !== undefined ? ` · ${r.trackCount}tr` : ''}`)
-        : '';
+      const score =
+        r.matchScore !== undefined
+          ? chalk.dim(` ${Math.round(r.matchScore * 100)}%${r.trackCount !== undefined ? ` · ${r.trackCount}tr` : ''}`)
+          : '';
       const label = `${star}[${r.id}] ${r.title}${yr}`;
       rows.push(['  release', termLink(chalk.cyan(label), r.releaseUrl) + score]);
       if (r.masterUrl) rows.push(['  master', termLink(chalk.dim('open master'), r.masterUrl)]);
@@ -1216,7 +1309,9 @@ export class AuditStream {
 
   async next(): Promise<AlbumAudit | null> {
     while (this.buffer.length === 0 && !this.closed) {
-      await new Promise<void>((r) => { this.waiter = r; });
+      await new Promise<void>((r) => {
+        this.waiter = r;
+      });
     }
     const audit = this.buffer.shift();
     if (!audit) return null;
@@ -1267,9 +1362,17 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
         if (!(err instanceof RestartSignal)) throw err;
         pendingFolderRenames.delete(audit.layout);
         const loc = albumLocation(audit.layout);
-        await ctx.logEvent({ album: loc, issue: 'RESTART', severity: 'MODERATE', action: 'Start album over', result: 'no-action' });
+        await ctx.logEvent({
+          album: loc,
+          issue: 'RESTART',
+          severity: 'MODERATE',
+          action: 'Start album over',
+          result: 'no-action',
+        });
         console.log(
-          chalk.cyan('\n  ↺ Starting this album over. Changes already written to the files stay; a pending folder rename is dropped.'),
+          chalk.cyan(
+            '\n  ↺ Starting this album over. Changes already written to the files stay; a pending folder rename is dropped.',
+          ),
         );
         if (!(await rescanAlbum(audit, ctx.reaudit))) audit.issues = [...initialIssues];
       }
@@ -1308,7 +1411,9 @@ async function repairAlbumPass(
   const loc = albumLocation(layout);
 
   console.log(chalk.bold(`\n${'─'.repeat(60)}`));
-  console.log(chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${audit.tracks.length} track${audit.tracks.length !== 1 ? 's' : ''})`));
+  console.log(
+    chalk.bold(`📁 ${loc}`) + chalk.dim(`  (${audit.tracks.length} track${audit.tracks.length !== 1 ? 's' : ''})`),
+  );
   if (ctx.scanProgress) console.log(chalk.dim(scanLine(ctx.scanProgress)));
   console.log(chalk.bold('─'.repeat(60)));
   printAlbumTable(audit, await folderFiles(layout.albumPath));
@@ -1350,7 +1455,13 @@ async function repairAlbumPass(
 
       if (actions.length === 0) {
         console.log(chalk.dim('  No automated repair available — fix manually.'));
-        await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'none', result: 'no-action' });
+        await logEvent({
+          album: loc,
+          issue: issue.code,
+          severity: issue.severity,
+          action: 'none',
+          result: 'no-action',
+        });
         continue;
       }
 
@@ -1383,12 +1494,24 @@ async function repairAlbumPass(
 
           if (choice === 'q') {
             console.log(chalk.dim('\n  Repair aborted.'));
-            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'quit', result: 'skipped' });
+            await logEvent({
+              album: loc,
+              issue: issue.code,
+              severity: issue.severity,
+              action: 'quit',
+              result: 'skipped',
+            });
             quit = true;
             break albumLoop;
           }
           if (choice === 's') {
-            await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: 'skipped', result: 'skipped' });
+            await logEvent({
+              album: loc,
+              issue: issue.code,
+              severity: issue.severity,
+              action: 'skipped',
+              result: 'skipped',
+            });
             await offerSkipAux();
             break issueMenuLoop;
           }
@@ -1428,13 +1551,23 @@ async function repairAlbumPass(
         try {
           done = await actions[idx].run();
         } catch (err) {
-          if (err instanceof BackSignal) { idx = undefined; continue issueMenuLoop; } // picker Esc → re-show menu
+          if (err instanceof BackSignal) {
+            idx = undefined;
+            continue issueMenuLoop;
+          } // picker Esc → re-show menu
           if (err instanceof RestartSignal) throw err;
           handleRepairError(err);
           result = 'failed';
           error = err instanceof Error ? err.message : String(err);
         }
-        await logEvent({ album: loc, issue: issue.code, severity: issue.severity, action: done || actions[idx].label, result, error });
+        await logEvent({
+          album: loc,
+          issue: issue.code,
+          severity: issue.severity,
+          action: done || actions[idx].label,
+          result,
+          error,
+        });
         await refresh(issue, result === 'fixed'); // re-scan even after a failure: a partial fix may have changed files
         break issueMenuLoop;
       }
@@ -1477,7 +1610,9 @@ async function repairAlbumPass(
       } else if (choice === '1') {
         let result: RepairEvent['result'] = 'fixed';
         let error: string | undefined;
-        try { await action.run(); } catch (err) {
+        try {
+          await action.run();
+        } catch (err) {
           if (err instanceof RestartSignal) throw err;
           handleRepairError(err);
           result = 'failed';
@@ -1545,19 +1680,21 @@ export async function runRepair(
   const logEvent = async (e: Omit<RepairEvent, 'ts' | 'session'>) => {
     const event: RepairEvent = { ts: new Date().toISOString(), session, ...e };
     events.push(event);
-    try { await fs.appendFile(logPath, JSON.stringify(event) + '\n', 'utf8'); } catch { /* non-fatal */ }
+    try {
+      await fs.appendFile(logPath, JSON.stringify(event) + '\n', 'utf8');
+    } catch {
+      /* non-fatal */
+    }
   };
 
   console.log(chalk.bold.white('\n══════════════════════════════════════════════════════════'));
   console.log(chalk.bold.white(retag ? '  RETAG MODE' : '  REPAIR MODE'));
   console.log(chalk.bold.white('══════════════════════════════════════════════════════════'));
-  console.log(chalk.dim(`  Scanning in background — albums appear as they\'re found. Press Ctrl-C to abort.\n`));
+  console.log(chalk.dim(`  Scanning in background — albums appear as they're found. Press Ctrl-C to abort.\n`));
 
   while (true) {
     // Everything found so far is handled: show the scan until it finds the next album.
-    const live = stream.waiting
-      ? new LiveProgress('albums scanned…', () => stream.progress).start()
-      : undefined;
+    const live = stream.waiting ? new LiveProgress('albums scanned…', () => stream.progress).start() : undefined;
     const audit = await stream.next();
     live?.stop();
     if (!audit) break;
@@ -1569,14 +1706,14 @@ export async function runRepair(
   }
 
   // ── session summary ────────────────────────────────────────────────────────
-  const fixed        = events.filter((e) => e.result === 'fixed').length;
-  const failed       = events.filter((e) => e.result === 'failed').length;
+  const fixed = events.filter((e) => e.result === 'fixed').length;
+  const failed = events.filter((e) => e.result === 'failed').length;
   const skippedCount = events.filter((e) => e.result === 'skipped').length;
   console.log(chalk.bold.white('\n══════════════════════════════════════════════════════════'));
   console.log(chalk.bold.white('  REPAIR SESSION SUMMARY'));
   console.log(chalk.bold.white('══════════════════════════════════════════════════════════'));
   console.log(`  ${chalk.green('✓ Fixed  ')} ${fixed}`);
-  if (failed)       console.log(`  ${chalk.red('✗ Failed ')} ${failed}`);
+  if (failed) console.log(`  ${chalk.red('✗ Failed ')} ${failed}`);
   if (skippedCount) console.log(`  ${chalk.dim('○ Skipped')} ${skippedCount}`);
 
   if (fixed > 0) {

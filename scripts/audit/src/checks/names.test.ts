@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { checkNameTagMatch, localNumbering, matchNames, parseNameFromFilename, parseTrackNames } from './names.js';
+import { describe, expect, it } from 'vitest';
+
 import type { TrackInfo } from '../types.js';
+import { checkNameTagMatch, localNumbering, matchNames, parseNameFromFilename, parseTrackNames } from './names.js';
 
 function track(overrides: Partial<TrackInfo> = {}): TrackInfo {
   return {
@@ -217,10 +218,9 @@ describe('matchNames', () => {
   });
 
   it('uses the file names when every title is the same', () => {
-    expect(matchNames([t('Opening/Siberian Khatru', 'Opening - Siberian Khatru'), t('Opening/Siberian Khatru', 'Soon')])).toEqual([
-      'Opening - Siberian Khatru',
-      'Soon',
-    ]);
+    expect(
+      matchNames([t('Opening/Siberian Khatru', 'Opening - Siberian Khatru'), t('Opening/Siberian Khatru', 'Soon')]),
+    ).toEqual(['Opening - Siberian Khatru', 'Soon']);
   });
 
   it('falls back to the file name for an untitled track', () => {

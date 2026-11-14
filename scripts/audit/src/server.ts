@@ -1,7 +1,8 @@
-import http from 'node:http';
 import { execFile } from 'node:child_process';
-import { albumLocation } from './walk.js';
+import http from 'node:http';
+
 import type { AlbumAudit, AuditReport, DiscogsSearchResult, Issue, Severity } from './types.js';
+import { albumLocation } from './walk.js';
 
 const PORT = 7171;
 
@@ -12,9 +13,7 @@ function esc(s: string): string {
 function renderIssue(issue: Issue): string {
   const cls = issue.severity.toLowerCase();
   const file = issue.file ? `<span class="file">[${esc(issue.file)}]</span> ` : '';
-  const suggestion = issue.suggestion
-    ? `<div class="suggestion">→ ${esc(issue.suggestion)}</div>`
-    : '';
+  const suggestion = issue.suggestion ? `<div class="suggestion">→ ${esc(issue.suggestion)}</div>` : '';
   return `<div class="issue ${cls}"><span class="badge">${issue.severity}</span> ${file}${esc(issue.message)}${suggestion}</div>`;
 }
 
@@ -25,9 +24,7 @@ function renderDiscogs(results: DiscogsSearchResult[]): string {
       const yr = r.year ? ` (${r.year})` : '';
       const genres = [...(r.genre ?? []), ...(r.style ?? [])].slice(0, 3).join(', ');
       const genreSpan = genres ? ` <span class="genre">${esc(genres)}</span>` : '';
-      const master = r.masterUrl
-        ? ` · <a href="${esc(r.masterUrl)}" target="_blank" rel="noopener">master</a>`
-        : '';
+      const master = r.masterUrl ? ` · <a href="${esc(r.masterUrl)}" target="_blank" rel="noopener">master</a>` : '';
       return `<li><a href="${esc(r.releaseUrl)}" target="_blank" rel="noopener">[${r.id}] ${esc(r.title)}${esc(yr)}</a>${master}${genreSpan}</li>`;
     })
     .join('');

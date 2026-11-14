@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { checkTags } from './tags.js';
+import { describe, expect, it } from 'vitest';
+
 import type { TrackInfo } from '../types.js';
+import { checkTags } from './tags.js';
 
 function track(overrides: Partial<TrackInfo> = {}): TrackInfo {
   return {
@@ -33,9 +34,7 @@ describe('checkTags', () => {
   });
 
   it('TAG_READ_ERROR short-circuits — no other issues returned', () => {
-    const issues = checkTags(
-      track({ tagReadError: 'error', tags: {} }),
-    );
+    const issues = checkTags(track({ tagReadError: 'error', tags: {} }));
     expect(issues).toHaveLength(1);
     expect(issues[0].code).toBe('TAG_READ_ERROR');
   });
@@ -59,34 +58,26 @@ describe('checkTags', () => {
 
   describe('MISSING_TAGS', () => {
     it('flags track missing only TRACKNUMBER', () => {
-      const issues = checkTags(
-        track({ tags: { title: 'Loser', artist: 'Beck', album: 'Mellow Gold', year: '1994' } }),
-      );
+      const issues = checkTags(track({ tags: { title: 'Loser', artist: 'Beck', album: 'Mellow Gold', year: '1994' } }));
       expect(issues[0].code).toBe('MISSING_TAGS');
       expect(issues[0].message).toContain('TRACKNUMBER');
     });
 
     it('flags track missing only TITLE', () => {
-      const issues = checkTags(
-        track({ tags: { artist: 'Beck', album: 'Mellow Gold', year: '1994', trackNo: '1' } }),
-      );
+      const issues = checkTags(track({ tags: { artist: 'Beck', album: 'Mellow Gold', year: '1994', trackNo: '1' } }));
       expect(issues[0].code).toBe('MISSING_TAGS');
       expect(issues[0].message).toContain('TITLE');
     });
 
     it('flags track missing ARTIST and DATE/YEAR', () => {
-      const issues = checkTags(
-        track({ tags: { title: 'Loser', album: 'Mellow Gold', trackNo: '1' } }),
-      );
+      const issues = checkTags(track({ tags: { title: 'Loser', album: 'Mellow Gold', trackNo: '1' } }));
       expect(issues[0].code).toBe('MISSING_TAGS');
       expect(issues[0].message).toContain('ARTIST');
       expect(issues[0].message).toContain('DATE/YEAR');
     });
 
     it('includes filename in issue', () => {
-      const issues = checkTags(
-        track({ tags: { title: 'Loser', artist: 'Beck', album: 'Mellow Gold', year: '1994' } }),
-      );
+      const issues = checkTags(track({ tags: { title: 'Loser', artist: 'Beck', album: 'Mellow Gold', year: '1994' } }));
       expect(issues[0].file).toBe('01 - Loser.flac');
     });
   });

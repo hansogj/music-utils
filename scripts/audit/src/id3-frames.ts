@@ -107,10 +107,11 @@ const stripNul = (s: string) => s.replace(/\0+$/, '');
 
 // latin1 when it fits, else UTF-16 with BOM (valid in both v2.3 and v2.4).
 function encodeTexts(...texts: string[]): { enc: number; parts: Buffer[] } {
-  if (texts.every((t) => /^[\u0000-ÿ]*$/.test(t))) {
+  // eslint-disable-next-line no-control-regex -- latin1 is U+0000–U+00FF, NUL included
+  if (texts.every((t) => /^[\u0000-\u00ff]*$/.test(t))) {
     return { enc: 0, parts: texts.map((t) => Buffer.from(t, 'latin1')) };
   }
-  return { enc: 1, parts: texts.map((t) => Buffer.from(`﻿${t}`, 'utf16le')) };
+  return { enc: 1, parts: texts.map((t) => Buffer.from(`\uFEFF${t}`, 'utf16le')) };
 }
 
 // Frames with compression/encryption/etc. flags are left alone, never read as ours.

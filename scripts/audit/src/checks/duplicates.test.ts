@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { checkDuplicates, likelyExtras } from './duplicates.js';
+import { describe, expect, it } from 'vitest';
+
 import type { TrackInfo } from '../types.js';
+import { checkDuplicates, likelyExtras } from './duplicates.js';
 
 function track(title: string, fileName = `${title}.flac`): TrackInfo {
   return {

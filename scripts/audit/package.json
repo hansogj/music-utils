@@ -2,7 +2,7 @@
   "name": "@hansogj/music-audit",
   "private": true,
   "version": "0.2.0",
-  "description": "Music library audit CLI — library audit, interactive repair, Discogs enrichment",
+  "description": "Music library audit CLI \u2014 library audit, interactive repair, Discogs enrichment",
   "type": "module",
   "main": "./dist/music-audit.js",
   "exports": {
@@ -23,19 +23,28 @@
     "vitest:watch": "vitest watch",
     "vitest:ci": "vitest run --coverage",
     "build": "tsup",
-    "lint": "echo 'no lint configured yet'",
-    "precommit": "pnpm run vitest:ci && pnpm run build"
+    "lint": "eslint .",
+    "precommit": "pnpm run lint && pnpm run format:check && pnpm run vitest:ci && pnpm run build",
+    "format": "prettier --write src README.md eslint.config.mjs vitest.config.ts tsup.config.ts --ignore-path=../../.prettierignore",
+    "format:check": "prettier --check src README.md eslint.config.mjs vitest.config.ts tsup.config.ts --ignore-path=../../.prettierignore"
   },
   "dependencies": {
     "chalk": "^5.6.2",
     "dotenv": "^16.6.1"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "4.1.12",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-simple-import-sort": "13.0.0",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
+    "typescript-eslint": "8.72.2",
     "vitest": "4.1.12"
   }
 }

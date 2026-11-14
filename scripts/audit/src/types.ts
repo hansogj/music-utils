@@ -53,8 +53,8 @@ export interface DiscogsSearchResult {
   masterUrl?: string;
   genre?: string[];
   style?: string[];
-  trackCount?: number;   // tracks in this release (type_=track only)
-  matchScore?: number;   // 0–1 similarity against local files; undefined = not yet scored
+  trackCount?: number; // tracks in this release (type_=track only)
+  matchScore?: number; // 0–1 similarity against local files; undefined = not yet scored
 }
 
 // Original release year resolved from a release ID already in the album's tags.

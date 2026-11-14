@@ -1,4 +1,5 @@
 import path from 'node:path';
+
 import type { Issue, TrackInfo } from '../types.js';
 
 function normalize(s: string): string {

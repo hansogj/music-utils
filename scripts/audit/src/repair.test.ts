@@ -64,7 +64,9 @@ const RELEASE: ReleaseInfo = {
 vi.mock('./discogs.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./discogs.js')>()),
   fetchRelease: vi.fn(async () => RELEASE),
-  fetchReleaseCover: vi.fn(async () => ({ cover: { uri: 'https://i.discogs.com/600', uri150: 'https://i.discogs.com/150' } })),
+  fetchReleaseCover: vi.fn(async () => ({
+    cover: { uri: 'https://i.discogs.com/600', uri150: 'https://i.discogs.com/150' },
+  })),
   downloadImage: vi.fn(async () => (await import('node:fs/promises')).readFile(TINY_JPEG)),
 }));
 
@@ -223,9 +225,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
   it('shows the formats in the album table, with the ones the audit does not read', async () => {
     await fs.writeFile(path.join(layout.albumPath, 'bonus.wav'), '');
     const audit = await scan();
-    answer([
-      [/^ {2}Choice \[1\]/, 'q'],
-    ]);
+    answer([[/^ {2}Choice \[1\]/, 'q']]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).toMatch(/Format +│ MP3 \d+ · WAV 1 \(not checked\)/);
   });
@@ -296,7 +296,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
 describe('repairAlbum — start the album over', () => {
   const albumHeaders = () => output.filter((l) => l.includes('📁')).length;
 
-  it('o at the release ID prompt goes back to the album\'s opening table', async () => {
+  it("o at the release ID prompt goes back to the album's opening table", async () => {
     const audit = await scan();
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → [1] Tag from Discogs
@@ -319,7 +319,12 @@ describe('repairAlbum — start the album over', () => {
   it('drops a pending folder rename; tags already written stay', async () => {
     const audit = await scan();
     audit.discogsResults = [
-      { id: 4376665, title: 'Yezda Urfa - Sacred Baboon', year: '1989', releaseUrl: 'https://www.discogs.com/release/4376665' },
+      {
+        id: 4376665,
+        title: 'Yezda Urfa - Sacred Baboon',
+        year: '1989',
+        releaseUrl: 'https://www.discogs.com/release/4376665',
+      },
     ];
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
@@ -433,7 +438,12 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
     await tagAll({ DISCOGS_RELEASE_ID: '1886376' });
     const audit = await scan();
     audit.discogsResults = [
-      { id: 10152054, title: 'Yezda Urfa - Sacred Baboon', year: '1991', releaseUrl: 'https://www.discogs.com/release/10152054' },
+      {
+        id: 10152054,
+        title: 'Yezda Urfa - Sacred Baboon',
+        year: '1991',
+        releaseUrl: 'https://www.discogs.com/release/10152054',
+      },
     ];
     const done = answer([
       [/^ {2}Choice \[1\]/, 'd'],
@@ -494,7 +504,10 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     await fs.writeFile(path.join(disc1Path, 'info.txt'), 'Yes\n\nDiscogs-Release: 8270054\nDisc: 1/2\n');
     // Disc 2: titles only, so MISSING_TAGS.
     for (const [i, [, title]] of YESSONGS.slice(8).entries()) {
-      await fs.writeFile(path.join(disc2Path, `${String(i + 1).padStart(2, '0')} - ${title}.mp3`), JSON.stringify({ TITLE: title }));
+      await fs.writeFile(
+        path.join(disc2Path, `${String(i + 1).padStart(2, '0')} - ${title}.mp3`),
+        JSON.stringify({ TITLE: title }),
+      );
     }
     disc2 = { letterDir: 'Y', artistName: 'Yes', albumFolder: '1973 Yessongs (Disc 2∕2)', albumPath: disc2Path };
   });
@@ -521,7 +534,12 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     expect(out).toMatch(/Disc 2∕2 → release tracks 9–15 of 15 \(D1 Your Move … Starship Trooper\), \d+% title match/);
     expect(out).not.toMatch(/more track\(s\)/); // compared with disc 2's 7 tracks, not all 15
     const first = await readFake(path.join(disc2.albumPath, '01 - Your Move.mp3'));
-    expect(first).toMatchObject({ TITLE: 'Your Move', TRACKNUMBER: '1/7', DISCNUMBER: '2/2', DISCOGS_RELEASE_ID: '8270054' });
+    expect(first).toMatchObject({
+      TITLE: 'Your Move',
+      TRACKNUMBER: '1/7',
+      DISCNUMBER: '2/2',
+      DISCOGS_RELEASE_ID: '8270054',
+    });
     const last = await readFake(path.join(disc2.albumPath, '07 - Starship Trooper.mp3'));
     expect(last).toMatchObject({ TITLE: 'Starship Trooper', TRACKNUMBER: '7/7', DISCNUMBER: '2/2' });
     expect(await fs.readFile(path.join(disc2.albumPath, 'info.txt'), 'utf8')).toMatch(/Disc: 2\/2/);
@@ -649,10 +667,25 @@ const MADRIGAL_RELEASE: ReleaseInfo = {
 };
 // The file names as they were, with artist and album on every one.
 const MADRIGAL_FILES = [
-  'Opening_-_Siberian_Khatru', 'Heart_Of_The_Sunrise', 'Future_Times_-_Rejoice', 'Circus_Of_Heaven',
-  'Time_And_A_Word', 'Long_Distance_Runaround', 'The_Fish', 'Perpetual_Change', 'Soon', "Don't_Kill_The_Whale",
-  'Madrigal_-_Clap', 'Starship_Trooper', 'Rick_Wakeman_Solo', 'Awaken', "I've_Seen_All_Good_People", 'Roundabout',
-  'Madrigal', 'On_The_Silent_Wings_Of_Freedom', 'And_You_And_I',
+  'Opening_-_Siberian_Khatru',
+  'Heart_Of_The_Sunrise',
+  'Future_Times_-_Rejoice',
+  'Circus_Of_Heaven',
+  'Time_And_A_Word',
+  'Long_Distance_Runaround',
+  'The_Fish',
+  'Perpetual_Change',
+  'Soon',
+  "Don't_Kill_The_Whale",
+  'Madrigal_-_Clap',
+  'Starship_Trooper',
+  'Rick_Wakeman_Solo',
+  'Awaken',
+  "I've_Seen_All_Good_People",
+  'Roundabout',
+  'Madrigal',
+  'On_The_Silent_Wings_Of_Freedom',
+  'And_You_And_I',
 ].map((t, i) => `Yes_-_Madrigal_Mystery_Tour_-_${String(i + 1).padStart(2, '0')}_-_${t}.mp3`);
 
 describe('repairAlbum — file names with artist and album, a 2-CD release in one folder', () => {
@@ -727,8 +760,20 @@ describe('repairAlbum — file names with artist and album, a 2-CD release in on
 // Discogs release 8082437: 15 tracks. The folder has 17 mp3s: a stray second rip of
 // tracks 1 and 3, without a track number in the name.
 const ART_DECO_TITLES = [
-  'The Frim-Fram Sauce', 'Song Two', 'April Showers', 'Song Four', 'Song Five', 'Song Six', 'Song Seven',
-  'Song Eight', 'Song Nine', 'Song Ten', 'Song Eleven', 'Song Twelve', 'Song Thirteen', 'Song Fourteen',
+  'The Frim-Fram Sauce',
+  'Song Two',
+  'April Showers',
+  'Song Four',
+  'Song Five',
+  'Song Six',
+  'Song Seven',
+  'Song Eight',
+  'Song Nine',
+  'Song Ten',
+  'Song Eleven',
+  'Song Twelve',
+  'Song Thirteen',
+  'Song Fourteen',
   'Song Fifteen',
 ];
 const ART_DECO_RELEASE: ReleaseInfo = {
@@ -787,7 +832,9 @@ describe('repairAlbum — a stray second copy of two tracks (Art Deco)', () => {
       TITLE: 'Song Fifteen',
       TRACKNUMBER: '15/15',
     });
-    expect(await readFake(path.join(artDeco.albumPath, '03 - April Showers.mp3'))).toMatchObject({ TRACKNUMBER: '3/15' });
+    expect(await readFake(path.join(artDeco.albumPath, '03 - April Showers.mp3'))).toMatchObject({
+      TRACKNUMBER: '3/15',
+    });
     expect(await readFake(path.join(artDeco.albumPath, 'April Showers.mp3'))).toEqual({});
     expect(await readFake(path.join(artDeco.albumPath, 'The Frim-Fram Sauce.mp3'))).toEqual({});
   });
@@ -804,7 +851,9 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
   };
   const yearAudit = async (l: AlbumLayout): Promise<AlbumAudit> => ({
     ...(await auditAlbum(l, { skipDiscogs: true })),
-    issues: [{ severity: 'HIGH', code: 'YEAR_NOT_ORIGINAL', message: 'Year 1979 is not the original release year 1992' }],
+    issues: [
+      { severity: 'HIGH', code: 'YEAR_NOT_ORIGINAL', message: 'Year 1979 is not the original release year 1992' },
+    ],
     originalYear: { releaseId: '1', year: '1992' },
   });
 
@@ -830,7 +879,10 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     expect(disc2.albumFolder).toBe('1992 Tourmato (Disc 2∕2) [FLAC] [live 1979]');
 
     // Folder name only: the tags get the year, never the bracket.
-    expect(await readFake(path.join(disc1.albumPath, '01 - Song.mp3'))).toMatchObject({ DATE: '1992', ORIGINALDATE: '1992' });
+    expect(await readFake(path.join(disc1.albumPath, '01 - Song.mp3'))).toMatchObject({
+      DATE: '1992',
+      ORIGINALDATE: '1992',
+    });
     expect(events.map((e) => e.action)).toEqual([
       'Set DATE/ORIGINALDATE to 1992 and rename folder → "1992 Tourmato (Disc 1∕2) [FLAC] [live 1979]"',
       'Set DATE/ORIGINALDATE to 1992 and rename folder → "1992 Tourmato (Disc 2∕2) [FLAC] [live 1979]"',
@@ -920,7 +972,12 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
   it('combines with a Discogs folder rename', async () => {
     const audit = await scan();
     audit.discogsResults = [
-      { id: 4376665, title: 'Yezda Urfa - Sacred Baboon', year: '1989', releaseUrl: 'https://www.discogs.com/release/4376665' },
+      {
+        id: 4376665,
+        title: 'Yezda Urfa - Sacred Baboon',
+        year: '1989',
+        releaseUrl: 'https://www.discogs.com/release/4376665',
+      },
     ];
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
@@ -985,7 +1042,7 @@ describe('repairAlbum — a Discogs artist credit that differs from the artist f
 
     const out = output.join('\n');
     expect(out).toMatch(/artist : "Yezda Urfa" {2}→ {2}"Yezda Urfa And Friends"/);
-    expect(out).not.toMatch(/album  :/);
+    expect(out).not.toMatch(/album {2}:/);
     const moved = path.join(root, 'Y', 'Yezda Urfa And Friends', folder);
     expect(layout).toMatchObject({ artistName: 'Yezda Urfa And Friends', albumPath: moved });
     expect(out).toMatch(/Yezda Urfa\/ still has 1 album: kept/);
@@ -1001,8 +1058,14 @@ describe('repairAlbum — covers', () => {
     // Fully tagged from release 4376665, but no cover.jpg anywhere.
     for (const [i, name] of (await fs.readdir(layout.albumPath)).sort().entries()) {
       const tags = {
-        TITLE: TITLES[i], ARTIST: 'Yezda Urfa', ALBUMARTIST: 'Yezda Urfa', ALBUM: 'Sacred Baboon', DATE: '1976',
-        TRACKNUMBER: `${i + 1}/7`, DISCNUMBER: '1/1', DISCOGS_RELEASE_ID: '4376665',
+        TITLE: TITLES[i],
+        ARTIST: 'Yezda Urfa',
+        ALBUMARTIST: 'Yezda Urfa',
+        ALBUM: 'Sacred Baboon',
+        DATE: '1976',
+        TRACKNUMBER: `${i + 1}/7`,
+        DISCNUMBER: '1/1',
+        DISCOGS_RELEASE_ID: '4376665',
       };
       await fs.rm(path.join(layout.albumPath, name));
       await fs.writeFile(path.join(layout.albumPath, `0${i + 1} - ${TITLES[i]}.mp3`), JSON.stringify(tags));
@@ -1064,7 +1127,14 @@ describe('repairAlbum — covers', () => {
     const audit: AlbumAudit = {
       layout,
       tracks: [],
-      issues: [{ severity: 'MODERATE', code: 'BAD_COVER', file: 'folder.jpg', message: "folder.jpg can't be read as an image" }],
+      issues: [
+        {
+          severity: 'MODERATE',
+          code: 'BAD_COVER',
+          file: 'folder.jpg',
+          message: "folder.jpg can't be read as an image",
+        },
+      ],
     };
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Replace folder.jpg with a copy of cover.jpg

@@ -6,13 +6,13 @@ import { envFlag, loadEnv } from './env.js';
 loadEnv();
 
 import { auditAlbum } from './audit-album.js';
-import { walkLibrary } from './walk.js';
 import { AuditLogger } from './logger.js';
 import { LiveProgress } from './progress.js';
+import { AuditStream, runRepair } from './repair.js';
 import { printReport } from './report.js';
-import { runRepair, AuditStream } from './repair.js';
 import { serveReport } from './server.js';
 import type { AlbumAudit, AlbumLayout, AuditReport, Severity } from './types.js';
+import { walkLibrary } from './walk.js';
 
 // ---------------------------------------------------------------------------
 // CLI arg parsing
@@ -111,7 +111,8 @@ Examples:
   const repairMode = hasFlag(args, 'repair') || retagMode;
   const uiMode = hasFlag(args, 'ui') && !repairMode;
   const jsonOutput = hasFlag(args, 'json') && !repairMode && !uiMode;
-  const checkYears = !hasFlag(args, 'no-check-years') && (hasFlag(args, 'check-years') || envFlag('MUSIC_AUDIT_CHECK_YEARS'));
+  const checkYears =
+    !hasFlag(args, 'no-check-years') && (hasFlag(args, 'check-years') || envFlag('MUSIC_AUDIT_CHECK_YEARS'));
   const logPath = getArg(args, 'log') ?? (hasFlag(args, 'log') ? auditLogPath('audit') : undefined);
   const logger = logPath ? new AuditLogger(logPath) : undefined;
 
