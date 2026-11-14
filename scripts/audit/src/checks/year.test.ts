@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { checkOriginalYear, folderYear, originalYearLookupId, withFolderYear } from './year.js';
+import { describe, expect, it } from 'vitest';
+
 import type { AlbumLayout, OriginalYear, TrackInfo, TrackTags } from '../types.js';
+import { checkOriginalYear, folderYear, originalYearLookupId, withFolderYear } from './year.js';
 
 function layout(albumFolder = '1989 In Rock'): AlbumLayout {
   return { letterDir: 'D', artistName: 'Deep Purple', albumFolder, albumPath: `/music/D/Deep Purple/${albumFolder}` };

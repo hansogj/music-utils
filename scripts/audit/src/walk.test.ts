@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Dirent } from 'node:fs';
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock must be hoisted before importing the module under test
 vi.mock('node:fs/promises');
 
-import { albumLocation, listMusicFiles, walkLibrary } from './walk.js';
 import * as fsPromises from 'node:fs/promises';
+
+import { albumLocation, listMusicFiles, walkLibrary } from './walk.js';
 
 const mockReaddir = vi.mocked(fsPromises.readdir) as unknown as ReturnType<typeof vi.fn>;
 

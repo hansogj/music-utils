@@ -1,10 +1,27 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+
 import type { TrackTags } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
-const FLAC_TAGS = ['TITLE', 'TRACKNUMBER', 'TRACKTOTAL', 'ARTIST', 'ALBUMARTIST', 'ALBUM', 'DATE', 'DISCNUMBER', 'TOTALDISCS', 'GENRE', 'COMMENT', 'DESCRIPTION', 'ORIGINALDATE', 'DISCOGS_RELEASE_ID', 'DISCOGS_MASTER_ID'];
+const FLAC_TAGS = [
+  'TITLE',
+  'TRACKNUMBER',
+  'TRACKTOTAL',
+  'ARTIST',
+  'ALBUMARTIST',
+  'ALBUM',
+  'DATE',
+  'DISCNUMBER',
+  'TOTALDISCS',
+  'GENRE',
+  'COMMENT',
+  'DESCRIPTION',
+  'ORIGINALDATE',
+  'DISCOGS_RELEASE_ID',
+  'DISCOGS_MASTER_ID',
+];
 
 export async function readFlacTags(filePath: string): Promise<{ tags: TrackTags; error?: string }> {
   try {
@@ -85,7 +102,10 @@ export function parseTxxx(lines: string[]): Record<string, string> {
 export async function readMp3Tags(filePath: string): Promise<{ tags: TrackTags; error?: string }> {
   try {
     const { stdout } = await execFileAsync('id3v2', ['-l', filePath]);
-    const lines = stdout.split('\n').map((l) => l.trim()).filter(Boolean);
+    const lines = stdout
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
     const raw: Record<string, string> = {};
     const txxx = parseTxxx(lines);
 

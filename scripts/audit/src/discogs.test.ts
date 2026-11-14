@@ -34,7 +34,11 @@ const RESPONSES: Record<string, unknown> = {
 
 function cdTracks(...perDisc: number[]) {
   return perDisc.flatMap((n, d) =>
-    Array.from({ length: n }, (_, i) => ({ position: `${d + 1}-${i + 1}`, title: `T${d + 1}.${i + 1}`, type_: 'track' })),
+    Array.from({ length: n }, (_, i) => ({
+      position: `${d + 1}-${i + 1}`,
+      title: `T${d + 1}.${i + 1}`,
+      type_: 'track',
+    })),
   );
 }
 
@@ -242,7 +246,7 @@ describe('matchScore', () => {
 });
 
 describe('pickMasterVersion', () => {
-  it('picks the CD version with this disc folder\'s track count', async () => {
+  it("picks the CD version with this disc folder's track count", async () => {
     const picked = await pickMasterVersion('35063', 'token', { disc: 1, noOfDiscs: 2, localCount: 8 });
     expect(picked).toEqual({ releaseId: '903', why: '2×CD, disc 1: 8 tracks' });
   });

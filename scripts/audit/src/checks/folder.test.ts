@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { checkFolderFormat } from './folder.js';
+import { describe, expect, it } from 'vitest';
+
 import type { AlbumLayout } from '../types.js';
+import { checkFolderFormat } from './folder.js';
 
 function layout(overrides: Partial<AlbumLayout> = {}): AlbumLayout {
   return {
@@ -44,16 +45,12 @@ describe('checkFolderFormat', () => {
     });
 
     it('strips article "An" from artist name — "An Artist" under A is correct', () => {
-      const issues = checkFolderFormat(
-        layout({ letterDir: 'A', artistName: 'An Artist', albumFolder: '2000 Album' }),
-      );
+      const issues = checkFolderFormat(layout({ letterDir: 'A', artistName: 'An Artist', albumFolder: '2000 Album' }));
       expect(issues.find((i) => i.code === 'WRONG_LETTER_DIR')).toBeUndefined();
     });
 
     it('flags "An Artist" incorrectly placed under Z (should be A)', () => {
-      const issues = checkFolderFormat(
-        layout({ letterDir: 'Z', artistName: 'An Artist', albumFolder: '2000 Album' }),
-      );
+      const issues = checkFolderFormat(layout({ letterDir: 'Z', artistName: 'An Artist', albumFolder: '2000 Album' }));
       const issue = issues.find((i) => i.code === 'WRONG_LETTER_DIR');
       expect(issue).toBeDefined();
       expect(issue!.message).toContain('"A"');

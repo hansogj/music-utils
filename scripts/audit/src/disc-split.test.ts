@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { flattenTracklist, numberTracklist } from './discogs.js';
 import { albumBaseOfFolder, describeSlice, discOfFolder, sliceForDisc, windowAt } from './disc-split.js';
+import { flattenTracklist, numberTracklist } from './discogs.js';
 
 const track = (position: string, title: string) => ({ position, title, type_: 'track' });
 const index = (title: string, subPositions: string[]) => ({

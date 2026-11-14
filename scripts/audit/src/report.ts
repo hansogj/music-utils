@@ -1,7 +1,8 @@
 import chalk from 'chalk';
+
 import { termLink } from './term-link.js';
-import { albumLocation } from './walk.js';
 import type { AlbumAudit, AuditReport, Issue, Severity } from './types.js';
+import { albumLocation } from './walk.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SEV_COLOR: Record<Severity, any> = {
@@ -36,16 +37,25 @@ function fmtAlbum(audit: AlbumAudit, filterSeverity?: Severity): string {
   const lines = [`\n  ${chalk.bold(loc)}${trackCount}`];
   lines.push(...visible.map(fmtIssue));
 
-  if (discogsResults && discogsResults.length > 0 && (!filterSeverity || filterSeverity === 'SEVERE' || filterSeverity === 'HIGH')) {
+  if (
+    discogsResults &&
+    discogsResults.length > 0 &&
+    (!filterSeverity || filterSeverity === 'SEVERE' || filterSeverity === 'HIGH')
+  ) {
     lines.push(`     ${chalk.bold('Discogs suggestions:')}`);
     for (const r of discogsResults) {
       const yr = r.year ? ` (${r.year})` : '';
       const genres = [...(r.genre ?? []), ...(r.style ?? [])].slice(0, 3).join(', ');
-      const star = r.matchScore !== undefined && r.matchScore === Math.max(...discogsResults.map(x => x.matchScore ?? -1))
-        ? chalk.yellow('★ ') : '  ';
-      const score = r.matchScore !== undefined
-        ? chalk.dim(` ${Math.round(r.matchScore * 100)}% match${r.trackCount !== undefined ? `, ${r.trackCount} tracks` : ''}`)
-        : '';
+      const star =
+        r.matchScore !== undefined && r.matchScore === Math.max(...discogsResults.map((x) => x.matchScore ?? -1))
+          ? chalk.yellow('★ ')
+          : '  ';
+      const score =
+        r.matchScore !== undefined
+          ? chalk.dim(
+              ` ${Math.round(r.matchScore * 100)}% match${r.trackCount !== undefined ? `, ${r.trackCount} tracks` : ''}`,
+            )
+          : '';
       lines.push(`      ${star}${termLink(`[${r.id}] ${r.title}${yr}`, r.releaseUrl)}${score}`);
       if (r.masterUrl) lines.push(`         master → ${termLink('open', r.masterUrl)}`);
       if (genres) lines.push(`         ${chalk.dim('genre:')} ${genres}`);
@@ -116,7 +126,9 @@ export function printReport(report: AuditReport): void {
   console.log(chalk.bold.white('════════════════════════════════════════════════════════════'));
   console.log(`  Root : ${chalk.cyan(report.root)}`);
   console.log(`  Date : ${report.date}`);
-  console.log(`  Albums scanned: ${summary.albumsScanned}  |  tracks: ${summary.tracksScanned}  |  with issues: ${summary.albumsWithIssues}`);
+  console.log(
+    `  Albums scanned: ${summary.albumsScanned}  |  tracks: ${summary.tracksScanned}  |  with issues: ${summary.albumsWithIssues}`,
+  );
 
   const { SEVERE, HIGH, MODERATE } = summary.issuesBySeverity;
   console.log(

@@ -176,11 +176,11 @@ scripts/audit/src/
 
 ### Testing (audit)
 
-- `pnpm --filter @hansogj/music-audit run precommit`: vitest with 80% coverage thresholds, then tsup build. `repair.ts`, `discogs.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts` and a few others are excluded from coverage (`vitest.config.ts`), but `repair.ts` and `discogs.ts` still have tests.
+- `pnpm --filter @hansogj/music-audit run precommit`: ESLint, Prettier check, vitest with 80% coverage thresholds, then tsup build. `repair.ts`, `discogs.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts` and a few others are excluded from coverage (`vitest.config.ts`), but `repair.ts` and `discogs.ts` still have tests.
 - `repair.test.ts` drives `repairAlbum()` end to end: fake "audio" files hold their tags as JSON (mocked `tags.js` / `tag-write.js`), prompts are scripted with `setPrompt()` (an unexpected prompt fails the test), and `fetchRelease` is mocked per test with `mockResolvedValueOnce`.
 - Audio files (`*.mp3`, `*.flac`) are gitignored, so tests must build every file they use; `tag-write.test.ts` is skipped where `id3v2` is missing (CI).
 - Discogs fixtures mirror real API shapes (positions, `index` entries with `sub_tracks`, master versions); check the live API (`curl https://api.discogs.com/releases/<id>`) when adding a case.
-- No ESLint and no enforced Prettier in `scripts/audit` (several files are unformatted); format new files with `npx prettier --write <file>` only.
+- Lint and format are enforced in `scripts/audit` (`eslint.config.mjs`: recommended + typescript-eslint + simple-import-sort; Prettier via `format` / `format:check`). Fix with `pnpm --filter @hansogj/music-audit exec eslint . --fix && pnpm --filter @hansogj/music-audit run format`.
 
 ### Code style
 

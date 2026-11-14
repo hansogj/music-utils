@@ -4,20 +4,20 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 
 ## What it checks
 
-| Check | Severity | Description |
-|-------|----------|-------------|
-| Folder starts with 4-digit year | SEVERE | e.g. `1984 No Return` |
-| Correct disc separator (`∕` U+2215) | SEVERE | e.g. `(Disc 1∕2)` |
-| Auxiliary info in `[]` not `{}` | SEVERE | |
-| Artist under correct `[A-Z]` letter dir | SEVERE | Articles stripped for sorting |
-| All required tags present | HIGH | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER |
-| Filename matches TITLE tag | MODERATE | |
-| Duplicate track names | MODERATE | The same title twice, qualifier included: `Sweet Dreams` and `Sweet Dreams (Original Mix)` are different tracks. Files without a track number count too; the message names the likely extra copy (no number in its name, then no TITLE tag) |
-| MP3 has a Discogs master ID but no release ID | HIGH | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL, or retags the album from a release you choose |
-| Album has `cover.jpg` or `folder.jpg` | MODERATE | The two are equals: either one is the cover, any case (`Cover.JPG`). The message names other images in the folder (`front.jpg`, `cover.png`). Each cover file there must be a readable image (some are saved web pages) |
-| The cover is the Discogs cover | MODERATE | Each of `cover.jpg` and `folder.jpg`, for albums with a Discogs release ID (tags, the comment URL or `info.txt`): compared with the release's front cover, then the master's. Images are compared by a perceptual hash (ImageMagick `magick`), so a 1400px scan with a white margin matches the 600px Discogs image; another cover doesn't. Needs Discogs; hashes are cached in `~/.cache/music-audit/cover-hashes.json` |
-| Artist folder has `cover.jpg` or `folder.jpg` | MODERATE | A readable one. Any of the artist's album covers will do |
-| Year is the original release year | HIGH | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of *In Rock* → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json` |
+| Check                                         | Severity | Description                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Folder starts with 4-digit year               | SEVERE   | e.g. `1984 No Return`                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Correct disc separator (`∕` U+2215)           | SEVERE   | e.g. `(Disc 1∕2)`                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Auxiliary info in `[]` not `{}`               | SEVERE   |                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Artist under correct `[A-Z]` letter dir       | SEVERE   | Articles stripped for sorting                                                                                                                                                                                                                                                                                                                                                                                            |
+| All required tags present                     | HIGH     | TITLE, ARTIST, ALBUM, DATE, TRACKNUMBER                                                                                                                                                                                                                                                                                                                                                                                  |
+| Filename matches TITLE tag                    | MODERATE |                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Duplicate track names                         | MODERATE | The same title twice, qualifier included: `Sweet Dreams` and `Sweet Dreams (Original Mix)` are different tracks. Files without a track number count too; the message names the likely extra copy (no number in its name, then no TITLE tag)                                                                                                                                                                              |
+| MP3 has a Discogs master ID but no release ID | HIGH     | Left by repairs with music-audit 81963c0/43bd432. Repair restores the release ID from the Discogs URL comment or `info.txt`, and rewrites the comment as one full URL, or retags the album from a release you choose                                                                                                                                                                                                     |
+| Album has `cover.jpg` or `folder.jpg`         | MODERATE | The two are equals: either one is the cover, any case (`Cover.JPG`). The message names other images in the folder (`front.jpg`, `cover.png`). Each cover file there must be a readable image (some are saved web pages)                                                                                                                                                                                                  |
+| The cover is the Discogs cover                | MODERATE | Each of `cover.jpg` and `folder.jpg`, for albums with a Discogs release ID (tags, the comment URL or `info.txt`): compared with the release's front cover, then the master's. Images are compared by a perceptual hash (ImageMagick `magick`), so a 1400px scan with a white margin matches the 600px Discogs image; another cover doesn't. Needs Discogs; hashes are cached in `~/.cache/music-audit/cover-hashes.json` |
+| Artist folder has `cover.jpg` or `folder.jpg` | MODERATE | A readable one. Any of the artist's album covers will do                                                                                                                                                                                                                                                                                                                                                                 |
+| Year is the original release year             | HIGH     | **Opt-in** (`--check-years`, or `MUSIC_AUDIT_CHECK_YEARS=true` in `~/.config/music-utils/.env`). Albums tagged with a Discogs release ID: folder/DATE year must match the master's year, not a reissue's (e.g. a 1989 reissue of _In Rock_ → `1970`). Needs Discogs; results are cached in `~/.cache/music-audit/original-years.json`                                                                                    |
 
 ## Usage
 
@@ -63,17 +63,17 @@ MUSIC_AUDIT_CHECK_YEARS=true
 
 ## Flags
 
-| Flag | Description |
-|------|-------------|
-| `--root=<path>` | Root of music library (default: cwd) |
-| `--token=<token>` | Discogs personal access token |
-| `--no-discogs` | Skip all Discogs API calls (the cover checks still look for `cover.jpg`/`folder.jpg`, without comparing them) |
-| `--no-covers` | Skip the cover checks |
-| `--repair` | Interactive repair mode |
-| `--retag` | Like `--repair` but visits clean albums too |
-| `--ui` | Serve HTML report at `http://localhost:7171` |
-| `--json` | Raw JSON output (incompatible with `--repair`/`--ui`) |
-| `--log[=<path>]` | Append JSON Lines audit log (default: `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log`) |
+| Flag              | Description                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--root=<path>`   | Root of music library (default: cwd)                                                                          |
+| `--token=<token>` | Discogs personal access token                                                                                 |
+| `--no-discogs`    | Skip all Discogs API calls (the cover checks still look for `cover.jpg`/`folder.jpg`, without comparing them) |
+| `--no-covers`     | Skip the cover checks                                                                                         |
+| `--repair`        | Interactive repair mode                                                                                       |
+| `--retag`         | Like `--repair` but visits clean albums too                                                                   |
+| `--ui`            | Serve HTML report at `http://localhost:7171`                                                                  |
+| `--json`          | Raw JSON output (incompatible with `--repair`/`--ui`)                                                         |
+| `--log[=<path>]`  | Append JSON Lines audit log (default: `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log`)                |
 
 Without `--repair`/`--retag` the audit only reads: nothing in the library is written.
 
@@ -98,17 +98,17 @@ After each fix the album is scanned again, so the next issue shown matches the f
 
 ### Prompt keys
 
-| Key | Where | Does |
-|-----|-------|------|
-| Enter | issue menu | the first action, `[1]` |
-| `1`–`9` | issue menu | that action |
-| `d` | issue menu | tag the whole album from a Discogs release you choose |
-| `l` | issue menu | list the album's files |
-| `s` / `q` | issue menu | skip this issue / quit repair; the first skip in an album offers to add a bracket to its folder name (below) |
-| `o` | any prompt | start this album over (below) |
-| `b` | release ID prompt | browse the search results; Esc goes back to the issue menu |
-| `n` | disc pairing | start the disc at another release track |
-| `r` | after an album's issues | go through the ones not fixed again |
+| Key       | Where                   | Does                                                                                                         |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Enter     | issue menu              | the first action, `[1]`                                                                                      |
+| `1`–`9`   | issue menu              | that action                                                                                                  |
+| `d`       | issue menu              | tag the whole album from a Discogs release you choose                                                        |
+| `l`       | issue menu              | list the album's files                                                                                       |
+| `s` / `q` | issue menu              | skip this issue / quit repair; the first skip in an album offers to add a bracket to its folder name (below) |
+| `o`       | any prompt              | start this album over (below)                                                                                |
+| `b`       | release ID prompt       | browse the search results; Esc goes back to the issue menu                                                   |
+| `n`       | disc pairing            | start the disc at another release track                                                                      |
+| `r`       | after an album's issues | go through the ones not fixed again                                                                          |
 
 **A bracket after a skip.** Skipping often means Discogs doesn't know the album, for instance a bootleg. The first time you skip an issue in an album (also the `--retag` offer), you can note that in the folder name:
 
@@ -137,10 +137,10 @@ Enter at the release ID prompt takes the suggested ID, in this order:
 **Albums split into disc folders** (`1973 Yessongs (Disc 1∕2)`, `… (Disc 2∕2)`): each folder is tagged from its own part of the release, numbered per disc (TRACKNUMBER `n/7`, DISCNUMBER `2/2`).
 
 - Where the release numbers its discs (`1-1`/`2-1`, or numbering that starts again at 1), that disc's tracks are used as listed.
-- Where it doesn't (vinyl sides `A1`…`F2`, `1`…`15` straight through), disc *n* is placed after the tracks of the other disc folders, checked against your titles; without the other folders, by titles alone. The track-by-track pairing is shown first: Enter accepts it, `n` starts the disc at another release track. If neither titles nor other folders tell, you're asked for the start track.
+- Where it doesn't (vinyl sides `A1`…`F2`, `1`…`15` straight through), disc _n_ is placed after the tracks of the other disc folders, checked against your titles; without the other folders, by titles alone. The track-by-track pairing is shown first: Enter accepts it, `n` starts the disc at another release track. If neither titles nor other folders tell, you're asked for the start track.
 - A master ID entered for a disc folder resolves to a CD version with that many discs (and, preferably, this disc's track count) instead of the master's main release, which is often the original vinyl.
 - Once one disc folder is tagged, the others suggest the same release.
-- Discogs "index" entries (a suite listed with its parts, e.g. *And You And I*) count as one track.
+- Discogs "index" entries (a suite listed with its parts, e.g. _And You And I_) count as one track.
 - The search's match score compares a disc folder with its own part of the release.
 
 Logs go to `~/.local/share/music-audit/`:
@@ -177,10 +177,12 @@ This links `/usr/local/bin/music-audit` to `scripts/audit/bin/music-audit`, whic
 
 ```bash
 pnpm --filter @hansogj/music-audit run vitest      # tests
-pnpm --filter @hansogj/music-audit run precommit   # tests with coverage (80%) + build
+pnpm --filter @hansogj/music-audit run lint        # ESLint (typescript-eslint, import order)
+pnpm --filter @hansogj/music-audit run format      # Prettier (format:check to check only)
+pnpm --filter @hansogj/music-audit run precommit   # lint + format check + tests with coverage (80%) + build
 ```
 
 - Tests answer prompts through `setPrompt()` and use fake audio files that hold their tags as JSON (`repair.test.ts`), so they need neither `metaflac`/`id3v2` nor real audio. Audio files are gitignored: a test must create every file it uses.
-- `tag-write.test.ts` runs only where `id3v2` is installed (CI doesn't have it).
-- Discogs is mocked; fixtures follow the real API shapes (e.g. the *Yessongs* tracklists in `disc-split.test.ts`).
-- No lint is configured for this package, and Prettier isn't enforced here.
+- `tag-write.test.ts` runs only where `id3v2` is installed (CI installs it, #149); the cover hash tests only where `magick` (ImageMagick 7) is.
+- Discogs is mocked; fixtures follow the real API shapes (e.g. the _Yessongs_ tracklists in `disc-split.test.ts`).
+- ESLint (`eslint.config.mjs`: recommended + typescript-eslint + sorted imports) and Prettier (the root `.prettierrc`) are part of `precommit`; `npx eslint . --fix` sorts imports.

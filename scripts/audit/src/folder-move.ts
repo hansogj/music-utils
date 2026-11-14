@@ -81,7 +81,12 @@ export async function moveAlbumToArtist(albumPath: string, newArtist: string): P
 
   if (path.basename(oldArtistDir).toLowerCase() === newArtist.toLowerCase()) {
     await guardedRename(oldArtistDir, newArtistDir);
-    return { ...result, albumPath: path.join(newArtistDir, albumFolder), artistDir: newArtistDir, oldArtistDir: 'renamed' };
+    return {
+      ...result,
+      albumPath: path.join(newArtistDir, albumFolder),
+      artistDir: newArtistDir,
+      oldArtistDir: 'renamed',
+    };
   }
 
   await fs.mkdir(newArtistDir, { recursive: true });

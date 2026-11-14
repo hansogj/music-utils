@@ -35,6 +35,7 @@ describe('LiveProgress', () => {
     const { writes, out } = fakeOut(true);
     let done = 0;
     const live = new LiveProgress('albums', () => ({ done, total: 4 }), out, 100).start();
+    // eslint-disable-next-line no-control-regex -- the terminal's erase-line sequence
     expect(writes[0]).toMatch(/^\r\x1b\[K {2}⠋ ▕░+▏ 0\/4 {2}0% albums$/);
     done = 2;
     vi.advanceTimersByTime(100);

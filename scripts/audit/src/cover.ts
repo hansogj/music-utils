@@ -2,8 +2,8 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import type { AlbumAudit, AlbumLayout, Issue, TrackInfo } from './types.js';
 import { releaseIdFrom } from './checks/discogs-ids.js';
+import type { AlbumAudit, AlbumLayout, Issue, TrackInfo } from './types.js';
 
 // cover.jpg in album and artist folders: present, and the cover of the album's Discogs
 // release (or its master). Images are compared by a perceptual hash, so a 600px Discogs

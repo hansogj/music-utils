@@ -10,8 +10,8 @@ function bigrams(s: string): Set<string> {
 export function normalizeTitle(s: string): string {
   return s
     .toLowerCase()
-    .replace(/[''`]/g, "'")           // normalize apostrophes
-    .replace(/[^\w\s']/g, ' ')        // strip punctuation
+    .replace(/[''`]/g, "'") // normalize apostrophes
+    .replace(/[^\w\s']/g, ' ') // strip punctuation
     .replace(/\b(a|an|the|le|la|les|el|los|die|der|das)\b/g, ' ') // strip articles
     .replace(/\s+/g, ' ')
     .trim();
@@ -33,8 +33,8 @@ export function dice(a: string, b: string): number {
 // Compares positionally on min(local, discogs) tracks.
 // Returns a 0–1 score where 1 = perfect match.
 export function scoreTracklist(
-  localNames: string[],           // parsed filename or existing TITLE tag
-  discogsTitles: string[],        // from Discogs tracklist, type=track only
+  localNames: string[], // parsed filename or existing TITLE tag
+  discogsTitles: string[], // from Discogs tracklist, type=track only
 ): number {
   const compareCount = Math.min(localNames.length, discogsTitles.length);
   if (compareCount === 0) return 0;

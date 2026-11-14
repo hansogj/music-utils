@@ -3,9 +3,9 @@ import path from 'node:path';
 
 import { type CoverSource, imageHash } from './cover.js';
 import { discOfFolder, sliceForDisc } from './disc-split.js';
+import { userHome } from './env.js';
 import { CLEAR_LINE } from './progress.js';
 import { RateLimiter } from './rate-limit.js';
-import { userHome } from './env.js';
 import { scoreTracklist } from './similarity.js';
 import type { DiscogsSearchResult, OriginalYear } from './types.js';
 
@@ -24,7 +24,7 @@ const MAX_429 = 8; // pauses of 5+10+20+40+60+60+60s: well past a full window
 const MAX_500 = 3;
 
 async function discogsGet(url: string, headers: Record<string, string>): Promise<Response> {
-  for (let attempt = 0, errors = 0; ; ) {
+  for (let attempt = 0, errors = 0; ;) {
     await discogsLimiter.acquire();
     const res = await fetch(url, { headers });
     discogsLimiter.observe(res.headers);
@@ -100,7 +100,9 @@ export function fetchMaster(masterId: number, token: string): Promise<MasterInfo
   let cached = masterCache.get(masterId);
   if (!cached) {
     cached = discogsGet(`${API}/masters/${masterId}`, authHeaders(token))
-      .then((res) => res.json() as Promise<{ title?: string; year?: number; main_release?: number; images?: RawImage[] }>)
+      .then(
+        (res) => res.json() as Promise<{ title?: string; year?: number; main_release?: number; images?: RawImage[] }>,
+      )
       .then((data) => ({
         id: masterId,
         title: data.title?.trim() || undefined,
@@ -137,7 +139,10 @@ export async function pickMasterVersion(
   want: MasterVersionWanted,
   maxChecks = 5,
 ): Promise<{ releaseId: string; why: string }> {
-  const main = async () => ({ releaseId: await resolveReleaseId({ type: 'master', id: masterId }, token), why: 'main release' });
+  const main = async () => ({
+    releaseId: await resolveReleaseId({ type: 'master', id: masterId }, token),
+    why: 'main release',
+  });
   let ids: number[];
   try {
     const res = await discogsGet(`${API}/masters/${masterId}/versions?format=CD&per_page=25`, authHeaders(token));
@@ -237,9 +242,9 @@ export function numberTracklist(tracklist: Array<{ position: string; title: stri
 
 function cleanAlbumTitle(folderName: string): string {
   return folderName
-    .replace(/^\d{4}\s+/, '')              // strip leading year
-    .replace(/\s*\([^)]+\)\s*/g, ' ')     // strip parentheticals (Disc N/M)
-    .replace(/\s*\[[^\]]+\]\s*/g, ' ')    // strip aux brackets
+    .replace(/^\d{4}\s+/, '') // strip leading year
+    .replace(/\s*\([^)]+\)\s*/g, ' ') // strip parentheticals (Disc N/M)
+    .replace(/\s*\[[^\]]+\]\s*/g, ' ') // strip aux brackets
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -267,7 +272,9 @@ function getRelease(releaseId: string, token: string): Promise<RawRelease> {
   if (cached) {
     releaseCache.delete(releaseId); // re-insert: most recently used last
   } else {
-    cached = discogsGet(`${API}/releases/${releaseId}`, authHeaders(token)).then((res) => res.json() as Promise<RawRelease>);
+    cached = discogsGet(`${API}/releases/${releaseId}`, authHeaders(token)).then(
+      (res) => res.json() as Promise<RawRelease>,
+    );
     const pending = cached;
     // Don't cache failures.
     pending.catch(() => releaseCache.get(releaseId) === pending && releaseCache.delete(releaseId));
@@ -291,7 +298,11 @@ async function fetchReleaseTracks(releaseId: number, token: string): Promise<Num
 export function matchScore(localNames: string[], numbered: NumberedTrack[], albumFolder: string): number | undefined {
   if (numbered.length === 0) return undefined;
   const folderDisc = discOfFolder(albumFolder);
-  if (folderDisc.noOfDiscs <= 1) return scoreTracklist(localNames, numbered.map((t) => t.title));
+  if (folderDisc.noOfDiscs <= 1)
+    return scoreTracklist(
+      localNames,
+      numbered.map((t) => t.title),
+    );
   return sliceForDisc(numbered, { ...folderDisc, localNames, localCount: localNames.length }).score;
 }
 
@@ -358,7 +369,9 @@ export async function searchDiscogs(
   }));
 
   const ranked =
-    localTrackNames.length > 0 ? await scoreAndRank(results, localTrackNames, albumFolder, token, scoreCandidates) : results;
+    localTrackNames.length > 0
+      ? await scoreAndRank(results, localTrackNames, albumFolder, token, scoreCandidates)
+      : results;
   return withOriginalYears(ranked, token, scoreCandidates);
 }
 
@@ -464,9 +477,13 @@ export async function fetchOriginalYear(releaseId: string, token: string): Promi
 // ── covers ────────────────────────────────────────────────────────────────────
 
 /** The release's front cover (else its master's), and the master ID. */
-export async function fetchReleaseCover(releaseId: string, token: string): Promise<{ cover?: CoverImage; masterId?: number }> {
+export async function fetchReleaseCover(
+  releaseId: string,
+  token: string,
+): Promise<{ cover?: CoverImage; masterId?: number }> {
   const data = await getRelease(releaseId, token);
-  const cover = primaryImage(data.images) ?? (data.master_id ? (await fetchMaster(data.master_id, token)).cover : undefined);
+  const cover =
+    primaryImage(data.images) ?? (data.master_id ? (await fetchMaster(data.master_id, token)).cover : undefined);
   return { ...(cover ? { cover } : {}), ...(data.master_id ? { masterId: data.master_id } : {}) };
 }
 
