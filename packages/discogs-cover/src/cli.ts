@@ -6,7 +6,7 @@ import * as path from 'node:path';
 import * as process from 'node:process';
 import { discogsMainCover } from './main';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // --- CLI Logic ---
 async function runCli() {
