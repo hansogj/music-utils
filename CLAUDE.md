@@ -24,7 +24,7 @@ pnpm run precommit          # Full pre-commit chain: test + lint + format:check 
 
 **Releases**: Changesets only (root README, "Releases"). Add a `.changeset/*.md` with each user-facing change to a published package; `pnpm version-packages` on a branch, then `pnpm release` from `main`. `scripts/audit` is `"private": true` and never published.
 
-Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via `pretest`). CI integration tests in `ci/` run real tag operations against copied test files.
+Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via `pretest`). CI integration tests in `ci/` run real tag operations against copied test files: synthetic 0.5s FLAC/MP3 files (made with ffmpeg, no music) and `tracks.txt`, committed despite the global `*.flac`/`*.mp3` ignore (negated for `packages/music-utils/test-data/raw` in `.gitignore`). Each script fails when its album has no audio (`ci/env/requireAudio.sh`) instead of passing on nothing; CI installs `flac` and `id3v2` for them.
 
 ## Architecture
 
@@ -178,7 +178,7 @@ scripts/audit/src/
 
 - `pnpm --filter @hansogj/music-audit run precommit`: ESLint, Prettier check, vitest with 80% coverage thresholds, then tsup build. `repair.ts`, `discogs.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts` and a few others are excluded from coverage (`vitest.config.ts`), but `repair.ts` and `discogs.ts` still have tests.
 - `repair.test.ts` drives `repairAlbum()` end to end: fake "audio" files hold their tags as JSON (mocked `tags.js` / `tag-write.js`), prompts are scripted with `setPrompt()` (an unexpected prompt fails the test), and `fetchRelease` is mocked per test with `mockResolvedValueOnce`.
-- Audio files (`*.mp3`, `*.flac`) are gitignored, so tests must build every file they use; `tag-write.test.ts` is skipped where `id3v2` is missing (CI).
+- Audio files (`*.mp3`, `*.flac`) are gitignored (except music-utils' CI test albums), so tests must build every file they use; `tag-write.test.ts` is skipped where `id3v2` is missing (CI installs it now), the cover hash tests where `magick` (ImageMagick 7) is missing.
 - Discogs fixtures mirror real API shapes (positions, `index` entries with `sub_tracks`, master versions); check the live API (`curl https://api.discogs.com/releases/<id>`) when adding a case.
 - Lint and format are enforced in `scripts/audit` (`eslint.config.mjs`: recommended + typescript-eslint + simple-import-sort; Prettier via `format` / `format:check`). Fix with `pnpm --filter @hansogj/music-audit exec eslint . --fix && pnpm --filter @hansogj/music-audit run format`.
 
