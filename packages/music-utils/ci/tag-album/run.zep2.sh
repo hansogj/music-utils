@@ -1,7 +1,9 @@
 #!/bin/sh
 . ./ci/env/setEnvVars.sh
+. ./ci/env/requireAudio.sh
 
 cd "$MU_TEST_ZEP_2"
+require_audio flac ci/tag-album/run.zep2.sh
 node  $MU_BUILD_DIR/run/tag.album.js
 
 FAIL=0

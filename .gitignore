@@ -116,6 +116,9 @@ test
 *.flac
 *.mp3
 **/test-data/copy
+# music-utils' CI test albums: synthetic 0.5s files (ffmpeg), no music
+!packages/music-utils/test-data/raw/**/*.flac
+!packages/music-utils/test-data/raw/**/*.mp3
 
 build.ci
 junit-TEST.xml
@@ -153,6 +156,7 @@ dist
 .tern-port
 
 tracks.txt
+!packages/music-utils/test-data/raw/tracks.txt
 **/*MD
 JosteinSync.md
 

@@ -1,7 +1,9 @@
 #!/bin/sh
 . ./ci/env/setEnvVars.sh
+. ./ci/env/requireAudio.sh
 
 cd "$MU_TEST_ACC"
+require_audio mp3 ci/tag-album/run.acc.sh
 node  $MU_BUILD_DIR/run/tag.album.js
 
 FAIL=0
