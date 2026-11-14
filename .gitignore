@@ -160,5 +160,8 @@ tracks.txt
 **/*MD
 JosteinSync.md
 
+# pnpm store, when pnpm can't use the global one (e.g. inside a sandbox)
+.pnpm-store/
+
 # Claude Code agent worktrees (temporary clones, not project files)
 .claude/worktrees/
