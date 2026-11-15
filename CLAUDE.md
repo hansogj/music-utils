@@ -22,7 +22,7 @@ pnpm run format:lint:fix    # Fix both lint and format issues
 pnpm run precommit          # Full pre-commit chain: test + lint + format:check + tsc + build
 ```
 
-**Releases**: Changesets only (root README, "Releases"). Add a `.changeset/*.md` with each user-facing change to a published package; `pnpm version-packages` on a branch, then `pnpm release` from `main`. `scripts/audit` is `"private": true` and never published.
+**Releases**: Changesets only (root README, "Releases"). Add a `.changeset/*.md` with each user-facing change to a published package; `pnpm version-packages` on a branch, then `pnpm release` from `main`. `scripts/audit` is `"private": true` and never published. music-utils depends on discogs-cover and discogs-item-lookup with `workspace:<version>`: linked from the repo locally and in CI (no npm fetch, no release-age exemption), replaced by the real version when `pnpm publish` (used by `changeset publish`) packs it.
 
 Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via `pretest`). CI integration tests in `ci/` run real tag operations against copied test files: synthetic 0.5s FLAC/MP3 files (made with ffmpeg, no music) and `tracks.txt`, committed despite the global `*.flac`/`*.mp3` ignore (negated for `packages/music-utils/test-data/raw` in `.gitignore`). Each script fails when its album has no audio (`ci/env/requireAudio.sh`) instead of passing on nothing; CI installs `flac` and `id3v2` for them.
 

@@ -1,6 +1,6 @@
 {
   "name": "@hansogj/music-utils",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "music tools for my flac & mp3 collection",
   "main": "",
   "bin": {
@@ -52,8 +52,8 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@hansogj/array.utils": "3.0.2",
-    "@hansogj/discogs-cover": "1.4.0",
-    "@hansogj/discogs-item-lookup": "1.5.0",
+    "@hansogj/discogs-cover": "workspace:1.4.1",
+    "@hansogj/discogs-item-lookup": "workspace:1.5.1",
     "@hansogj/maybe": "2.7.3",
     "chalk": "4.1.2",
     "dotenv": "18.0.10",

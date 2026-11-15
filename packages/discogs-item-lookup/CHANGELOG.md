@@ -1,5 +1,12 @@
 # @hansogj/discogs-item-lookup
 
+## 1.5.1
+
+### Patch Changes
+
+- ab8d1b5: Update dotenv to 18 and commander to 15. discogs-cover no longer prints dotenv's "injected env" line on start.
+- 8e3c7db: Update dependencies: @hansogj/maybe 2.7.3, @hansogj/array.utils 3.0.2.
+
 ## 1.5.0
 
 ### Minor Changes
