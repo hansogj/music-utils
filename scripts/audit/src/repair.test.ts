@@ -80,7 +80,7 @@ try {
 afterAll(() => fs.rm(TINY_JPEG, { force: true }));
 
 const { auditAlbum } = await import('./audit-album.js');
-const { formatSummary, repairAlbum, resetRepairSession, setPrompt } = await import('./repair.js');
+const { formatSummary, repairAlbum, resetRepairSession, setPrompt, splitArtistBrackets } = await import('./repair.js');
 type RepairEvent = import('./repair.js').RepairEvent;
 
 let root: string;
@@ -1050,6 +1050,66 @@ describe('repairAlbum — a Discogs artist credit that differs from the artist f
     expect(await fs.readFile(path.join(moved, 'info.txt'), 'utf8')).toMatch(
       /album was moved from artist folder "Yezda Urfa" to "Yezda Urfa And Friends"/,
     );
+  });
+});
+
+describe("repairAlbum — the artist folder's own brackets", () => {
+  // As in "Dionysos [Canada]": the brackets tell same-named artists apart (Discogs' "Dionysos (3)").
+  async function underArtist(artist: string): Promise<void> {
+    const artistDir = path.join(root, 'Y', artist);
+    await fs.rename(path.dirname(layout.albumPath), artistDir);
+    Object.assign(layout, { artistName: artist, albumPath: path.join(artistDir, layout.albumFolder) });
+  }
+
+  it('are not a difference from the Discogs artist', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, year: '1976' });
+    await underArtist('Yezda Urfa [US]');
+
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
+      [/Release ID/, '4376665'],
+      [/Apply renames\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+
+    expect(output.join('\n')).not.toMatch(/Discogs name differs/);
+    expect(layout.artistName).toBe('Yezda Urfa [US]');
+  });
+
+  it('are kept when the album moves to the Discogs artist', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, year: '1976', artists: ['Yezda Urfa And Friends'] });
+    await underArtist('Yezda Urfa [US]');
+
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
+      [/Release ID/, '4376665'],
+      [/Apply renames\?/, 'y'],
+      [/Rename folder\(s\) to match Discogs\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+
+    expect(output.join('\n')).toMatch(/artist : "Yezda Urfa \[US\]" {2}→ {2}"Yezda Urfa And Friends \[US\]"/);
+    const moved = path.join(root, 'Y', 'Yezda Urfa And Friends [US]', '1976 Sacred Baboon');
+    expect(layout).toMatchObject({ artistName: 'Yezda Urfa And Friends [US]', albumPath: moved });
+  });
+});
+
+describe('splitArtistBrackets', () => {
+  it.each([
+    ['Dionysos [Canada]', { name: 'Dionysos', brackets: ' [Canada]' }],
+    ['Nektar [UK] [band]', { name: 'Nektar', brackets: ' [UK] [band]' }],
+    ['Yezda Urfa', { name: 'Yezda Urfa', brackets: '' }],
+    ['[Dialogue] Group', { name: '[Dialogue] Group', brackets: '' }],
+  ])('%s', (artist, expected) => {
+    expect(splitArtistBrackets(artist)).toEqual(expected);
   });
 });
 
