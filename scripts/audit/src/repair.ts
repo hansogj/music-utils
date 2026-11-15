@@ -264,6 +264,12 @@ function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// "Dionysos [Canada]" → { name: "Dionysos", brackets: " [Canada]" }: the trailing [...] parts.
+export function splitArtistBrackets(artist: string): { name: string; brackets: string } {
+  const brackets = artist.match(/(\s*\[[^\]]*\])+\s*$/)?.[0] ?? '';
+  return { name: artist.slice(0, artist.length - brackets.length).trim(), brackets: brackets.trimEnd() };
+}
+
 // The answers to a folder-rename prompt, applied once the album's other fixes are done.
 // Only the targets are stored; the new names are built from the folder as it is then.
 interface FolderRenamePlan {
@@ -361,11 +367,14 @@ async function askFolderRename(
   meta: ReturnType<typeof albumMetaFromLayout>,
   release: import('./discogs.js').ReleaseInfo,
 ): Promise<FolderRenamePlan | undefined> {
-  const discogsArtist = release.artists?.[0];
+  // The artist folder's own brackets ("Dionysos [Canada]") tell same-named artists apart:
+  // they are kept, and not compared (Discogs' "Dionysos (3)" comes without its number).
+  const { name: localArtist, brackets: artistBrackets } = splitArtistBrackets(layout.artistName);
+  const discogsArtist = release.artists?.[0] && `${release.artists[0]}${artistBrackets}`;
   const discogsAlbum = release.title;
   const localYear = folderYear(layout.albumFolder);
 
-  const artistMismatch = discogsArtist && normName(discogsArtist) !== normName(layout.artistName);
+  const artistMismatch = release.artists?.[0] && normName(release.artists[0]) !== normName(localArtist);
   // The folder's title with its parentheses ("Transformation (The Speed of Love)"): only
   // the year, the disc part and the brackets are left out. Case and punctuation don't count.
   const localTitle = folderTitle(layout.albumFolder);
