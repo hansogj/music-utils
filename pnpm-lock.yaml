@@ -267,11 +267,11 @@ importers:
         specifier: 3.0.2
         version: 3.0.2
       '@hansogj/discogs-cover':
-        specifier: 1.4.0
-        version: 1.4.0
+        specifier: workspace:1.4.1
+        version: link:../discogs-cover
       '@hansogj/discogs-item-lookup':
-        specifier: 1.5.0
-        version: 1.5.0
+        specifier: workspace:1.5.1
+        version: link:../discogs-item-lookup
       '@hansogj/maybe':
         specifier: 2.7.3
         version: 2.7.3
@@ -722,18 +722,6 @@ packages:
 
   '@hansogj/array.utils@3.0.2':
     resolution: {integrity: sha512-jVJA/r1Q/76LSwaeVTkhR3oAnBGmGnmhbE/uf9mMlthMt4TLckDKIsxkPbloFdrVvnMxI1iDYV0NIxFbTDVZKA==}
-    engines: {node: '>=18'}
-
-  '@hansogj/discogs-cover@1.4.0':
-    resolution: {integrity: sha512-R8v/GSBHmbPrkSX0YShGioRxWNT2zK2X40aEUbpf5pqR+8OIuWfhGGQkrmwmpg0aMpYITkcf2eDzu6uMglCmng==}
-    hasBin: true
-
-  '@hansogj/discogs-item-lookup@1.5.0':
-    resolution: {integrity: sha512-G9SMbdMKann/O56Gd07bzkwyAeIc94+v/K2pwjImmI7RZW92lYanMOzMrwZ2fowegjiIWexc/minYhl0QWTIgg==}
-    hasBin: true
-
-  '@hansogj/maybe@2.7.2':
-    resolution: {integrity: sha512-yae7NGhuOVzFDhFzijRHdKujbSp+6RUHegcSuR7ASzTh0LdbSHJmtMbG3RCXXQ6Ig9kJu3MWKvFwhas9JLfvdA==}
     engines: {node: '>=18'}
 
   '@hansogj/maybe@2.7.3':
@@ -1586,10 +1574,6 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
-  commander@14.0.3:
-    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
-    engines: {node: '>=20'}
-
   commander@15.1.0:
     resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
     engines: {node: '>=22.12.0'}
@@ -1669,10 +1653,6 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
-
-  dotenv@17.4.2:
-    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
-    engines: {node: '>=12'}
 
   dotenv@18.0.10:
     resolution: {integrity: sha512-89FAA1xchzK2mxVWdr5F/0rldwiueXs6zJM86rO66EzekR1iBdiXRthyG+m5GvkJaFH3C2LESzamTkgndmLT2A==}
@@ -3361,18 +3341,6 @@ snapshots:
 
   '@hansogj/array.utils@3.0.2': {}
 
-  '@hansogj/discogs-cover@1.4.0':
-    dependencies:
-      dotenv: 17.4.2
-
-  '@hansogj/discogs-item-lookup@1.5.0':
-    dependencies:
-      '@hansogj/maybe': 2.7.2
-      commander: 14.0.3
-      dotenv: 17.4.2
-
-  '@hansogj/maybe@2.7.2': {}
-
   '@hansogj/maybe@2.7.3': {}
 
   '@humanfs/core@0.19.2':
@@ -4165,8 +4133,6 @@ snapshots:
 
   color-name@1.1.4: {}
 
-  commander@14.0.3: {}
-
   commander@15.1.0: {}
 
   commander@4.1.1: {}
@@ -4244,8 +4210,6 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
-
-  dotenv@17.4.2: {}
 
   dotenv@18.0.10: {}
 

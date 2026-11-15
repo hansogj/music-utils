@@ -1,5 +1,16 @@
 # @hansogj/music-utils
 
+## 2.2.2
+
+### Patch Changes
+
+- ab8d1b5: Update dotenv to 18 and commander to 15. discogs-cover no longer prints dotenv's "injected env" line on start.
+- 8e3c7db: Update dependencies: @hansogj/maybe 2.7.3, @hansogj/array.utils 3.0.2.
+- Updated dependencies [ab8d1b5]
+- Updated dependencies [8e3c7db]
+  - @hansogj/discogs-cover@1.4.1
+  - @hansogj/discogs-item-lookup@1.5.1
+
 ## 2.2.1
 
 ### Patch Changes
