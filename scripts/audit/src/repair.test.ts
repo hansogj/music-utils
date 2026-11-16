@@ -521,7 +521,7 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     expect(audit.issues.map((i) => i.code)).toEqual(['MISSING_TAGS']);
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Tag from Discogs release ID (suggested: 8270054, from the other disc folder)
-      [/Release ID \[8270054\]/, ''],
+      [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
       [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
       // Already "01 - Your Move.mp3": no renames in a disc folder.
       [/Next album/, ''],
@@ -545,6 +545,95 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     expect(await fs.readFile(path.join(disc2.albumPath, 'info.txt'), 'utf8')).toMatch(/Disc: 2\/2/);
   });
 
+  it('[n] to the same release asks for another, not suggesting disc 1’s', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
+    const audit = await auditAlbum(disc2, { skipDiscogs: true });
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Use the same release ID \[r8270054\] as Disc 1\?/, 'n'],
+      [/Release ID \[enter ID\]/, '8270054'],
+      [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
+      [/Next album/, ''],
+    ]);
+    expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+    done();
+    expect(vi.mocked(fetchRelease)).toHaveBeenLastCalledWith('8270054', 'test-token');
+  });
+
+  describe("disc 1's brackets", () => {
+    // Disc 1 was given "[bootleg]" when it was repaired.
+    beforeEach(async () => {
+      const artistDir = path.join(root, 'Y', 'Yes');
+      await fs.rename(
+        path.join(artistDir, '1973 Yessongs (Disc 1∕2)'),
+        path.join(artistDir, '1973 Yessongs (Disc 1∕2) [bootleg]'),
+      );
+      const flac = path.join(artistDir, '1973 Yessongs (Disc 2∕2) [FLAC]');
+      await fs.rename(disc2.albumPath, flac);
+      Object.assign(disc2, { albumFolder: '1973 Yessongs (Disc 2∕2) [FLAC]', albumPath: flac });
+    });
+
+    it.each([
+      ['', '1973 Yessongs (Disc 2∕2) [FLAC]'],
+      ['d', '1973 Yessongs (Disc 2∕2) [bootleg]'],
+      ['c', '1973 Yessongs (Disc 2∕2) [FLAC] [bootleg]'],
+    ])('after the same release: "%s" → %s', async (choice, folder) => {
+      const { fetchRelease } = await import('./discogs.js');
+      vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
+      const audit = await auditAlbum(disc2, { skipDiscogs: true });
+      const done = answer([
+        [/^ {2}Choice \[1\]/, ''],
+        [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
+        [/Brackets \[Enter\/d\/c\]/, choice],
+        ...(choice === 'c' ? [[/ {4}Brackets: /, '[FLAC] bootleg'] as [RegExp, string]] : []),
+        [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
+        [/Next album/, ''],
+      ]);
+      expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+      done();
+      const out = output.join('\n');
+      expect(out).toMatch(/Brackets differ from Disc 1's:/);
+      expect(out).toMatch(/\[Enter\] keep +→ 1973 Yessongs \(Disc 2∕2\) \[FLAC\]/);
+      expect(out).toMatch(/d {2}as Disc 1 +→ 1973 Yessongs \(Disc 2∕2\) \[bootleg\]/);
+      if (choice === 'c') expect(prefills[asked.findIndex((q) => / {4}Brackets: /.test(q))]).toBe('[FLAC]');
+      expect(disc2.albumFolder).toBe(folder);
+      expect(await fs.readdir(path.join(root, 'Y', 'Yes'))).toContain(folder);
+    });
+
+    it('are offered at the first skip too', async () => {
+      const audit = await auditAlbum(disc2, { skipDiscogs: true });
+      const done = answer([
+        [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS
+        [/Brackets \[Enter\/d\/c\]/, 'd'],
+        [/\[r\] Retry/, ''],
+        [/Next album/, ''],
+      ]);
+      expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+      done();
+      expect(disc2.albumFolder).toBe('1973 Yessongs (Disc 2∕2) [bootleg]');
+    });
+
+    it('are not asked about when they are the same', async () => {
+      const artistDir = path.join(root, 'Y', 'Yes');
+      const same = path.join(artistDir, '1973 Yessongs (Disc 2∕2) [bootleg]');
+      await fs.rename(disc2.albumPath, same);
+      Object.assign(disc2, { albumFolder: '1973 Yessongs (Disc 2∕2) [bootleg]', albumPath: same });
+      const { fetchRelease } = await import('./discogs.js');
+      vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
+      const audit = await auditAlbum(disc2, { skipDiscogs: true });
+      const done = answer([
+        [/^ {2}Choice \[1\]/, ''],
+        [/Use the same release ID/, 'y'],
+        [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
+        [/Next album/, ''],
+      ]);
+      expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+      done();
+      expect(disc2.albumFolder).toBe('1973 Yessongs (Disc 2∕2) [bootleg]');
+    });
+  });
+
   it('renames "d2t01 - …" files in a disc folder to "01 - Title"', async () => {
     for (const name of await fs.readdir(disc2.albumPath)) {
       await fs.rename(path.join(disc2.albumPath, name), path.join(disc2.albumPath, `d2t${name}`));
@@ -554,7 +643,7 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     const audit = await auditAlbum(disc2, { skipDiscogs: true });
     const done = answer([
       [/^ {2}Choice \[1\]/, ''],
-      [/Release ID \[8270054\]/, ''],
+      [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
       [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
       [/Apply renames\?/, 'y'],
       [/Next album/, ''],
@@ -599,7 +688,7 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     const audit = await auditAlbum(disc2, { skipDiscogs: true });
     const done = answer([
       [/^ {2}Choice \[1\]/, ''],
-      [/Release ID/, ''],
+      [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
       [/\[n\] Start at another track/, 'n'],
       [/Disc 2∕2 starts at release track \(1–15\)/, '20'], // out of range → ask again
       [/\[n\] Start at another track/, 'n'],

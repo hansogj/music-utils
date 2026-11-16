@@ -22,7 +22,13 @@ import {
   withoutSolvedCoverIssues,
   writeCover,
 } from './cover.js';
-import { expectedFirstTrack, type SiblingDisc, siblingDiscs, siblingReleaseId } from './disc-siblings.js';
+import {
+  expectedFirstTrack,
+  type SiblingDisc,
+  siblingDiscs,
+  siblingReleaseId,
+  siblingWithRelease,
+} from './disc-siblings.js';
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from './disc-split.js';
 import {
   discogsCoverSource,
@@ -288,12 +294,46 @@ function planFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): void {
 // After a skip: lets the user note what the album is in the folder name, e.g. a bootleg
 // Discogs doesn't list: "Artist/1978 Live in Paris [bootleg]". Starts from the folder's
 // brackets; Enter leaves them. Returns the new bracket part, or undefined for no change.
+// In a disc set whose first other disc has other brackets, offers those instead (askSetAux).
 async function askSkipAux(layout: AlbumLayout): Promise<string | undefined> {
+  const other = (await siblingDiscs(layout))[0];
+  if (other) {
+    const fromSet = await askSetAux(layout, other);
+    if (fromSet !== 'same') return fromSet;
+  }
   const current = auxPartOf(pendingFolderRenames.get(layout)?.aux ?? layout.albumFolder);
   console.log(chalk.dim('  Add to the folder name (e.g. bootleg)? Edit the brackets; Enter leaves them.'));
   const aux = customAux(await ask('    Brackets: ', current));
   if (aux === current) return undefined;
   console.log(chalk.dim(`  → folder becomes "${withAuxPart(layout.albumFolder, aux)}" after this album's other fixes`));
+  return aux;
+}
+
+// A disc folder whose brackets differ from another disc's of its set ("[FLAC]" vs
+// "[FLAC] [bootleg]"): keep its own, take the other disc's, or type new ones. Returns the
+// new bracket part, undefined for no change, or 'same' when there is nothing to choose.
+async function askSetAux(layout: AlbumLayout, other: SiblingDisc): Promise<string | undefined | 'same'> {
+  const current = auxPartOf(pendingFolderRenames.get(layout)?.aux ?? layout.albumFolder);
+  let theirs = auxPartOf(path.basename(other.albumPath));
+  // The old-year bracket the other disc got is added to this one too, when its year changes.
+  const oldYear = oldYearAnswers.get(albumSetKey(layout.artistName, layout.albumFolder));
+  if (oldYear?.mode === 'replace') return 'same';
+  if (oldYear?.mode === 'append') {
+    const text = oldYear.text.toLowerCase();
+    theirs = auxPartOf(theirs.replace(/\[[^\]]*\]/g, (b) => (b.slice(1, -1).trim().toLowerCase() === text ? '' : b)));
+  }
+  if (theirs.toLowerCase() === current.toLowerCase()) return 'same';
+
+  const disc = `Disc ${other.disc}`;
+  const show = (aux: string) => withAuxPart(layout.albumFolder, aux);
+  console.log(`\n  Brackets differ from ${disc}'s:`);
+  console.log(`    [Enter] keep         → ${show(current)}`);
+  console.log(`    d  as ${disc.padEnd(15)}→ ${show(theirs)}`);
+  console.log(`    c  type new`);
+  const choice = (await ask('  Brackets [Enter/d/c]: ')).trim().toLowerCase();
+  const aux = choice === 'd' ? theirs : choice === 'c' ? customAux(await ask('    Brackets: ', current)) : current;
+  if (aux === current) return undefined;
+  console.log(chalk.dim(`  → folder becomes "${show(aux)}" after this album's other fixes`));
   return aux;
 }
 
@@ -580,47 +620,65 @@ function buildDiscogsAction(
     run: () =>
       interactive(async () => {
         const results = audit.discogsResults ?? [];
-        const topId = suggested?.id ?? (topResult ? String(topResult.id) : '');
+        // Another disc folder of the set was tagged already: its release first, then its brackets.
+        const fromDisc = siblingWithRelease(siblings);
+        const sameAsDisc =
+          !!fromDisc &&
+          (await ask(`    Use the same release ID [r${fromDisc.releaseId}] as Disc ${fromDisc.disc}? [Y/n] `))
+            .trim()
+            .toLowerCase() !== 'n';
+        if (fromDisc && sameAsDisc) {
+          const aux = await askSetAux(audit.layout, fromDisc);
+          if (aux !== undefined && aux !== 'same') planFolderRename(audit.layout, { aux });
+        }
+        // After a no, the other disc's release isn't suggested again.
+        const declined = fromDisc && !sameAsDisc ? fromDisc.releaseId : undefined;
+        const ownId = suggested?.id !== declined ? suggested?.id : undefined;
+        const topId = ownId ?? (topResult ? String(topResult.id) : '');
 
         // Retry loop: re-prompt if the fetch fails (e.g. Discogs 500, bad ID).
         let release: Awaited<ReturnType<typeof fetchRelease>> | undefined;
-        let releaseId = '';
+        let releaseId = sameAsDisc ? fromDisc!.releaseId! : '';
+        let prompt = !sameAsDisc;
         while (!release) {
-          const browseHint = results.length > 0 ? '  (b to browse list)' : '';
-          const input = (await ask(`    Release ID [${releaseId || topId || 'enter ID'}]${browseHint}: `)).trim();
+          if (!prompt) prompt = true;
+          else {
+            const browseHint = results.length > 0 ? '  (b to browse list)' : '';
+            const input = (await ask(`    Release ID [${releaseId || topId || 'enter ID'}]${browseHint}: `)).trim();
 
-          if (input === 'b' && results.length > 0) {
-            const picked = await pickRelease(results);
-            if (picked === null) throw new BackSignal(); // Esc → back to action menu
-            if (picked !== undefined) releaseId = picked;
-            // undefined = "enter different ID" row selected — fall through to re-prompt
-          } else if (input) {
-            const ref = parseReleaseRef(input);
-            releaseId = ref?.id ?? '';
-            if (ref?.type === 'master') {
-              try {
-                if (noOfDiscs > 1) {
-                  const picked = await pickMasterVersion(ref.id, token, {
-                    disc: folderDisc,
-                    noOfDiscs,
-                    localCount: files.length,
-                  });
-                  releaseId = picked.releaseId;
-                  console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
-                } else {
-                  releaseId = await resolveReleaseId(ref, token);
-                  console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+            if (input === 'b' && results.length > 0) {
+              const picked = await pickRelease(results);
+              if (picked === null) throw new BackSignal(); // Esc → back to action menu
+              if (picked !== undefined) releaseId = picked;
+              // undefined = "enter different ID" row selected — fall through to re-prompt
+            } else if (input) {
+              const ref = parseReleaseRef(input);
+              releaseId = ref?.id ?? '';
+              if (ref?.type === 'master') {
+                try {
+                  if (noOfDiscs > 1) {
+                    const picked = await pickMasterVersion(ref.id, token, {
+                      disc: folderDisc,
+                      noOfDiscs,
+                      localCount: files.length,
+                    });
+                    releaseId = picked.releaseId;
+                    console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
+                  } else {
+                    releaseId = await resolveReleaseId(ref, token);
+                    console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+                  }
+                } catch (err) {
+                  console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
+                  releaseId = '';
+                  continue;
                 }
-              } catch (err) {
-                console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
-                releaseId = '';
-                continue;
               }
+            } else if (!releaseId) {
+              releaseId = topId; // Enter with no input → use suggested ID
             }
-          } else if (!releaseId) {
-            releaseId = topId; // Enter with no input → use suggested ID
+            // Enter with existing releaseId (retry after error) → keep it
           }
-          // Enter with existing releaseId (retry after error) → keep it
 
           if (!releaseId) {
             console.log(chalk.yellow('  Skipped — no release ID'));

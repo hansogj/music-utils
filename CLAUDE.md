@@ -134,7 +134,8 @@ scripts/audit/src/
                     holds (release disc numbers, else a window placed by the other disc
                     folders' track counts and title match); discOfFolder()
   disc-siblings.ts — siblingDiscs(): the album's other disc folders (track counts, release
-                    ID from info.txt/tags) → expected start, suggested release
+                    ID from info.txt/tags; brackets ignored unless two folders claim one
+                    disc) → expected start, suggested release; siblingWithRelease()
   checks/
     folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR,
                     WRONG_AUX_BRACKETS
@@ -170,6 +171,7 @@ scripts/audit/src/
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext`, also in a `(Disc n∕m)` folder (`dDtNN - Title.ext` only when one folder holds the files of several discs) to prevent NAME_TAG_MISMATCH on next audit run
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, offering Discogs enrichment
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release (for a disc folder: `pickMasterVersion()`)
+- **Disc set release**: in a disc folder whose sibling was tagged already, the Discogs action first asks "Use the same release ID [rN] as Disc k? [Y/n]" (`siblingWithRelease()`); a no drops that ID from the suggestion. After a yes, `askSetAux()` offers keep / Disc k's brackets / type new when they differ (minus the set's old-year bracket); the first skip in such a folder asks the same instead of the plain bracket editor
 - **Suggested release ID**: the album's own (tags, else the comment URL / `info.txt` via `releaseIdFrom()`), then the other disc folders' (`siblingReleaseId()`), then the top search hit
 - **Folder rename safety**: all renames go through `guardedRename()` (folder-move.ts), which refuses to overwrite and does a case-only rename ("Speed of Love" → "Speed Of Love") via a temporary name: on an SMB share the target "exists" already, being the folder itself. Albums are compared by `folderTitle()` (parentheses kept), so a case difference isn't offered as a rename
 - **Artist change** (`moveAlbumToArtist()`): only the album moves, into the new artist folder (created, or joined when it exists); the old artist folder is kept while it has other albums, else its files (cover.jpg) follow and it is removed, `@eaDir`/`.DS_Store`/`Thumbs.db` and all. A change of case only renames the whole artist folder. The artist folder's trailing `[...]` ("Dionysos [Canada]") is ignored when comparing with the Discogs artist and kept on a rename (`splitArtistBrackets()`)
