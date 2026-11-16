@@ -119,7 +119,9 @@ scripts/audit/src/
                     cover; release's cover, then the master's), ARTIST_COVER_MISSING (no readable one); writeCover(), artistCoverCandidates(),
                     withoutSolvedCoverIssues() (runRepair drops an artist cover issue solved since)
   folder-move.ts  — guardedRename() (no overwrite; case-only renames via a temp name),
-                    moveAlbumToArtist() (one album to another artist folder; old one removed when empty)
+                    moveAlbumToArtist() (one album to another artist folder, also under another
+                    letter folder (WRONG_LETTER_DIR), joining one there of any case; old one
+                    removed when empty)
   report.ts       — printReport(); terminal-formatted severity sections
   server.ts       — serveReport(): HTML UI mode (--ui flag)
   logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)

@@ -1142,6 +1142,43 @@ describe('repairAlbum — a Discogs artist credit that differs from the artist f
   });
 });
 
+describe('repairAlbum — an artist under the wrong letter folder', () => {
+  it('moves only this album to the artist folder under the right letter, joining the one there', async () => {
+    // "Yezda Urfa" filed under X, with another album; Y/Yezda Urfa exists with one album and a cover.
+    const wrong = path.join(root, 'X', 'Yezda Urfa');
+    await fs.mkdir(path.dirname(wrong), { recursive: true });
+    await fs.rename(path.dirname(layout.albumPath), wrong);
+    await fs.mkdir(path.join(wrong, '1977 Boris Live'));
+    const right = path.join(root, 'Y', 'Yezda Urfa');
+    await fs.mkdir(path.join(right, '1975 Boris'), { recursive: true });
+    await fs.writeFile(path.join(right, 'cover.jpg'), '');
+    Object.assign(layout, { letterDir: 'X', albumPath: path.join(wrong, layout.albumFolder) });
+
+    const audit = await scan();
+    audit.issues = audit.issues.filter((i) => i.code === 'WRONG_LETTER_DIR');
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx(false));
+    done();
+
+    const out = output.join('\n');
+    expect(out).toMatch(/\[1\] Move "1976 Sacred Baboon" to Y\/Yezda Urfa \(joins the folder there\)/);
+    expect(out).toMatch(/X\/Yezda Urfa\/ still has 1 album: kept/);
+    expect(layout).toMatchObject({
+      letterDir: 'Y',
+      artistName: 'Yezda Urfa',
+      albumPath: path.join(right, '1976 Sacred Baboon'),
+    });
+    expect((await fs.readdir(right)).sort()).toEqual(['1975 Boris', '1976 Sacred Baboon', 'cover.jpg']);
+    expect(await fs.readdir(wrong)).toEqual(['1977 Boris Live']);
+    expect(await fs.readFile(path.join(right, '1976 Sacred Baboon', 'info.txt'), 'utf8')).toMatch(
+      /album was moved from artist folder "X\/Yezda Urfa" to "Y\/Yezda Urfa"/,
+    );
+  });
+});
+
 describe("repairAlbum — the artist folder's own brackets", () => {
   // As in "Dionysos [Canada]": the brackets tell same-named artists apart (Discogs' "Dionysos (3)").
   async function underArtist(artist: string): Promise<void> {

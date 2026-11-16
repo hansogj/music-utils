@@ -468,12 +468,17 @@ async function applyFolderRename(layout: AlbumLayout, plan: FolderRenamePlan): P
 }
 
 // Moves the album to another artist folder (see moveAlbumToArtist): only this album moves;
-// the old artist folder goes when it has no albums left.
-async function moveToArtist(layout: AlbumLayout, newArtist: string): Promise<void> {
-  const oldArtist = layout.artistName;
-  const move = await moveAlbumToArtist(layout.albumPath, newArtist);
-  layout.artistName = newArtist;
+// the old artist folder goes when it has no albums left. With `letter`, the artist folder is
+// under that letter folder ("T/The Beatles" → "B/The Beatles"), and names show the letter.
+async function moveToArtist(layout: AlbumLayout, newArtist: string, letter?: string): Promise<void> {
+  const artistsDir = letter ? path.join(path.dirname(path.dirname(path.dirname(layout.albumPath))), letter) : undefined;
+  const oldArtist = letter ? `${layout.letterDir}/${layout.artistName}` : layout.artistName;
+  if (artistsDir) await fs.mkdir(artistsDir, { recursive: true });
+  const move = await moveAlbumToArtist(layout.albumPath, newArtist, artistsDir);
+  layout.artistName = path.basename(move.artistDir);
   layout.albumPath = move.albumPath;
+  if (letter) layout.letterDir = letter;
+  newArtist = letter ? `${letter}/${layout.artistName}` : layout.artistName;
   if (move.oldArtistDir === 'renamed') {
     console.log(chalk.green(`  ✓ Renamed artist folder to ${newArtist}`));
     await noteChange(layout, `artist folder was changed from "${oldArtist}" to "${newArtist}"`);
@@ -929,18 +934,19 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
         .replace(/^(the|a|an|los|il|la|el|le)\s+/i, '')
         .charAt(0)
         .toUpperCase();
-      const root = path.dirname(path.dirname(layout.albumPath)); // ROOT
-      const targetArtist = path.join(root, expected, layout.artistName);
-      const sourceArtist = path.join(root, layout.letterDir!, layout.artistName);
+      // Only this album moves, like a Discogs artist change: the artist's other albums are in
+      // the scan queue under the old path, and each moves when its own turn comes. An artist
+      // folder under the right letter is joined; the old one goes with its last album.
+      const root = path.dirname(path.dirname(path.dirname(layout.albumPath))); // above the letter folder
+      const letterDir = path.join(root, expected);
+      const joins = (await fs.readdir(letterDir).catch(() => [] as string[])).find(
+        (n) => n.toLowerCase() === layout.artistName.toLowerCase(),
+      );
+      const target = `${expected}/${joins ?? layout.artistName}`;
       return [
         {
-          label: `Move ${layout.letterDir}/${layout.artistName} → ${expected}/${layout.artistName}`,
-          run: async () => {
-            await fs.mkdir(path.join(root, expected), { recursive: true });
-            await guardedRename(sourceArtist, targetArtist);
-            layout.letterDir = expected;
-            layout.albumPath = path.join(targetArtist, layout.albumFolder);
-          },
+          label: `Move "${layout.albumFolder}" to ${target}${joins ? ' (joins the folder there)' : ''}`,
+          run: () => moveToArtist(layout, layout.artistName, expected),
         },
       ];
     }

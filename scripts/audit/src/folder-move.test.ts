@@ -138,6 +138,55 @@ describe('moveAlbumToArtist', () => {
     expect(await tree()).toContain('D/Wolf/1973 Saturation Point/01.flac');
   });
 
+  it('moves the album to another letter folder, joining the artist folder there whatever its case', async () => {
+    await make(
+      'T/The Beatles/1969 Abbey Road/01.flac',
+      'T/The Beatles/1970 Let It Be/01.flac',
+      'B/the beatles/1965 Help!/01.flac',
+    );
+    const move = await moveAlbumToArtist(
+      path.join(root, 'T/The Beatles/1969 Abbey Road'),
+      'The Beatles',
+      path.join(root, 'B'),
+    );
+    expect(move).toMatchObject({
+      albumPath: path.join(root, 'B/the beatles/1969 Abbey Road'),
+      artistDir: path.join(root, 'B/the beatles'),
+      oldArtistDir: 'kept',
+      albumsLeft: ['1970 Let It Be'],
+    });
+    expect(await tree()).toEqual([
+      'B/',
+      'B/the beatles/',
+      'B/the beatles/1965 Help!/',
+      'B/the beatles/1965 Help!/01.flac',
+      'B/the beatles/1969 Abbey Road/',
+      'B/the beatles/1969 Abbey Road/01.flac',
+      'T/',
+      'T/The Beatles/',
+      'T/The Beatles/1970 Let It Be/',
+      'T/The Beatles/1970 Let It Be/01.flac',
+    ]);
+  });
+
+  it('with the last album, takes the cover along to the other letter folder', async () => {
+    await make('T/The Beatles/1970 Let It Be/01.flac', 'T/The Beatles/cover.jpg');
+    const move = await moveAlbumToArtist(
+      path.join(root, 'T/The Beatles/1970 Let It Be'),
+      'The Beatles',
+      path.join(root, 'B'),
+    );
+    expect(move).toMatchObject({ oldArtistDir: 'removed', filesMoved: ['cover.jpg'] });
+    expect(await tree()).toEqual([
+      'B/',
+      'B/The Beatles/',
+      'B/The Beatles/1970 Let It Be/',
+      'B/The Beatles/1970 Let It Be/01.flac',
+      'B/The Beatles/cover.jpg',
+      'T/',
+    ]);
+  });
+
   it('renames the whole folder when only the case changes: the same artist', async () => {
     await make('D/david sancious/1975 Forest of Feelings/01.flac', 'D/david sancious/1976 Transformation/01.flac');
     const move = await moveAlbumToArtist(path.join(root, 'D/david sancious/1976 Transformation'), 'David Sancious');
