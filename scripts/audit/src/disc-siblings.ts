@@ -33,19 +33,33 @@ export async function siblingDiscs(layout: AlbumLayout): Promise<SiblingDisc[]> 
   const parent = path.dirname(layout.albumPath);
   const entries = await fs.readdir(parent, { withFileTypes: true }).catch(() => []);
 
-  const siblings = await Promise.all(
-    entries
-      .filter((e) => e.isDirectory() && e.name !== layout.albumFolder)
-      .map(async (e) => {
-        const d = discOfFolder(e.name);
-        if (d.noOfDiscs !== own.noOfDiscs || d.disc === own.disc || albumBaseOfFolder(e.name) !== base) return [];
-        const albumPath = path.join(parent, e.name);
-        const files = (await fs.readdir(albumPath).catch(() => [] as string[])).filter(isMusic).sort();
-        return [{ disc: d.disc, albumPath, trackCount: files.length, releaseId: await releaseIdOf(albumPath, files) }];
-      }),
+  // Brackets don't count: disc 1 may have become "… (Disc 1∕2) [bootleg]" already. Where
+  // that leaves two folders for one disc ("[Paris]" and "[London]"), the one with this
+  // folder's brackets is it; else that disc is left out.
+  const candidates = entries.filter((e) => {
+    if (!e.isDirectory() || e.name === layout.albumFolder) return false;
+    const d = discOfFolder(e.name);
+    return d.noOfDiscs === own.noOfDiscs && d.disc !== own.disc && withoutBrackets(e.name) === withoutBrackets(base);
+  });
+  const chosen = [...Map.groupBy(candidates, (e) => discOfFolder(e.name).disc).values()].flatMap((same) =>
+    same.length === 1 ? same : same.filter((e) => albumBaseOfFolder(e.name) === base).slice(0, 1),
   );
-  return siblings.flat().sort((a, b) => a.disc - b.disc);
+
+  const siblings = await Promise.all(
+    chosen.map(async (e) => {
+      const albumPath = path.join(parent, e.name);
+      const files = (await fs.readdir(albumPath).catch(() => [] as string[])).filter(isMusic).sort();
+      const releaseId = await releaseIdOf(albumPath, files);
+      return { disc: discOfFolder(e.name).disc, albumPath, trackCount: files.length, releaseId };
+    }),
+  );
+  return siblings.sort((a, b) => a.disc - b.disc);
 }
+
+const withoutBrackets = (s: string) =>
+  albumBaseOfFolder(s)
+    .replace(/\s*\[[^\]]*\]/g, '')
+    .trim();
 
 // Where this disc starts in a release that lists all discs as one run: after the tracks
 // of discs 1..n-1. Undefined when one of those folders is missing.
@@ -63,4 +77,10 @@ export function expectedFirstTrack(disc: number, siblings: SiblingDisc[]): numbe
 export function siblingReleaseId(siblings: SiblingDisc[]): string | undefined {
   const ids = new Set(siblings.flatMap((s) => (s.releaseId ? [s.releaseId] : [])));
   return ids.size === 1 ? [...ids][0] : undefined;
+}
+
+// The disc folder that release came from (the first one tagged with it), to name in a prompt.
+export function siblingWithRelease(siblings: SiblingDisc[]): SiblingDisc | undefined {
+  const id = siblingReleaseId(siblings);
+  return id ? siblings.find((s) => s.releaseId === id) : undefined;
 }

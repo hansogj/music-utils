@@ -128,10 +128,27 @@ Discogs tagging is offered for missing tags and for a missing release ID. On any
 
 Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release (for a disc folder, see below). For an edition with bonus tracks enter that edition's release ID: the tracks get its tracklist and release ID, and still get the master ID and the master's year.
 
+**Disc folders of one album.** When another disc folder of the album was tagged from a release already, that one is offered first:
+
+```
+    Use the same release ID [r8270054] as Disc 1? [Y/n]
+```
+
+Enter or `y` takes it; `n` goes on to the release ID prompt below, where it isn't suggested again. After a yes, when Disc 1's brackets differ from this folder's, you choose which to keep:
+
+```
+  Brackets differ from Disc 1's:
+    [Enter] keep         → 1973 Yessongs (Disc 2∕2) [FLAC]
+    d  as Disc 1         → 1973 Yessongs (Disc 2∕2) [bootleg]
+    c  type new
+```
+
+`c` opens the brackets to edit, as after a skip. The same choice replaces the bracket question at the first skip in a disc folder whose brackets differ from the other discs'. The other disc folders are found even when their brackets differ (`… (Disc 1∕2) [bootleg]`); where two folders could be the same disc (`[Paris]` and `[London]`), only the one with this folder's brackets counts.
+
 Enter at the release ID prompt takes the suggested ID, in this order:
 
 1. the release the album is already tagged with, or the one in its Discogs comment or `info.txt`
-2. for a disc folder, the release the album's other disc folders were tagged from
+2. for a disc folder, the release the album's other disc folders were tagged from (unless you said no to it)
 3. the best search hit (`b` opens all search results)
 
 **Albums split into disc folders** (`1973 Yessongs (Disc 1∕2)`, `… (Disc 2∕2)`): each folder is tagged from its own part of the release, numbered per disc (TRACKNUMBER `n/7`, DISCNUMBER `2/2`).

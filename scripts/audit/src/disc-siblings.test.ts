@@ -12,7 +12,7 @@ vi.mock('./tags.js', () => ({
   },
 }));
 
-const { expectedFirstTrack, siblingDiscs, siblingReleaseId } = await import('./disc-siblings.js');
+const { expectedFirstTrack, siblingDiscs, siblingReleaseId, siblingWithRelease } = await import('./disc-siblings.js');
 
 let artistDir: string;
 
@@ -52,6 +52,28 @@ describe('siblingDiscs', () => {
     expect(expectedFirstTrack(2, siblings)).toBe(8);
     expect(expectedFirstTrack(3, siblings)).toBeUndefined(); // disc 2 is this folder, not a sibling
     expect(expectedFirstTrack(1, siblings)).toBe(0);
+  });
+
+  it('finds a disc folder whose brackets changed, and names the disc the release came from', async () => {
+    await album('1973 Yessongs (Disc 1∕3) [bootleg]', 8); // given a bracket by an earlier repair
+    await album('1973 Yessongs (Disc 3∕3)', 4, { tagged: '8270054' });
+    const disc2 = await album('1973 Yessongs (Disc 2∕3)', 5);
+
+    const siblings = await siblingDiscs(disc2);
+    expect(siblings.map((s) => [s.disc, path.basename(s.albumPath)])).toEqual([
+      [1, '1973 Yessongs (Disc 1∕3) [bootleg]'],
+      [3, '1973 Yessongs (Disc 3∕3)'],
+    ]);
+    expect(siblingWithRelease(siblings)?.disc).toBe(3);
+    expect(siblingWithRelease(siblings.slice(0, 1))).toBeUndefined();
+  });
+
+  it('with two folders for one disc ("[Paris]", "[London]"), takes the one with these brackets, else none', async () => {
+    await album('1978 Live (Disc 1∕2) [Paris]', 8);
+    await album('1978 Live (Disc 1∕2) [London]', 9);
+    const paris = await siblingDiscs(await album('1978 Live (Disc 2∕2) [Paris]', 5));
+    expect(paris.map((s) => path.basename(s.albumPath))).toEqual(['1978 Live (Disc 1∕2) [Paris]']);
+    expect(await siblingDiscs(await album('1978 Live (Disc 2∕2)', 5))).toEqual([]);
   });
 
   it('is empty for a folder that is not a disc, and for an album folder with no tracks', async () => {
