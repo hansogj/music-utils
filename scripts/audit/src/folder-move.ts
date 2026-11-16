@@ -72,14 +72,28 @@ export interface ArtistMove {
  *
  * A change of case only ("david sancious" → "David Sancious") is the same artist: the
  * whole folder is renamed.
+ *
+ * `artistsDir` is the folder the new artist folder goes in: the old one's (default), or
+ * another letter folder ("T/The Beatles" → "B/The Beatles"). An artist folder there whose
+ * name differs only in case ("B/the beatles") is joined, not made a second time.
  */
-export async function moveAlbumToArtist(albumPath: string, newArtist: string): Promise<ArtistMove> {
+export async function moveAlbumToArtist(
+  albumPath: string,
+  newArtist: string,
+  artistsDir: string = path.dirname(path.dirname(albumPath)),
+): Promise<ArtistMove> {
   const oldArtistDir = path.dirname(albumPath);
-  const newArtistDir = path.join(path.dirname(oldArtistDir), newArtist);
+  const sameParent = path.resolve(artistsDir) === path.resolve(path.dirname(oldArtistDir));
+  const existing = sameParent
+    ? undefined
+    : (await fs.readdir(artistsDir, { withFileTypes: true }).catch(() => [])).find(
+        (e) => e.isDirectory() && e.name.toLowerCase() === newArtist.toLowerCase(),
+      )?.name;
+  const newArtistDir = path.join(artistsDir, existing ?? newArtist);
   const albumFolder = path.basename(albumPath);
   const result = { albumsLeft: [] as string[], filesMoved: [] as string[], filesKept: [] as string[] };
 
-  if (path.basename(oldArtistDir).toLowerCase() === newArtist.toLowerCase()) {
+  if (sameParent && path.basename(oldArtistDir).toLowerCase() === newArtist.toLowerCase()) {
     await guardedRename(oldArtistDir, newArtistDir);
     return {
       ...result,

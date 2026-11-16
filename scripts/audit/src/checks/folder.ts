@@ -28,7 +28,7 @@ export function checkFolderFormat(layout: AlbumLayout): Issue[] {
         severity: 'SEVERE',
         code: 'WRONG_LETTER_DIR',
         message: `Artist "${artistName}" sits under "${letterDir}" but should be under "${expected}"`,
-        suggestion: `Move artist folder: ${letterDir}/${artistName} → ${expected}/${artistName}`,
+        suggestion: `Move the album to ${expected}/${artistName}`,
       });
     }
   }
