@@ -213,13 +213,55 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       [/Brackets:/, ''], // first skip in the album: no bracket added
       [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
       [/\[r\] Retry/, ''], // 2 issues not fixed → continue
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
     expect(output.join('\n')).toMatch(/2 issue\(s\) not fixed/);
     expect(events.map((e) => e.result)).toEqual(['skipped', 'skipped']);
+    // One prompt to go on: no "[Enter] Next album   [q] Quit" after it.
+    expect(asked.at(-1)).toBe('  [Enter] Next album   [r] Retry   [q] Quit: ');
+  });
+
+  it('[r] at the "not fixed" prompt shows the issues again', async () => {
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 's'],
+      [/Brackets:/, ''],
+      [/^ {2}Choice \[1\]/, 's'],
+      [/\[r\] Retry/, 'r'],
+      [/^ {2}Choice \[1\]/, 's'], // the same two issues, from the top
+      [/^ {2}Choice \[1\]/, 's'],
+      [/\[r\] Retry/, 'q'],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('quit');
+    done();
+  });
+
+  it('with --retag, says "Continue" when the Discogs offer follows, and asks for the next album after it', async () => {
+    // Fully tagged, so the album gets the --retag offer; one other issue, skipped.
+    for (const [i, name] of (await fs.readdir(layout.albumPath)).sort().entries()) {
+      const tags = {
+        TITLE: TITLES[i],
+        ARTIST: 'Yezda Urfa',
+        ALBUM: 'Sacred Baboon',
+        DATE: '1976',
+        TRACKNUMBER: `${i + 1}/7`,
+      };
+      await fs.writeFile(path.join(layout.albumPath, name), JSON.stringify(tags));
+    }
+    const audit = await scan();
+    audit.issues = [{ severity: 'MODERATE', code: 'DUPLICATE_TRACKS', message: 'Two copies of "Doggie"' }];
+    const done = answer([
+      [/^ {2}Choice/, 's'],
+      [/Brackets:/, ''],
+      [/^ {2}\[Enter\] Continue {3}\[r\] Retry {3}\[q\] Quit: $/, ''],
+      [/^ {2}Choice: $/, 's'], // [retag] offer
+      [/^ {2}\[Enter\] Next album {3}\[q\] Quit: $/, ''],
+    ]);
+    expect(await repairAlbum(audit, { ...ctx(false), retag: true })).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/\[retag\] Tags look good/);
   });
 
   it('shows the formats in the album table, with the ones the audit does not read', async () => {
@@ -305,7 +347,6 @@ describe('repairAlbum — start the album over', () => {
       [/Brackets:/, ''], // first skip in the album: no bracket added
       [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -336,7 +377,6 @@ describe('repairAlbum — start the album over', () => {
       [/^ {2}Choice \[1\]/, 's'], // the mismatch, shown from the top again
       [/Brackets:/, ''], // first skip in the album: no bracket added
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -607,7 +647,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
         [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS
         [/Brackets \[Enter\/d\/c\]/, 'd'],
         [/\[r\] Retry/, ''],
-        [/Next album/, ''],
       ]);
       expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
       done();
@@ -714,7 +753,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/Release ID \[enter ID\]/, '8270054'],
       [/Disc 2∕2 starts at release track \(1–15\)/, ''], // no answer → skip
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
     done();
@@ -837,7 +875,6 @@ describe('repairAlbum — file names with artist and album, a 2-CD release in on
       [/Release ID \[enter ID\]/, '11198316'],
       [/Tag anyway\? \[y\/N\]/, ''],
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
@@ -909,7 +946,6 @@ describe('repairAlbum — a stray second copy of two tracks (Art Deco)', () => {
       [/^ {2}Choice \[1\]/, 's'], // DUPLICATE_TRACKS ×2, still there after the re-scan
       [/^ {2}Choice \[1\]/, 's'],
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
@@ -1024,7 +1060,6 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
       [/Brackets:/, 'bootleg'],
       [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH: no second question
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
@@ -1050,7 +1085,6 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
       [/Brackets:/, ''],
       [/^ {2}Choice \[1\]/, 's'],
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();
@@ -1077,7 +1111,6 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
       [/^ {2}Choice \[1\]/, 's'], // the mismatch
       [/Brackets:/, 'bootleg'],
       [/\[r\] Retry/, ''],
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();

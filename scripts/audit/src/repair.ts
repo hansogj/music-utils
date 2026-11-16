@@ -1508,6 +1508,11 @@ async function repairAlbumPass(
   let quit = false;
   // The first skip in an album offers to add a bracket to its folder name; once per album.
   let auxOffered = false;
+  // --retag offers Discogs enrichment after the issues, to albums that passed the tag checks.
+  const offersRetag =
+    !!retag && !!token && !initialIssues.some((i) => i.code === 'NO_TAGS' || i.code === 'MISSING_TAGS');
+  // Enter at the "issue(s) not fixed" prompt: no second prompt before the next album.
+  let movingOn = false;
   const offerSkipAux = async () => {
     if (auxOffered) return;
     auxOffered = true;
@@ -1654,7 +1659,8 @@ async function repairAlbumPass(
     }
     const sevCount = left.filter((i) => i.severity !== 'MODERATE').length;
     console.log(chalk.yellow(`\n  ${left.length} issue(s) not fixed${sevCount ? ` (${sevCount} high/severe)` : ''}.`));
-    const go = await ask('  [Enter] Continue   [r] Retry   [q] Quit: ');
+    // One prompt for both "go on" and "next album"; "Continue" when the --retag offer follows.
+    const go = await ask(`  [Enter] ${offersRetag ? 'Continue' : 'Next album'}   [r] Retry   [q] Quit: `);
     if (go === 'q') {
       console.log(chalk.dim('\n  Repair aborted.'));
       quit = true;
@@ -1664,38 +1670,37 @@ async function repairAlbumPass(
       handled.clear();
       continue albumLoop;
     }
+    movingOn = true;
     break albumLoop;
   }
 
   // ── retag enrichment (--retag only, for albums that passed tag checks) ──
-  if (!quit && retag && token) {
-    const hasTagIssue = initialIssues.some((i) => i.code === 'NO_TAGS' || i.code === 'MISSING_TAGS');
-    if (!hasTagIssue) {
-      console.log(chalk.dim('\n  [retag] Tags look good — offer Discogs enrichment'));
-      const action = await discogsActionFor(audit, token);
-      console.log(`  [1] ${action.label}`);
-      console.log('  [s] Skip   [q] Quit repair');
-      const choice = await ask('  Choice: ');
-      if (choice === 'q') {
-        console.log(chalk.dim('\n  Repair aborted.'));
-        await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'quit', result: 'skipped' });
-        quit = true;
-      } else if (choice === '1') {
-        let result: RepairEvent['result'] = 'fixed';
-        let error: string | undefined;
-        try {
-          await action.run();
-        } catch (err) {
-          if (err instanceof RestartSignal) throw err;
-          handleRepairError(err);
-          result = 'failed';
-          error = err instanceof Error ? err.message : String(err);
-        }
-        await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: action.label, result, error });
-      } else {
-        await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'skipped', result: 'skipped' });
-        await offerSkipAux();
+  if (!quit && offersRetag && token) {
+    movingOn = false; // a question about this album came after: confirm before the next one
+    console.log(chalk.dim('\n  [retag] Tags look good — offer Discogs enrichment'));
+    const action = await discogsActionFor(audit, token);
+    console.log(`  [1] ${action.label}`);
+    console.log('  [s] Skip   [q] Quit repair');
+    const choice = await ask('  Choice: ');
+    if (choice === 'q') {
+      console.log(chalk.dim('\n  Repair aborted.'));
+      await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'quit', result: 'skipped' });
+      quit = true;
+    } else if (choice === '1') {
+      let result: RepairEvent['result'] = 'fixed';
+      let error: string | undefined;
+      try {
+        await action.run();
+      } catch (err) {
+        if (err instanceof RestartSignal) throw err;
+        handleRepairError(err);
+        result = 'failed';
+        error = err instanceof Error ? err.message : String(err);
       }
+      await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: action.label, result, error });
+    } else {
+      await logEvent({ album: loc, issue: 'RETAG', severity: 'MODERATE', action: 'skipped', result: 'skipped' });
+      await offerSkipAux();
     }
   }
 
@@ -1720,6 +1725,7 @@ async function repairAlbumPass(
   }
 
   if (quit) return 'quit';
+  if (movingOn) return 'next'; // already answered at the "issue(s) not fixed" prompt
   const go = await ask('  [Enter] Next album   [q] Quit: ');
   if (go === 'q') {
     console.log(chalk.dim('\n  Repair aborted.'));
