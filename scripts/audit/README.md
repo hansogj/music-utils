@@ -108,7 +108,7 @@ After each fix the album is scanned again, so the next issue shown matches the f
 | `o`       | any prompt              | start this album over (below)                                                                                |
 | `b`       | release ID prompt       | browse the search results; Esc goes back to the issue menu                                                   |
 | `n`       | disc pairing            | start the disc at another release track                                                                      |
-| `r`       | after an album's issues | go through the ones not fixed again                                                                          |
+| `r`       | after an album's issues | go through the ones not fixed again (Enter goes on to the next album)                                        |
 
 **A bracket after a skip.** Skipping often means Discogs doesn't know the album, for instance a bootleg. The first time you skip an issue in an album (also the `--retag` offer), you can note that in the folder name:
 
