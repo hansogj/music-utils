@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { checkArtistFolder } from './checks/artist.js';
 import { checkDiscogsIds, knownReleaseId } from './checks/discogs-ids.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { checkFolderFormat } from './checks/folder.js';
@@ -88,6 +89,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   for (const t of tracks) issues.push(...checkNameTagMatch(t));
   issues.push(...checkDuplicates(tracks));
   issues.push(...checkDiscogsIds(tracks));
+  issues.push(...checkArtistFolder(layout, tracks));
   if (covers)
     issues.push(...(await checkCovers(layout, tracks, !skipDiscogs && token ? discogsCoverSource(token) : undefined)));
 

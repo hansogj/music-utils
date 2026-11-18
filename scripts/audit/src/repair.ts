@@ -6,7 +6,9 @@ import readline from 'node:readline/promises';
 
 import chalk from 'chalk';
 
+import { albumArtistOf, commonAlbumArtist } from './checks/artist.js';
 import { releaseIdFrom, tracksMissingReleaseId } from './checks/discogs-ids.js';
+import { expectedLetter } from './checks/folder.js';
 import { localNumbering, matchNames } from './checks/names.js';
 import { folderYear, withFolderYear } from './checks/year.js';
 import {
@@ -378,16 +380,6 @@ export function resetRepairSession(): void {
   artistAnswers.clear();
 }
 
-// The album artist the tags give most often (ALBUMARTIST, else ARTIST).
-function taggedArtist(tracks: AlbumAudit['tracks']): string | undefined {
-  const counts = new Map<string, number>();
-  for (const t of tracks) {
-    const name = (t.tags.albumArtist || t.tags.artist)?.trim();
-    if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-}
-
 // One artist name for the album's folder, its ARTIST/ALBUMARTIST tags and info.txt's
 // header. Asked when the folder, Discogs' first credited artist and the tags don't all
 // agree: Enter takes Discogs' (as Discogs is the source of the tags), k the folder's, a every
@@ -401,7 +393,7 @@ async function chooseArtist(
   const { name: folder, brackets } = splitArtistBrackets(layout.artistName);
   const discogs = release.artists?.[0];
   // The tags carry the folder's brackets ("Dionysos [Canada]"): compared without them.
-  const fullTag = taggedArtist(tracks);
+  const fullTag = commonAlbumArtist(tracks);
   const tagged = brackets && fullTag?.endsWith(brackets) ? fullTag.slice(0, -brackets.length).trim() : fullTag;
   if (!discogs) return folder;
   const names = [folder, discogs, ...(tagged ? [tagged] : [])];
@@ -1281,6 +1273,41 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       return actions;
     }
 
+    // ── MODERATE: artist folder vs the artist tags ────────────────────────
+    case 'ARTIST_TAG_INVERTED':
+    case 'ARTIST_FOLDER_MISMATCH': {
+      const folder = layout.artistName;
+      const tagged = commonAlbumArtist(audit.tracks);
+      const actions: RepairAction[] = [
+        {
+          label: `Write "${folder}" to the artist tags (ALBUMARTIST; ARTIST where it is empty or the same)`,
+          run: async () => {
+            for (const t of audit.tracks) {
+              const old = albumArtistOf(t);
+              const artist = t.tags.artist?.trim();
+              // A guest or featured artist on one track keeps its ARTIST.
+              const sameArtist = !artist || artist === old || artist === tagged;
+              await writeTags(t.filePath, t.ext, { ALBUMARTIST: folder, ...(sameArtist ? { ARTIST: folder } : {}) });
+              console.log(chalk.green(`  ✓ ${t.fileName}`));
+            }
+            await noteChange(layout, `artist tags were changed from "${tagged}" to "${folder}"`);
+          },
+        },
+      ];
+      if (issue.code === 'ARTIST_FOLDER_MISMATCH' && tagged) {
+        // "/" can't be in a folder name: "A / B" → "A, B", as a joined Discogs credit.
+        const target = sanitizeFilename(tagged.replace(/\s*\/\s*/g, ', '));
+        const letterDir = layout.letterDir ?? '';
+        const letter = /^[A-Z0-9]$/i.test(letterDir) ? expectedLetter(target) : undefined;
+        const otherLetter = letter && letter !== letterDir.toUpperCase() ? letter : undefined;
+        actions.push({
+          label: `Move the album to artist folder "${otherLetter ? `${otherLetter}/` : ''}${target}" (the tags' name)`,
+          run: () => moveToArtist(layout, target, otherLetter),
+        });
+      }
+      return actions;
+    }
+
     // ── MODERATE: duplicates — manual only ────────────────────────────────
     case 'DUPLICATE_TRACKS':
       return [
@@ -1608,7 +1635,9 @@ async function rescanAlbum(audit: AlbumAudit, reaudit: RepairAlbumContext['reaud
   try {
     const fresh = await reaudit(audit.layout);
     audit.tracks = fresh.tracks;
-    audit.issues = fresh.issues;
+    // An artist folder rename waiting to run last will give the folder the tags' name.
+    const renaming = !!pendingFolderRenames.get(audit.layout)?.artist;
+    audit.issues = renaming ? fresh.issues.filter((i) => !i.code.startsWith('ARTIST_')) : fresh.issues;
     if (fresh.originalYear) audit.originalYear = fresh.originalYear;
     return true;
   } catch (err) {
