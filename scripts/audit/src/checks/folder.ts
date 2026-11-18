@@ -13,14 +13,18 @@ const AUX_WRONG_BRACKETS = /\{[^}]+\}/;
 // Articles stripped when determining expected initial letter for the [A-Z] dir
 const SORT_ARTICLES = /^(the|a|an|los|il|la|el|le)\s+/i;
 
+// The letter folder an artist belongs under: "The Doors" → "D".
+export function expectedLetter(artistName: string): string {
+  return artistName.replace(SORT_ARTICLES, '').charAt(0).toUpperCase();
+}
+
 export function checkFolderFormat(layout: AlbumLayout): Issue[] {
   const issues: Issue[] = [];
   const { letterDir, artistName, albumFolder } = layout;
 
   // Check the [A-Z] letter directory matches the artist initial
   if (letterDir) {
-    const effectiveName = artistName.replace(SORT_ARTICLES, '');
-    const expected = effectiveName.charAt(0).toUpperCase();
+    const expected = expectedLetter(artistName);
     const actual = letterDir.toUpperCase();
 
     if (actual !== expected) {

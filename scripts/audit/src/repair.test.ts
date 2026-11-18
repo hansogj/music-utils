@@ -1618,3 +1618,77 @@ describe('repairAlbum — the artist folder’s brackets in the tags', () => {
     expect(info.split('\n')[0]).toBe('Yezda Urfa [US] - Sacred Baboon (1976)');
   });
 });
+
+describe('repairAlbum — artist folder vs the artist tags', () => {
+  const tagsOf = async (name: string) => readFake(path.join(layout.albumPath, name));
+  const firstThenArtist = (choice: string): Array<[RegExp, string]> => [
+    [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH on track 6
+    [/Brackets:/, ''],
+    [/^ {2}Choice \[1\]/, choice],
+    [/Next album/, ''],
+  ];
+
+  it('ARTIST_TAG_INVERTED writes the folder’s name', async () => {
+    await tagAll({ ARTIST: 'Urfa, Yezda', ALBUMARTIST: 'Urfa, Yezda' });
+    const audit = await scan();
+    expect(audit.issues.map((i) => i.code)).toContain('ARTIST_TAG_INVERTED');
+    const done = answer(firstThenArtist(''));
+    await repairAlbum(audit, ctx());
+    done();
+    expect(await tagsOf('02 - Cancer Of The Band.mp3')).toMatchObject({
+      ARTIST: 'Yezda Urfa',
+      ALBUMARTIST: 'Yezda Urfa',
+    });
+    expect(await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8')).toMatch(
+      /artist tags were changed from "Urfa, Yezda" to "Yezda Urfa"/,
+    );
+  });
+
+  it('ARTIST_FOLDER_MISMATCH [1] writes the folder’s name; a guest keeps its ARTIST', async () => {
+    await tagAll({ ARTIST: 'Phil Miller', ALBUMARTIST: 'Phil Miller' });
+    const guest = path.join(layout.albumPath, '02 - Cancer Of The Band.mp3');
+    await fs.writeFile(guest, JSON.stringify({ ...(await readFake(guest)), ARTIST: 'Phil Miller & Guest' }));
+    const audit = await scan();
+    const done = answer(firstThenArtist('1'));
+    await repairAlbum(audit, ctx());
+    done();
+    expect(output.join('\n')).toMatch(
+      /Artist folder "Yezda Urfa" differs from the album artist in the tags: "Phil Miller"/,
+    );
+    expect(await tagsOf('03 - To-Ta In The Moya.mp3')).toMatchObject({
+      ARTIST: 'Yezda Urfa',
+      ALBUMARTIST: 'Yezda Urfa',
+    });
+    expect(await tagsOf('02 - Cancer Of The Band.mp3')).toMatchObject({
+      ARTIST: 'Phil Miller & Guest',
+      ALBUMARTIST: 'Yezda Urfa',
+    });
+  });
+
+  it('ARTIST_FOLDER_MISMATCH [2] moves the album to the tags’ artist, under its letter', async () => {
+    await tagAll({ ARTIST: 'Tonbruket', ALBUMARTIST: 'Tonbruket' });
+    const audit = await scan();
+    const done = answer(firstThenArtist('2'));
+    await repairAlbum(audit, ctx());
+    done();
+    expect(output.join('\n')).toMatch(/\[2\] Move the album to artist folder "T\/Tonbruket" \(the tags' name\)/);
+    expect(layout.albumPath).toBe(path.join(root, 'T', 'Tonbruket', '1976 Sacred Baboon'));
+  });
+
+  it('is not shown while an artist folder rename from Discogs waits', async () => {
+    await tagAll({ ARTIST: 'Yezda Urfa', ALBUMARTIST: 'Yezda Urfa' });
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, year: '1976', artists: ['Yezda Urfa And Friends'] });
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID/, '1'],
+      [/^ {2}Artist \[Enter\/k\]: $/, ''],
+      [/Apply renames\?/, 'y'],
+      [/Next album/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+    expect(output.join('\n')).not.toMatch(/Artist folder "Yezda Urfa" differs/);
+  });
+});

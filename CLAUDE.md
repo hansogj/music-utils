@@ -149,6 +149,12 @@ scripts/audit/src/
                     leading " - " parts only when every track has them, then the track
                     number), localNumbering() (by order when numbers are missing/shared),
                     matchNames() (local titles for Discogs scoring)
+    artist.ts     — ARTIST_TAG_INVERTED ("Doors, the" for "The Doors"), ARTIST_FOLDER_MISMATCH:
+                    no track's ALBUMARTIST (else ARTIST) is the artist folder's name, brackets
+                    included (tags carry them); NFC, case-insensitive, diacritics kept; Various
+                    Artists skipped. Repair: folder name → ALBUMARTIST (+ ARTIST where empty/same),
+                    or move the album to the tags' artist (expectedLetter()). Hidden while an
+                    artist folder rename is pending (rescanAlbum())
     duplicates.ts — DUPLICATE_TRACKS: whole titles, qualifier included; likelyExtras()
     discogs-ids.ts — MISSING_RELEASE_ID: mp3 with a master ID but no release ID (lost by
                     the 81963c0/43bd432 writer); repair restores it from the comment URL
