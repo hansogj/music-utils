@@ -191,7 +191,7 @@ describe('joinArtistCredit', () => {
         { name: 'Patrick Woodroffe', join: '/' },
         { name: 'Dave Greenslade (2)', join: '' },
       ]),
-    ).toBe('Patrick Woodroffe / Dave Greenslade');
+    ).toBe('Patrick Woodroffe, Dave Greenslade');
     expect(joinArtistCredit([{ name: 'A' }, { name: 'B' }])).toBe('A, B');
   });
 });

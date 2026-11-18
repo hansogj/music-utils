@@ -1233,11 +1233,11 @@ describe("repairAlbum — the artist folder's own brackets", () => {
     expect(output.join('\n')).toMatch(/Artist folder: "Yezda Urfa \[US\]" {2}→ {2}"Yezda Urfa And Friends \[US\]"/);
     const moved = path.join(root, 'Y', 'Yezda Urfa And Friends [US]', '1976 Sacred Baboon');
     expect(layout).toMatchObject({ artistName: 'Yezda Urfa And Friends [US]', albumPath: moved });
-    // The tags carry the same name, without the folder's bracket.
+    // The tags carry the same name, the folder's bracket included.
     const track = (await fs.readdir(moved)).find((f) => f.endsWith('.mp3'))!;
     expect(await readFake(path.join(moved, track))).toMatchObject({
-      ARTIST: 'Yezda Urfa And Friends',
-      ALBUMARTIST: 'Yezda Urfa And Friends',
+      ARTIST: 'Yezda Urfa And Friends [US]',
+      ALBUMARTIST: 'Yezda Urfa And Friends [US]',
     });
   });
 });
@@ -1558,12 +1558,12 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     expect(await header()).toBe('Dave Holland Quartet - Sacred Baboon (1976)');
   });
 
-  it('a takes every credit; the folder gets it without "/"', async () => {
+  it('a takes every credit, joined with "," for folder, tags and info.txt alike', async () => {
     const { fetchRelease } = await import('./discogs.js');
     vi.mocked(fetchRelease).mockResolvedValueOnce({
       ...holland,
       artists: ['Patrick Woodroffe', 'Dave Greenslade'],
-      artistCredit: 'Patrick Woodroffe / Dave Greenslade',
+      artistCredit: 'Patrick Woodroffe, Dave Greenslade',
     });
     const audit = await scan();
     answer([
@@ -1574,9 +1574,9 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
       [/./, 'q'],
     ]);
     await repairAlbum(audit, ctx());
-    expect(layout.artistName).toBe('Patrick Woodroffe - Dave Greenslade');
-    expect(await tagsOf()).toMatchObject({ ALBUMARTIST: 'Patrick Woodroffe / Dave Greenslade' });
-    expect(await header()).toBe('Patrick Woodroffe / Dave Greenslade - Sacred Baboon (1976)');
+    expect(layout.artistName).toBe('Patrick Woodroffe, Dave Greenslade');
+    expect(await tagsOf()).toMatchObject({ ALBUMARTIST: 'Patrick Woodroffe, Dave Greenslade' });
+    expect(await header()).toBe('Patrick Woodroffe, Dave Greenslade - Sacred Baboon (1976)');
   });
 
   it('asks nothing when folder, Discogs and tags agree', async () => {
@@ -1592,5 +1592,29 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     ]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).not.toMatch(/Artist names differ/);
+  });
+});
+
+describe('repairAlbum — the artist folder’s brackets in the tags', () => {
+  it('go to the tags too, and tags that have them already need no question', async () => {
+    const artistDir = path.join(root, 'Y', 'Yezda Urfa [US]');
+    await fs.rename(path.dirname(layout.albumPath), artistDir);
+    Object.assign(layout, { artistName: 'Yezda Urfa [US]', albumPath: path.join(artistDir, layout.albumFolder) });
+    await tagAll({ ARTIST: 'Yezda Urfa [US]', ALBUMARTIST: 'Yezda Urfa [US]' });
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, year: '1976', artists: ['Yezda Urfa'] });
+    const audit = await scan();
+    answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID/, '1'],
+      [/Apply renames\?/, 'n'],
+      [/./, 'q'],
+    ]);
+    await repairAlbum(audit, ctx());
+    expect(output.join('\n')).not.toMatch(/Artist names differ/);
+    const track = (await fs.readdir(layout.albumPath)).find((f) => f.endsWith('.mp3'))!;
+    expect(await readFake(path.join(layout.albumPath, track))).toMatchObject({ ALBUMARTIST: 'Yezda Urfa [US]' });
+    const info = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8');
+    expect(info.split('\n')[0]).toBe('Yezda Urfa [US] - Sacred Baboon (1976)');
   });
 });

@@ -391,16 +391,18 @@ function taggedArtist(tracks: AlbumAudit['tracks']): string | undefined {
 // One artist name for the album's folder, its ARTIST/ALBUMARTIST tags and info.txt's
 // header. Asked when the folder, Discogs' first credited artist and the tags don't all
 // agree: Enter takes Discogs' (as Discogs is the source of the tags), k the folder's, a every
-// credited artist (only when there are several). Without the folder's own brackets
-// ("Dionysos [Canada]" → "Dionysos"): they stay on the folder.
+// credited artist (only when there are several). Returns the name without the folder's own
+// brackets ("Dionysos" for "Dionysos [Canada]"); the folder and the tags add them back.
 async function chooseArtist(
   layout: AlbumLayout,
   tracks: AlbumAudit['tracks'],
   release: Pick<import('./discogs.js').ReleaseInfo, 'artists' | 'artistCredit'>,
 ): Promise<string> {
-  const folder = splitArtistBrackets(layout.artistName).name;
+  const { name: folder, brackets } = splitArtistBrackets(layout.artistName);
   const discogs = release.artists?.[0];
-  const tagged = taggedArtist(tracks);
+  // The tags carry the folder's brackets ("Dionysos [Canada]"): compared without them.
+  const fullTag = taggedArtist(tracks);
+  const tagged = brackets && fullTag?.endsWith(brackets) ? fullTag.slice(0, -brackets.length).trim() : fullTag;
   if (!discogs) return folder;
   const names = [folder, discogs, ...(tagged ? [tagged] : [])];
   if (new Set(names.map(normName)).size === 1) return folder;
@@ -417,11 +419,11 @@ async function chooseArtist(
   console.log(`    Discogs : "${discogs}"${credit ? chalk.dim(`  (credits: "${credit}")`) : ''}`);
   console.log(`    folder  : "${layout.artistName}"`);
   if (tagged && normName(tagged) !== normName(folder) && normName(tagged) !== normName(discogs))
-    console.log(`    tags    : "${tagged}"`);
+    console.log(`    tags    : "${fullTag}"`);
   console.log(chalk.dim('  One name for the artist folder, the ARTIST/ALBUMARTIST tags and info.txt:'));
-  console.log(`    [Enter] Discogs: "${discogs}"`);
-  console.log(`    [k]     keep the folder's: "${folder}"`);
-  if (credit) console.log(`    [a]     all credits: "${credit}"`);
+  console.log(`    [Enter] Discogs: "${discogs}${brackets}"`);
+  console.log(`    [k]     keep the folder's: "${layout.artistName}"`);
+  if (credit) console.log(`    [a]     all credits: "${credit}${brackets}"`);
   let chosen: string | undefined;
   while (chosen === undefined) {
     const answer = (await ask(`  Artist [Enter/k${credit ? '/a' : ''}]: `)).toLowerCase();
@@ -500,7 +502,6 @@ async function askFolderRename(
   // The artist folder's own brackets ("Dionysos [Canada]") tell same-named artists apart:
   // they are kept, and not compared (Discogs' "Dionysos (3)" comes without its number).
   const { name: localArtist, brackets: artistBrackets } = splitArtistBrackets(layout.artistName);
-  // "/" can't be in a folder name: "Patrick Woodroffe - Dave Greenslade".
   const newArtist = `${sanitizeFilename(artist)}${artistBrackets}`;
   const discogsAlbum = release.title;
   const localYear = folderYear(layout.albumFolder);
@@ -830,6 +831,9 @@ function buildDiscogsAction(
         }
         const discTracks = slice.tracks;
         const artist = await chooseArtist(audit.layout, audit.tracks, release);
+        // Tags and info.txt get the folder's brackets too ("Dionysos [Canada]"): same-named
+        // artists stay apart in a player, as they do in the folders.
+        const fullArtist = `${artist}${splitArtistBrackets(audit.layout.artistName).brackets}`;
         const tagged = await tagFromTracklist(audit, files, names, discTracks, {
           folderDisc,
           countWarning: (extra) => {
@@ -839,8 +843,8 @@ function buildDiscogsAction(
               : `${what} ${-extra} fewer track(s) — may be a different pressing`;
           },
           tags: ({ no, disc, total, title }) => ({
-            ARTIST: artist,
-            ALBUMARTIST: artist,
+            ARTIST: fullArtist,
+            ALBUMARTIST: fullArtist,
             ALBUM: album,
             TRACKNUMBER: `${no}/${total}`,
             DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
@@ -856,7 +860,7 @@ function buildDiscogsAction(
         if (!tagged) return;
         // ── write info.txt ─────────────────────────────────────────────────
         try {
-          const written = await writeInfoTxt(audit.layout.albumPath, release, artist, {
+          const written = await writeInfoTxt(audit.layout.albumPath, release, fullArtist, {
             discNumber: meta.discNumber,
             noOfDiscs: meta.noOfDiscs,
           });

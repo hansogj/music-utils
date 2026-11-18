@@ -405,8 +405,8 @@ export interface ReleaseInfo {
   title?: string; // album title: the master's, falling back to the release's own
   releaseTitle?: string;
   artists?: string[];
-  // Every credited artist joined as Discogs shows them ("Patrick Woodroffe / Dave Greenslade");
-  // only when more than one is credited.
+  // Every credited artist joined as Discogs shows them, "/" as "," ("Patrick Woodroffe,
+  // Dave Greenslade"); only when more than one is credited.
   artistCredit?: string;
   genres?: string[];
   styles?: string[];
@@ -417,13 +417,13 @@ export interface ReleaseInfo {
 // Discogs disambiguation suffixes like " (2)" off an artist name.
 const withoutNumber = (name: string) => name.replace(/\s*\(\d+\)\s*$/, '').trim();
 
-// "A / B", "A - B, C": each artist's `join` between it and the next ("," without a space
-// before it; none given: ",").
+// "A, B", "A - B, C": each artist's `join` between it and the next. "/" and a missing join
+// become "," ("Patrick Woodroffe, Dave Greenslade"): the name goes in a folder name too.
 export function joinArtistCredit(artists: Array<{ name: string; join?: string }>): string {
   return artists
     .map((a, i) => {
       if (i === artists.length - 1) return withoutNumber(a.name);
-      const join = a.join?.trim() || ',';
+      const join = a.join?.trim().replace(/^\/$/, ',') || ',';
       return `${withoutNumber(a.name)}${join === ',' ? ', ' : ` ${join} `}`;
     })
     .join('');
