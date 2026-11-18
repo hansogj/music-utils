@@ -99,6 +99,21 @@ When the Discogs search finds nothing, pasting comes first (`[1]`) and `[2]` tak
 - **Original year** — sets DATE/ORIGINALDATE to the master year and renames the folder's year prefix
 - **Old year in a bracket** — whenever a repair changes a folder's year, it asks what to do with the old one: `[Enter]` no bracket, `l` → `[live 1978]`, `r` → `[rec. 1978]`, both added last, after the disc part and any brackets the folder has: `1992 Tourmato (Disc 1∕2) [FLAC] [live 1979]`. `c` puts the folder's brackets as they are (`[FLAC]`, or `[1978]` when it has none) in the input line to edit; what you enter replaces them (plain text becomes one bracket, an empty line removes them). Folder name only: the ALBUM tag gets no bracket. The other discs of a set get the same answer without asking
 - **Extra copies** — when tagging from Discogs, a file without a track number whose title matches a release track that already has a file is an extra copy: it is not tagged, and the track total stays the release's
+- **One artist name** — when tagging from Discogs, the artist folder, the ARTIST/ALBUMARTIST tags and the `info.txt` header always get the same name (players such as DS Audio group by the tag). When Discogs' first credited artist, the folder and the tags don't all agree, you choose before anything is written:
+
+  ```
+    Artist names differ:
+      Discogs : "David Holland Quartet"  (credits: "David Holland Quartet - Dave Holland, Sam Rivers, …")
+      folder  : "Dave Holland Quartet"
+      tags    : "Dave Holland"
+    One name for the artist folder, the ARTIST/ALBUMARTIST tags and info.txt:
+      [Enter] Discogs: "David Holland Quartet"
+      [k]     keep the folder's: "Dave Holland Quartet"
+      [a]     all credits: "David Holland Quartet - Dave Holland, Sam Rivers, …"
+  ```
+
+  `[a]` is offered when Discogs credits several artists; in the folder name a `/` becomes `-` (`Patrick Woodroffe - Dave Greenslade`). The artist folder then follows the choice without another question; the other disc folders of a set get the same answer. The tags never get the folder's own brackets (`Dionysos [Canada]` → `Dionysos`)
+
 - **Folder/artist rename** — detects when Discogs artist or album title differs from local folder names. When the artist differs, only this album moves into the new artist folder (created, or joined when it exists): the old artist folder may hold other albums credited to the old name, and they stay. When it has no albums left, its other files (`cover.jpg`) follow and the empty folder is removed (NAS metadata such as `@eaDir` doesn't count). The artist folder's own brackets (`Dionysos [Canada]`, telling same-named artists apart where Discogs says `Dionysos (3)`) aren't compared and are kept in a new artist name. A difference in case only (`Speed of Love` / `Speed Of Love`) isn't offered as an album rename, and a case-only rename works on SMB shares
 - **Name/tag sync** — rename file to match tag, or update tag to match filename
 - **Covers** — `cover.jpg` and `folder.jpg` are treated the same. A cover file that is broken or not the Discogs cover is replaced under its own name (`folder.jpg` stays `folder.jpg`) with the front cover of the album's release, of its master, or of a release or master ID you enter (`r123`, `m456`, a URL), up to 600px (Discogs' size). A broken one can also be replaced by the folder's other cover file when that one is good. No cover at all: download one as `cover.jpg`, or copy another image in the folder (one that is the Discogs cover is offered first). The change is noted in `info.txt`. An artist folder without a cover gets a copy of this album's cover, or of another of the artist's albums'. The terminal can't show the images: when in doubt, look in the folder, and skip (`s`) to keep yours
