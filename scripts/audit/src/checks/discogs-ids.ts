@@ -28,3 +28,9 @@ export function releaseIdFrom(tracks: TrackInfo[], infoTxt?: string): { id: stri
   const m = infoTxt?.match(/^Discogs-Release:\s*(\d+)\s*$/m);
   return m ? { id: m[1], source: 'info.txt' } : undefined;
 }
+
+// The release ID the album is known to be tagged from: a DISCOGS_RELEASE_ID tag, else
+// releaseIdFrom(). Undefined for an album never tagged from Discogs.
+export function knownReleaseId(tracks: TrackInfo[], infoTxt?: string): string | undefined {
+  return tracks.map((t) => t.tags.discogsReleaseId?.trim()).find(Boolean) ?? releaseIdFrom(tracks, infoTxt)?.id;
+}

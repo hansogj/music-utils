@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "audit": "tsx src/audit.ts",
-    "test": "tsx src/audit.ts --root=../../packages/music-utils/test-data/raw --no-discogs",
+    "test": "DISCOGS_TOKEN= tsx src/audit.ts --root=../../packages/music-utils/test-data/raw",
     "completion": "tsx src/completion.ts bash",
     "vitest": "vitest run",
     "vitest:watch": "vitest watch",

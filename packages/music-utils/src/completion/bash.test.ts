@@ -40,9 +40,7 @@ describe('generateBash', () => {
   });
 
   it('completes audit flags, including the year check', () => {
-    expect(script).toContain(
-      '--root --token --no-discogs --repair --retag --ui --json --log --check-years --no-check-years --help',
-    );
+    expect(script).toContain('--root --token --repair --retag --ui --json --log --check-years --no-check-years --help');
   });
 
   it('completes flags for rip and similarities', () => {

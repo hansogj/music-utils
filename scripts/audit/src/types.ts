@@ -71,6 +71,8 @@ export interface AlbumAudit {
   issues: Issue[];
   discogsResults?: DiscogsSearchResult[];
   originalYear?: OriginalYear;
+  // The Discogs release the album was tagged from (tags, comment URL or info.txt).
+  releaseId?: string;
 }
 
 export interface AuditReport {

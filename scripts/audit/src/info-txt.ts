@@ -72,7 +72,8 @@ export function infoTxtIdLines(
   ];
 }
 
-export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[]): Promise<boolean> {
+// The info.txt text writeInfoTxtFromTags() makes from these tracks.
+export function infoTxtFromTags(tracks: TrackInfo[]): string {
   const sorted = [...tracks].sort((a, b) => {
     const na = parseInt(a.tags.trackNo ?? '0', 10);
     const nb = parseInt(b.tags.trackNo ?? '0', 10);
@@ -95,8 +96,38 @@ export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[
     lines.push(` ${no ? `${no}. ` : ''}${title}`);
   }
   lines.push('');
+  return lines.join('\n');
+}
 
-  return saveInfoTxt(albumPath, lines.join('\n'));
+export async function writeInfoTxtFromTags(albumPath: string, tracks: TrackInfo[]): Promise<boolean> {
+  return saveInfoTxt(albumPath, infoTxtFromTags(tracks));
+}
+
+// info.txt for an album tagged from a pasted tracklist. An info.txt that holds more
+// than what was made from the old tags (someone's notes, a rip log) is kept as it is:
+// 'kept'. `before` are the tracks as they were before the paste.
+export async function writeInfoTxtFromPaste(
+  albumPath: string,
+  head: { artist: string; album: string; year?: string },
+  tracks: Array<{ no: number; disc: number; title: string; duration?: string }>,
+  before: TrackInfo[],
+): Promise<'written' | 'unchanged' | 'kept'> {
+  const old = await readInfoTxt(albumPath);
+  if (old !== undefined && splitChangeset(old).body.trimEnd() !== infoTxtFromTags(before).trimEnd()) return 'kept';
+  const multiDisc = new Set(tracks.map((t) => t.disc)).size > 1;
+  const lines = [
+    `${head.artist} - ${head.album}${head.year ? ` (${head.year})` : ''}`,
+    '',
+    'Songs',
+    ...tracks.map((t) => {
+      const no = `${multiDisc ? `${t.disc}-` : ''}${t.no}.`;
+      return ` ${[padCol(no, 4), t.duration ? padCol(t.title, 40) : t.title, t.duration ?? ''].join(' ').trimEnd()}`;
+    }),
+    '',
+    'Source: pasted tracklist',
+    '',
+  ];
+  return (await saveInfoTxt(albumPath, lines.join('\n'))) ? 'written' : 'unchanged';
 }
 
 // ── Changeset: what repair changed, at the bottom of info.txt ───────────────
