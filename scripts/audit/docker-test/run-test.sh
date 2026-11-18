@@ -21,7 +21,7 @@ echo "Build complete."
 bash /app/docker-test/fixture-setup.sh
 
 # Run audit in --json mode against the fixture library
-node /app/dist/music-audit.js --root=/tmp/music-lib --no-discogs --json > /tmp/audit-result.json 2>/tmp/audit-stderr.txt || true
+DISCOGS_TOKEN= node /app/dist/music-audit.js --root=/tmp/music-lib --json > /tmp/audit-result.json 2>/tmp/audit-stderr.txt || true
 
 echo "Audit stderr:"
 cat /tmp/audit-stderr.txt

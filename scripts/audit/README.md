@@ -22,8 +22,8 @@ Private, unpublished CLI for auditing and interactively repairing a local FLAC/M
 ## Usage
 
 ```bash
-# Audit only (no Discogs lookups)
-pnpm --filter @hansogj/music-audit run audit -- --root /mnt/music --no-discogs
+# Audit only (no Discogs lookups): no token, and answer c at the prompt
+DISCOGS_TOKEN= pnpm --filter @hansogj/music-audit run audit -- --root /mnt/music
 
 # Audit with Discogs suggestions (top 5 releases, scored against local track names)
 pnpm --filter @hansogj/music-audit run audit -- --root /mnt/music --token YOUR_TOKEN
@@ -31,10 +31,11 @@ pnpm --filter @hansogj/music-audit run audit -- --root /mnt/music --token YOUR_T
 # Point at a single album folder
 music-audit --root /mnt/music/Z/ZAO/1976\ Kawana --token YOUR_TOKEN
 
-# Interactive repair — step through issues album by album
+# Interactive repair: albums without a Discogs release ID are tagged from Discogs first,
+# then every album's issues one by one
 sudo music-audit --repair --root /mnt/music --token YOUR_TOKEN
 
-# Re-tag everything (including albums that already pass) with Discogs enrichment
+# Re-tag everything from Discogs, also albums tagged from a release already
 sudo music-audit --retag --root /mnt/music --token YOUR_TOKEN
 
 # Serve HTML report in browser
@@ -43,9 +44,9 @@ music-audit --ui --root /mnt/music --token YOUR_TOKEN
 
 ### What is sent to Discogs
 
-With `--no-discogs`, nothing leaves your machine. Otherwise requests go to `api.discogs.com`, authenticated with your token:
+Without a token nothing leaves your machine: music-audit asks whether to go on offline (`c`) or quit (`q`, which says how to add a token). A run without a terminal to ask on (a script, CI) goes on offline. With a token, requests go to `api.discogs.com`:
 
-- artist and album title (from the folder name) for albums with issues — every album with `--retag`
+- artist and album title (from the folder name) for albums with issues, and in repair mode for albums without a Discogs release ID — every album with `--retag`
 - with the year check on: the Discogs release ID from the tags of every tagged album (once; then cached)
 - for the cover check: the release ID of every album with a `cover.jpg` or `folder.jpg` and a release ID (once; then cached), and its master ID when the release's cover doesn't match. Cover images come from `i.discogs.com`, which doesn't count against the rate limit
 
@@ -63,23 +64,35 @@ MUSIC_AUDIT_CHECK_YEARS=true
 
 ## Flags
 
-| Flag              | Description                                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| `--root=<path>`   | Root of music library (default: cwd)                                                                          |
-| `--token=<token>` | Discogs personal access token                                                                                 |
-| `--no-discogs`    | Skip all Discogs API calls (the cover checks still look for `cover.jpg`/`folder.jpg`, without comparing them) |
-| `--no-covers`     | Skip the cover checks                                                                                         |
-| `--repair`        | Interactive repair mode                                                                                       |
-| `--retag`         | Like `--repair` but visits clean albums too                                                                   |
-| `--ui`            | Serve HTML report at `http://localhost:7171`                                                                  |
-| `--json`          | Raw JSON output (incompatible with `--repair`/`--ui`)                                                         |
-| `--log[=<path>]`  | Append JSON Lines audit log (default: `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log`)                |
+| Flag              | Description                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `--root=<path>`   | Root of music library (default: cwd)                                                           |
+| `--token=<token>` | Discogs personal access token                                                                  |
+| `--no-covers`     | Skip the cover checks                                                                          |
+| `--repair`        | Interactive repair mode: Discogs first for albums without a release ID, then the issues        |
+| `--retag`         | Like `--repair`, and every album is offered Discogs tagging, also one with a release ID        |
+| `--ui`            | Serve HTML report at `http://localhost:7171`                                                   |
+| `--json`          | Raw JSON output (incompatible with `--repair`/`--ui`)                                          |
+| `--log[=<path>]`  | Append JSON Lines audit log (default: `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log`) |
 
 Without `--repair`/`--retag` the audit only reads: nothing in the library is written.
 
 ## Repair mode
 
-`--repair` (or `--retag`, which implies repair) walks album-by-album through issues and offers automated fixes:
+`--repair` (or `--retag`, which implies repair) walks album-by-album through issues and offers automated fixes.
+
+**Discogs first.** An album with no Discogs release ID (no `DISCOGS_RELEASE_ID` tag, Discogs URL comment or `Discogs-Release:` line in `info.txt`) opens with tagging, whatever its issues, so titles and file names come from the release instead of being patched from each other:
+
+```
+  No Discogs release ID yet — tag from Discogs first:
+  [1] Tag from Discogs release ID (suggested: 4565937 — Sacred Baboon, 92% match)
+  [2] Paste the tracklist (one line per track; artist, album and year from the folder)
+  [f] Fix the 3 issue(s) one by one   [s] Skip album   [o] Start album over   [q] Quit repair
+```
+
+When the Discogs search finds nothing, pasting comes first (`[1]`) and `[2]` takes a release ID you look up yourself. After tagging the album is scanned again and the issues still left are shown one by one; `[f]` goes straight to them (with today's fixes, such as renaming a file to match its tag), and `[s]` skips the album (with the bracket question below). An album tagged from a release already isn't fetched again: its tags and `info.txt` are trusted. With `--retag` every album gets this step, the album's own release ID suggested.
+
+**Pasting a tracklist.** Paste one line per track, then an empty line. Each line is a title, `01 - Title`, `1. Title`, `A1 Title` (vinyl, numbered in order), `1-03 Title` or `d1t03 Title` (disc 1, track 3), copied from a web page or typed; a duration at the end (`3:45`, `(3:45)`) is dropped, and so is an artist every line starts with. Numbers are used only when every line has one: in a list of titles, `99 Problems` stays whole. The files get TITLE, TRACKNUMBER and DISCNUMBER from the list, and ARTIST, ALBUMARTIST, ALBUM and DATE from the folder name. Before writing, every file is shown with its new title; then you can rename the files to `01 - Title`. `info.txt` gets the list (with durations) unless it holds more than the old tags (your notes, a rip log), and a Changeset line either way.
 
 - **Folder renames** — year prefix, disc separator, bracket style, letter-dir moves
 - **Discogs tagging** — fetches tracklist, writes TITLE, ARTIST, ALBUM, DATE, ORIGINALDATE (`TORY` for MP3), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (Discogs URL), DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID (MP3: TXXX frames; in the `--json` report as `tags.discogsReleaseId` / `tags.discogsMasterId`); offers to rename files (`01 - Title.mp3`, also inside a `(Disc n∕m)` folder; `d2t01 - Title.mp3` only when one folder holds several discs) and folders (including the year) to match. DATE/ORIGINALDATE and ALBUM always come from the Discogs **master** (original year and title), not from the specific pressing; the pressing's year goes in `info.txt` as `Reissue:`
@@ -103,6 +116,8 @@ After each fix the album is scanned again, so the next issue shown matches the f
 | Enter     | issue menu              | the first action, `[1]`                                                                                      |
 | `1`–`9`   | issue menu              | that action                                                                                                  |
 | `d`       | issue menu              | tag the whole album from a Discogs release you choose                                                        |
+| `f`       | Discogs first           | go on to the album's issues one by one, without tagging                                                      |
+| `s`       | Discogs first           | skip the album (offers a bracket, below)                                                                     |
 | `l`       | issue menu              | list the album's files                                                                                       |
 | `s` / `q` | issue menu              | skip this issue / quit repair; the first skip in an album offers to add a bracket to its folder name (below) |
 | `o`       | any prompt              | start this album over (below)                                                                                |
@@ -110,7 +125,7 @@ After each fix the album is scanned again, so the next issue shown matches the f
 | `n`       | disc pairing            | start the disc at another release track                                                                      |
 | `r`       | after an album's issues | go through the ones not fixed again (Enter goes on to the next album)                                        |
 
-**A bracket after a skip.** Skipping often means Discogs doesn't know the album, for instance a bootleg. The first time you skip an issue in an album (also the `--retag` offer), you can note that in the folder name:
+**A bracket after a skip.** Skipping often means Discogs doesn't know the album, for instance a bootleg. The first time you skip an issue in an album (also the album, at the Discogs first step), you can note that in the folder name:
 
 ```
   Add to the folder name (e.g. bootleg)? Edit the brackets; Enter leaves them.
@@ -124,7 +139,7 @@ Regret a choice? Answer `o` at any prompt (or pick `[o] Start album over` in the
 
 ### Choosing the Discogs release
 
-Discogs tagging is offered for missing tags and for a missing release ID. On any other issue, press `d` to tag the whole album from a release of your choice.
+Albums without a release ID are tagged from Discogs first (above). In an issue menu, Discogs tagging is offered for missing tags and for a missing release ID; on any other issue, press `d` to tag the whole album from a release of your choice.
 
 Release IDs are accepted as plain numbers (`4565937`), `r4565937`, `[r4565937]`, or full Discogs URLs. Master IDs (`m1439`, `[m1439]`, master URLs) are accepted too and resolve to the master's main release (for a disc folder, see below). For an edition with bonus tracks enter that edition's release ID: the tracks get its tracklist and release ID, and still get the master ID and the master's year.
 

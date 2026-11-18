@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { checkDiscogsIds } from './checks/discogs-ids.js';
+import { checkDiscogsIds, knownReleaseId } from './checks/discogs-ids.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { checkFolderFormat } from './checks/folder.js';
 import { checkNameTagMatch, matchNames, parseNameFromFilename } from './checks/names.js';
@@ -22,6 +22,9 @@ export interface AuditAlbumOptions {
   // Off for a repair re-scan, which keeps the suggestions from the first scan.
   search?: boolean;
   searchAlways?: boolean;
+  // Search for albums without a Discogs release ID too, whatever their issues (repair:
+  // such an album is tagged from Discogs first).
+  searchUntagged?: boolean;
   // Opt-in original-year check (needs Discogs; cached on disk).
   checkYears?: boolean;
   // Repair mode only: write a basic info.txt from tags when the album has none.
@@ -58,6 +61,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
     skipDiscogs = false,
     search = true,
     searchAlways = false,
+    searchUntagged = false,
     checkYears = false,
     writeInfo = false,
     checkCovers: covers = false,
@@ -87,8 +91,11 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   if (covers)
     issues.push(...(await checkCovers(layout, tracks, !skipDiscogs && token ? discogsCoverSource(token) : undefined)));
 
+  const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
+  const releaseId = knownReleaseId(tracks, infoTxt);
+
   let discogsResults = undefined;
-  if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways)) {
+  if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways || (searchUntagged && !releaseId))) {
     try {
       const localNames = matchNames(tracks).filter(Boolean);
       discogsResults = await searchDiscogs(layout.artistName, layout.albumFolder, token, localNames);
@@ -114,14 +121,9 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
 
   // Repair mode only (report mode never writes): generate a basic info.txt from tags if none
   // exists yet. Discogs tagging will overwrite it with a richer version.
-  if (writeInfo && tracks.length > 0) {
-    const infoTxtPath = path.join(layout.albumPath, 'info.txt');
-    try {
-      await fs.access(infoTxtPath);
-    } catch {
-      writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
-    }
+  if (writeInfo && tracks.length > 0 && infoTxt === undefined) {
+    writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
   }
 
-  return { layout, tracks, issues, discogsResults, originalYear };
+  return { layout, tracks, issues, discogsResults, originalYear, ...(releaseId ? { releaseId } : {}) };
 }

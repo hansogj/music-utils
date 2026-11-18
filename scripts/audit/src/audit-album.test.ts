@@ -84,6 +84,21 @@ describe('auditAlbum', () => {
     expect((await auditAlbum(layout, { token: 't', searchAlways: true })).discogsResults).toHaveLength(1);
   });
 
+  it('with searchUntagged, searches a clean album only while it has no release ID', async () => {
+    await track('01 - Song.mp3', TAGGED);
+    const audit = await auditAlbum(layout, { token: 't', searchUntagged: true });
+    expect(audit.releaseId).toBeUndefined();
+    expect(audit.discogsResults).toHaveLength(1);
+
+    searchDiscogs.mockClear();
+    await track('01 - Song.mp3', { ...TAGGED, discogsReleaseId: '42' });
+    expect((await auditAlbum(layout, { token: 't', searchUntagged: true })).releaseId).toBe('42');
+    await track('01 - Song.mp3', TAGGED);
+    await fs.writeFile(path.join(layout.albumPath, 'info.txt'), 'Band - Record\n\nDiscogs-Release: 43\n');
+    expect((await auditAlbum(layout, { token: 't', searchUntagged: true })).releaseId).toBe('43');
+    expect(searchDiscogs).not.toHaveBeenCalled();
+  });
+
   it('does not search on a re-scan (search: false), with skipDiscogs, or without a token', async () => {
     await track('01 - Song.mp3', { title: 'Song' });
     await auditAlbum(layout, { token: 't', search: false });

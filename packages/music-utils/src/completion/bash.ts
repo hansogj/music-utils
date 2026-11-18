@@ -69,7 +69,7 @@ const generateUnifiedBash = (): string => `_mu() {
       case "$prev" in
         --root) mapfile -t COMPREPLY < <(compgen -d -- "$cur"); compopt -o filenames; return ;;
       esac
-      COMPREPLY=($(compgen -W "--root --token --no-discogs --repair --retag --ui --json --log --check-years --no-check-years --help" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--root --token --repair --retag --ui --json --log --check-years --no-check-years --help" -- "$cur")) ;;
     completion)
       COMPREPLY=($(compgen -W "bash" -- "$cur")) ;;
   esac

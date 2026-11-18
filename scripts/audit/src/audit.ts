@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import readline from 'node:readline/promises';
 
 import { envFlag, loadEnv } from './env.js';
 loadEnv();
@@ -62,6 +63,30 @@ function buildSummary(audits: AlbumAudit[]) {
 // Main
 // ---------------------------------------------------------------------------
 
+const TOKEN_HELP = `
+Discogs needs a personal access token. Make one at https://www.discogs.com/settings/developers
+("Generate new token"), then either:
+  - add  DISCOGS_TOKEN=<token>  to ~/.config/music-utils/.env  (read on every run), or
+  - export DISCOGS_TOKEN=<token>, or
+  - pass --token <token>.
+`;
+
+// No Discogs token: go on offline (no Discogs), or quit. Asked on stderr, so --json output
+// stays clean; a run without a terminal to ask on goes on offline.
+async function goOffline(): Promise<boolean> {
+  if (!process.stdin.isTTY) {
+    process.stderr.write('No DISCOGS_TOKEN — running offline (no Discogs).\n');
+    return true;
+  }
+  const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    const answer = await rl.question('No Discogs token found. [c] Continue offline (no Discogs)   [q] Quit: ');
+    return answer.trim().toLowerCase() === 'c';
+  } finally {
+    rl.close();
+  }
+}
+
 async function main() {
   // pnpm run audit -- --root ... injects a bare '--' into argv; strip it
   const args = process.argv.slice(2).filter((a) => a !== '--');
@@ -73,8 +98,9 @@ Usage: pnpm audit -- [options]
 Options:
   --root=<path>       Root of music library (default: cwd)
   --token=<token>     Discogs personal access token (or set DISCOGS_TOKEN env var,
-                      or add DISCOGS_TOKEN=... to ~/.config/music-utils/.env)
-  --no-discogs        Skip Discogs API calls entirely
+                      or add DISCOGS_TOKEN=... to ~/.config/music-utils/.env).
+                      Without one you are asked whether to go on offline (no Discogs);
+                      a run that can't ask (no terminal) goes on offline
   --check-years       Check that albums tagged with a Discogs release ID use the original
                       (master) year, not a reissue's. Sends every tagged release ID to
                       Discogs (cached after the first run). Default: off, or on when
@@ -82,8 +108,10 @@ Options:
   --no-check-years    Turn the year check off for this run, overriding the .env setting
   --no-covers         Skip the cover checks (cover.jpg in album and artist folders, and
                       whether it is the Discogs release's or master's cover)
-  --repair            Interactive repair mode — step through issues and fix them
-  --retag             Like --repair but also visits albums that already pass, offering Discogs enrichment
+  --repair            Interactive repair mode. An album without a Discogs release ID is tagged
+                      from Discogs first (or a pasted tracklist), then its issues one by one
+  --retag             Like --repair, and every album is offered a new Discogs tagging, also
+                      one tagged from a release already (that release ID suggested)
   --ui                Serve audit report as HTML in browser at http://localhost:7171
   --json              Output raw JSON instead of formatted report (incompatible with --repair/--ui)
   --log[=<path>]      Append structured JSON Lines audit log (default: ~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log)
@@ -93,7 +121,7 @@ Report mode (no --repair/--retag) only reads; it never writes to the library.
 
 Examples:
   # Audit only (no Discogs):
-  pnpm audit -- --root=../../packages/music-utils/test-data/raw --no-discogs
+  DISCOGS_TOKEN= pnpm audit -- --root=../../packages/music-utils/test-data/raw
 
   # Audit with Discogs suggestions:
   music-audit --root ~/Music --token YOUR_TOKEN
@@ -105,8 +133,8 @@ Examples:
   }
 
   const root = path.resolve(getArg(args, 'root') ?? process.cwd());
-  const token = getArg(args, 'token') ?? process.env['DISCOGS_TOKEN'];
-  const skipDiscogs = hasFlag(args, 'no-discogs') || !token;
+  const token = getArg(args, 'token') || process.env['DISCOGS_TOKEN'] || undefined;
+  const skipDiscogs = !token;
   const retagMode = hasFlag(args, 'retag');
   const repairMode = hasFlag(args, 'repair') || retagMode;
   const uiMode = hasFlag(args, 'ui') && !repairMode;
@@ -123,12 +151,13 @@ Examples:
     process.exit(1);
   }
 
-  if (checkYears && skipDiscogs) {
-    process.stderr.write('Year check skipped — it needs Discogs (no token, or --no-discogs).\n');
+  if (!token && !(await goOffline())) {
+    process.stderr.write(TOKEN_HELP);
+    process.exit(1);
   }
 
-  if (!skipDiscogs && !token) {
-    console.warn('No DISCOGS_TOKEN — run with --no-discogs or set the env var to get Discogs suggestions.');
+  if (checkYears && skipDiscogs) {
+    process.stderr.write('Year check skipped — it needs Discogs (no token).\n');
   }
 
   process.stderr.write(`Scanning ${root} ...\n`);
@@ -136,6 +165,8 @@ Examples:
   const mode = retagMode ? 'retag' : repairMode ? 'repair' : 'audit';
   const checkCovers = !hasFlag(args, 'no-covers');
   const auditOpts = { token, skipDiscogs, searchAlways: retagMode, checkYears, checkCovers };
+  // Repair tags an album without a release ID from Discogs first: search for it too.
+  const repairOpts = { ...auditOpts, searchUntagged: true };
   await logger?.logSession(mode, root);
 
   const layouts = await walkLibrary(root);
@@ -148,18 +179,18 @@ Examples:
 
     const scanTask = (async () => {
       for (const layout of layouts) {
-        const audit = await auditAlbum(layout, { ...auditOpts, writeInfo: true });
+        const audit = await auditAlbum(layout, { ...repairOpts, writeInfo: true });
         allAudits.push(audit);
         stream.scanned();
         await logger?.logAlbum(audit);
-        if (retagMode || audit.issues.length > 0) stream.push(audit);
+        if (retagMode || audit.issues.length > 0 || (token && !audit.releaseId)) stream.push(audit);
       }
       stream.close();
     })();
 
     // After each fix the album is scanned again (no new Discogs search) so later issues
     // reflect the files as they are now, not as they were before the fix.
-    const reaudit = (layout: AlbumLayout) => auditAlbum(layout, { ...auditOpts, search: false });
+    const reaudit = (layout: AlbumLayout) => auditAlbum(layout, { ...repairOpts, search: false });
     await runRepair(stream, token, { retag: retagMode, reaudit });
     await scanTask; // ensure scan finishes (may already be done)
 
