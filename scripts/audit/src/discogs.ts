@@ -1,6 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import {
+  cleanArtistName,
+  type DiscogsRawTrack,
+  flattenTracklist,
+  joinArtistCredit,
+} from '@hansogj/discogs-item-lookup/format';
+
 import { type CoverSource, imageHash } from './cover.js';
 import { discOfFolder, sliceForDisc } from './disc-split.js';
 import { userHome } from './env.js';
@@ -182,27 +189,7 @@ interface SearchResponse {
   results?: RawResult[];
 }
 
-interface RawTrack {
-  position: string;
-  title: string;
-  type_: string;
-  duration?: string;
-  extraartists?: Array<{ name: string; role: string }>;
-  sub_tracks?: RawTrack[];
-}
-
-// The release's tracks as files on a disc. An "index" entry (a suite such as "And You
-// And I", listed with its parts as sub-tracks and no position of its own) is one file:
-// it keeps its title and takes its position from the first part ("1-5.a" → "1-5",
-// "B2a" → "B2"). Headings are dropped.
-export function flattenTracklist(tracklist: RawTrack[]): RawTrack[] {
-  return tracklist.flatMap((t) => {
-    if (t.type_ === 'track') return [t];
-    if (t.type_ !== 'index' || !t.sub_tracks?.length) return [];
-    const position = t.position?.trim() || t.sub_tracks[0].position.trim().replace(/\.?[a-z]$/, '');
-    return [{ ...t, type_: 'track', position }];
-  });
-}
+type RawTrack = DiscogsRawTrack;
 
 export interface NumberedTrack {
   disc: number;
@@ -414,21 +401,6 @@ export interface ReleaseInfo {
   extraartists?: Array<{ name: string; role: string }>;
 }
 
-// Discogs disambiguation suffixes like " (2)" off an artist name.
-const withoutNumber = (name: string) => name.replace(/\s*\(\d+\)\s*$/, '').trim();
-
-// "A, B", "A - B, C": each artist's `join` between it and the next. "/" and a missing join
-// become "," ("Patrick Woodroffe, Dave Greenslade"): the name goes in a folder name too.
-export function joinArtistCredit(artists: Array<{ name: string; join?: string }>): string {
-  return artists
-    .map((a, i) => {
-      if (i === artists.length - 1) return withoutNumber(a.name);
-      const join = a.join?.trim().replace(/^\/$/, ',') || ',';
-      return `${withoutNumber(a.name)}${join === ',' ? ', ' : ` ${join} `}`;
-    })
-    .join('');
-}
-
 // Fetch full release metadata (tracklist, year, title, artists, genres) for use in repair.ts.
 // The returned `year` is the master's (original) year, so a 1989 reissue of a 1970 album
 // is tagged 1970; `releaseYear` keeps the reissue year.
@@ -445,12 +417,12 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     title: master?.title ?? data.title,
     releaseTitle: data.title,
     // Strip Discogs disambiguation suffixes like " (2)" from artist names.
-    artists: data.artists?.map((a) => withoutNumber(a.name)),
+    artists: data.artists?.map((a) => cleanArtistName(a.name)),
     ...(data.artists && data.artists.length > 1 ? { artistCredit: joinArtistCredit(data.artists) } : {}),
     genres: data.genres,
     styles: data.styles,
     country: data.country,
-    extraartists: data.extraartists?.map((a) => ({ name: withoutNumber(a.name), role: a.role })),
+    extraartists: data.extraartists?.map((a) => ({ name: cleanArtistName(a.name), role: a.role })),
   };
 }
 

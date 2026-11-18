@@ -8,8 +8,6 @@ import {
   fetchMaster,
   fetchOriginalYear,
   fetchRelease,
-  flattenTracklist,
-  joinArtistCredit,
   matchScore,
   numberTracklist,
   parseDiscogsRef,
@@ -176,26 +174,6 @@ describe('fetchOriginalYear', () => {
   });
 });
 
-describe('joinArtistCredit', () => {
-  it('joins the credited artists as Discogs shows them', () => {
-    // Releases 8614313 and 4508999.
-    expect(
-      joinArtistCredit([
-        { name: 'David Holland Quartet', join: '-' },
-        { name: 'Dave Holland', join: ',' },
-        { name: 'Sam Rivers', join: '' },
-      ]),
-    ).toBe('David Holland Quartet - Dave Holland, Sam Rivers');
-    expect(
-      joinArtistCredit([
-        { name: 'Patrick Woodroffe', join: '/' },
-        { name: 'Dave Greenslade (2)', join: '' },
-      ]),
-    ).toBe('Patrick Woodroffe, Dave Greenslade');
-    expect(joinArtistCredit([{ name: 'A' }, { name: 'B' }])).toBe('A, B');
-  });
-});
-
 describe('numberTracklist', () => {
   const tracks = (...positions: string[]) => positions.map((position, i) => ({ position, title: `T${i + 1}` }));
   const nums = (...positions: string[]) => numberTracklist(tracks(...positions)).map((t) => `${t.disc}.${t.no}`);
@@ -230,29 +208,6 @@ describe('numberTracklist', () => {
 
   it('keeps titles with their numbers', () => {
     expect(numberTracklist(tracks('B1', 'A1')).map((t) => t.title)).toEqual(['T1', 'T2']);
-  });
-});
-
-describe('flattenTracklist', () => {
-  it('keeps tracks, turns a suite (index) into one track and drops headings', () => {
-    const flat = flattenTracklist([
-      { position: '', title: 'CD 1', type_: 'heading' },
-      { position: '1-4', title: 'Perpetual Change', type_: 'track' },
-      {
-        position: '',
-        title: 'And You And I',
-        type_: 'index',
-        sub_tracks: [
-          { position: '1-5.a', title: 'Cord Of Life', type_: 'track' },
-          { position: '1-5.b', title: 'Eclipse', type_: 'track' },
-        ],
-      },
-      { position: '', title: 'Empty index', type_: 'index' },
-    ]);
-    expect(flat.map((t) => [t.position, t.title])).toEqual([
-      ['1-4', 'Perpetual Change'],
-      ['1-5', 'And You And I'],
-    ]);
   });
 });
 

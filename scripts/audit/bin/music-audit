@@ -35,4 +35,5 @@ if [[ -z "$TSX_ESM" || ! -f "$TSX_ESM" ]]; then
   exit 1
 fi
 
-exec "$NODE" --import "$TSX_ESM" "$AUDIT" "$@"
+# --conditions: workspace packages resolve to their src/, so nothing needs a build first.
+exec "$NODE" --conditions=@hansogj/source --import "$TSX_ESM" "$AUDIT" "$@"

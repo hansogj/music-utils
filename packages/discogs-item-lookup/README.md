@@ -4,9 +4,10 @@ A CLI and library to look up information about a specific music release from the
 
 ## Features
 
-- **Artist Name:** Get the primary artist(s) for the release.
+- **Artist Name:** Get the credited artists for the release (`artists`), and every credit joined as Discogs shows it (`artistCredit`, when several).
 - **Item Title:** Find the album or single name.
-- **Tracklist:** View the complete tracklist for the specific release version.
+- **Tracklist:** View the complete tracklist for the specific release version, with durations and track credits. A suite listed with sub-tracks (an index entry) is one track.
+- **Genres, country and personnel:** `genres`, `styles`, `country`, `extraartists`.
 - **Release Years:** See both the year for this specific release and the year of the original master release.
 - **Direct Link:** A convenient link to view the release directly on the Discogs website.
 
@@ -70,6 +71,19 @@ async function getReleaseInfo() {
 
 getReleaseInfo();
 ```
+
+`artist` (every credited artist joined with `, `) is deprecated: use `artists[0]` or `artistCredit`.
+
+### Formatting helpers
+
+`@hansogj/discogs-item-lookup/format` holds the pure helpers that music-utils and music-audit share, with no network or environment access:
+
+- `cleanArtistName(name)`: drops Discogs' `(n)` suffix (`Dave Greenslade (2)` → `Dave Greenslade`).
+- `joinArtistCredit(artists)`: every credited artist with Discogs' `join`s; `/` becomes `, ` (`Patrick Woodroffe, Dave Greenslade`), so the name fits a folder name.
+- `flattenTracklist(tracklist)`: index entries as one track (position from the first sub-track), headings dropped.
+- `formatInfoTxt(release, artistName, disc?)`: the `info.txt` text: `Artist - Title (year)`, reissue year, country, songs with composers and durations, personnel, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines.
+
+The same helpers are exported from the package root too.
 
 ## Configuration
 

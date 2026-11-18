@@ -1,17 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { formatInfoTxt } from '@hansogj/discogs-item-lookup/format';
+
 import type { ReleaseInfo } from './discogs.js';
 import type { TrackInfo } from './types.js';
-
-function cleanName(s: string): string {
-  return s.replace(/\s*\(\d+\)\s*$/, '').trim();
-}
 
 function padCol(s: string, width: number): string {
   return s.length >= width ? s + '  ' : s.padEnd(width);
 }
 
+// info.txt for an album tagged from a Discogs release (text from discogs-item-lookup).
 export async function writeInfoTxt(
   albumPath: string,
   release: ReleaseInfo,
@@ -19,58 +18,7 @@ export async function writeInfoTxt(
   artistName: string,
   disc?: { discNumber: string; noOfDiscs: string },
 ): Promise<boolean> {
-  const artist = artistName || release.artists?.[0] || '';
-  const album = release.title ?? '';
-  const year = release.year ?? '';
-
-  const lines: string[] = [];
-  lines.push([artist, album].filter(Boolean).join(' - ') + (year ? ` (${year})` : ''));
-  if (release.releaseYear && release.releaseYear !== year) lines.push(`Reissue: ${release.releaseYear}`);
-  if (release.country) lines.push(release.country.toUpperCase());
-  lines.push('');
-
-  if (release.tracklist.length > 0) {
-    lines.push('Songs');
-    for (const track of release.tracklist) {
-      const posMatch = track.position.match(/^(?:\d+[-./:])?(\d+)$/);
-      const num = posMatch ? parseInt(posMatch[1], 10) : 0;
-      const numStr = num ? `${num}.` : `${track.position}.`;
-      const composers = (track.extraartists ?? [])
-        .filter((a) => /written|compos|music|lyric/i.test(a.role))
-        .map((a) => cleanName(a.name))
-        .join(', ');
-      const parts: string[] = [padCol(numStr, 4), padCol(track.title, 40)];
-      if (composers) parts.push(padCol(composers, 24));
-      if (track.duration) parts.push(track.duration);
-      lines.push(' ' + parts.join(' ').trimEnd());
-    }
-    lines.push('');
-  }
-
-  const personnel = (release.extraartists ?? []).filter((a) => a.name && a.role);
-  if (personnel.length > 0) {
-    for (const p of personnel) {
-      lines.push(`        ${padCol(cleanName(p.name), 32)}${p.role}`);
-    }
-    lines.push('');
-  }
-
-  lines.push(...infoTxtIdLines(release, disc));
-
-  return saveInfoTxt(albumPath, lines.join('\n'));
-}
-
-// Fixed `Key: value` lines at the end of info.txt, for scripts.
-export function infoTxtIdLines(
-  release: Pick<ReleaseInfo, 'releaseId' | 'masterId'>,
-  disc?: { discNumber: string; noOfDiscs: string },
-): string[] {
-  return [
-    `Discogs-Release: ${release.releaseId}`,
-    ...(release.masterId ? [`Discogs-Master: ${release.masterId}`] : []),
-    ...(disc ? [`Disc: ${disc.discNumber}/${disc.noOfDiscs}`] : []),
-    '',
-  ];
+  return saveInfoTxt(albumPath, formatInfoTxt(release, artistName, disc));
 }
 
 // The info.txt text writeInfoTxtFromTags() makes from these tracks.

@@ -3,6 +3,7 @@
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "customConditions": ["@hansogj/source"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
