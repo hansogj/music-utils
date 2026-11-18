@@ -369,10 +369,71 @@ async function askSetAux(layout: AlbumLayout, other: SiblingDisc): Promise<strin
 
 // One answer per album set for the whole run, so all discs of a set get the same bracket.
 const oldYearAnswers = new Map<string, OldYearAnswer | undefined>();
+// The artist name chosen for an album set (its disc folders): asked once.
+const artistAnswers = new Map<string, string>();
 
 // Starts a run (and each test) without answers from an earlier one.
 export function resetRepairSession(): void {
   oldYearAnswers.clear();
+  artistAnswers.clear();
+}
+
+// The album artist the tags give most often (ALBUMARTIST, else ARTIST).
+function taggedArtist(tracks: AlbumAudit['tracks']): string | undefined {
+  const counts = new Map<string, number>();
+  for (const t of tracks) {
+    const name = (t.tags.albumArtist || t.tags.artist)?.trim();
+    if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+}
+
+// One artist name for the album's folder, its ARTIST/ALBUMARTIST tags and info.txt's
+// header. Asked when the folder, Discogs' first credited artist and the tags don't all
+// agree: Enter takes Discogs' (as Discogs is the source of the tags), k the folder's, a every
+// credited artist (only when there are several). Returns the name without the folder's own
+// brackets ("Dionysos" for "Dionysos [Canada]"); the folder and the tags add them back.
+async function chooseArtist(
+  layout: AlbumLayout,
+  tracks: AlbumAudit['tracks'],
+  release: Pick<import('./discogs.js').ReleaseInfo, 'artists' | 'artistCredit'>,
+): Promise<string> {
+  const { name: folder, brackets } = splitArtistBrackets(layout.artistName);
+  const discogs = release.artists?.[0];
+  // The tags carry the folder's brackets ("Dionysos [Canada]"): compared without them.
+  const fullTag = taggedArtist(tracks);
+  const tagged = brackets && fullTag?.endsWith(brackets) ? fullTag.slice(0, -brackets.length).trim() : fullTag;
+  if (!discogs) return folder;
+  const names = [folder, discogs, ...(tagged ? [tagged] : [])];
+  if (new Set(names.map(normName)).size === 1) return folder;
+
+  const key = albumSetKey(layout.artistName, layout.albumFolder);
+  const kept = artistAnswers.get(key);
+  if (kept !== undefined) {
+    console.log(chalk.dim(`  Artist: "${kept}" (as for the other disc of this set)`));
+    return kept;
+  }
+
+  const credit = release.artistCredit;
+  console.log(chalk.yellow('\n  Artist names differ:'));
+  console.log(`    Discogs : "${discogs}"${credit ? chalk.dim(`  (credits: "${credit}")`) : ''}`);
+  console.log(`    folder  : "${layout.artistName}"`);
+  if (tagged && normName(tagged) !== normName(folder) && normName(tagged) !== normName(discogs))
+    console.log(`    tags    : "${fullTag}"`);
+  console.log(chalk.dim('  One name for the artist folder, the ARTIST/ALBUMARTIST tags and info.txt:'));
+  console.log(`    [Enter] Discogs: "${discogs}${brackets}"`);
+  console.log(`    [k]     keep the folder's: "${layout.artistName}"`);
+  if (credit) console.log(`    [a]     all credits: "${credit}${brackets}"`);
+  let chosen: string | undefined;
+  while (chosen === undefined) {
+    const answer = (await ask(`  Artist [Enter/k${credit ? '/a' : ''}]: `)).toLowerCase();
+    if (answer === '') chosen = discogs;
+    else if (answer === 'k') chosen = folder;
+    else if (answer === 'a' && credit) chosen = credit;
+    else console.log(chalk.dim('  Invalid choice.'));
+  }
+  artistAnswers.set(key, chosen);
+  return chosen;
 }
 
 // Asks what to do with the old year when a folder's year changes; the folder name only.
@@ -434,15 +495,18 @@ async function askFolderRename(
   layout: AlbumLayout,
   meta: ReturnType<typeof albumMetaFromLayout>,
   release: import('./discogs.js').ReleaseInfo,
+  // The artist chosen for folder and tags (chooseArtist()): the folder follows it unasked,
+  // or folder and tags would differ.
+  artist: string,
 ): Promise<FolderRenamePlan | undefined> {
   // The artist folder's own brackets ("Dionysos [Canada]") tell same-named artists apart:
   // they are kept, and not compared (Discogs' "Dionysos (3)" comes without its number).
   const { name: localArtist, brackets: artistBrackets } = splitArtistBrackets(layout.artistName);
-  const discogsArtist = release.artists?.[0] && `${release.artists[0]}${artistBrackets}`;
+  const newArtist = `${sanitizeFilename(artist)}${artistBrackets}`;
   const discogsAlbum = release.title;
   const localYear = folderYear(layout.albumFolder);
 
-  const artistMismatch = release.artists?.[0] && normName(release.artists[0]) !== normName(localArtist);
+  const artistMismatch = normName(artist) !== normName(localArtist);
   // The folder's title with its parentheses ("Transformation (The Speed of Love)"): only
   // the year, the disc part and the brackets are left out. Case and punctuation don't count.
   const localTitle = folderTitle(layout.albumFolder);
@@ -451,21 +515,22 @@ async function askFolderRename(
   // Only correct an existing year prefix; a missing one is MISSING_YEAR_PREFIX's job.
   const yearMismatch = localYear && release.year && localYear !== release.year;
 
-  if (!artistMismatch && !albumMismatch && !yearMismatch) return undefined;
+  const artistPlan = artistMismatch ? { artist: newArtist } : {};
+  if (artistMismatch) console.log(chalk.dim(`  Artist folder: "${layout.artistName}"  →  "${newArtist}" (as chosen)`));
+  if (!albumMismatch && !yearMismatch) return artistMismatch ? artistPlan : undefined;
 
   console.log(chalk.yellow('\n  Discogs name differs from local folder:'));
-  if (artistMismatch) console.log(`    artist : "${layout.artistName}"  →  "${discogsArtist}"`);
   if (albumMismatch) console.log(`    album  : "${localTitle}"  →  "${discogsAlbum}"`);
   if (yearMismatch) console.log(`    year   : ${localYear}  →  ${release.year} (original release)`);
 
   const answer = await ask('  Rename folder(s) to match Discogs? [y/N] ');
   if (answer.toLowerCase() !== 'y') {
     console.log(chalk.dim('  Skipped rename.'));
-    return undefined;
+    return artistMismatch ? artistPlan : undefined;
   }
   const oldYear = yearMismatch ? await askOldYearBracket(layout, localYear, release.year!) : undefined;
   return {
-    ...(artistMismatch ? { artist: discogsArtist } : {}),
+    ...artistPlan,
     ...(albumMismatch ? { album: discogsAlbum } : {}),
     ...(yearMismatch ? { year: release.year } : {}),
     ...(oldYear ? { oldYear } : {}),
@@ -765,6 +830,10 @@ function buildDiscogsAction(
           return;
         }
         const discTracks = slice.tracks;
+        const artist = await chooseArtist(audit.layout, audit.tracks, release);
+        // Tags and info.txt get the folder's brackets too ("Dionysos [Canada]"): same-named
+        // artists stay apart in a player, as they do in the folders.
+        const fullArtist = `${artist}${splitArtistBrackets(audit.layout.artistName).brackets}`;
         const tagged = await tagFromTracklist(audit, files, names, discTracks, {
           folderDisc,
           countWarning: (extra) => {
@@ -774,8 +843,8 @@ function buildDiscogsAction(
               : `${what} ${-extra} fewer track(s) — may be a different pressing`;
           },
           tags: ({ no, disc, total, title }) => ({
-            ARTIST: meta.artist,
-            ALBUMARTIST: meta.artist,
+            ARTIST: fullArtist,
+            ALBUMARTIST: fullArtist,
             ALBUM: album,
             TRACKNUMBER: `${no}/${total}`,
             DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
@@ -791,7 +860,7 @@ function buildDiscogsAction(
         if (!tagged) return;
         // ── write info.txt ─────────────────────────────────────────────────
         try {
-          const written = await writeInfoTxt(audit.layout.albumPath, release, meta.artist, {
+          const written = await writeInfoTxt(audit.layout.albumPath, release, fullArtist, {
             discNumber: meta.discNumber,
             noOfDiscs: meta.noOfDiscs,
           });
@@ -803,7 +872,7 @@ function buildDiscogsAction(
         await offerFileRenames(audit.layout.albumPath, files, tagged, 'Discogs titles');
 
         // ── ask about folder renames; they run after the album's other fixes ─
-        const plan = await askFolderRename(audit.layout, meta, release);
+        const plan = await askFolderRename(audit.layout, meta, release, artist);
         if (plan) {
           planFolderRename(audit.layout, plan);
           console.log(chalk.dim("  → folder rename runs after this album's other fixes"));

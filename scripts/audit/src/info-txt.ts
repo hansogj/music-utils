@@ -15,10 +15,11 @@ function padCol(s: string, width: number): string {
 export async function writeInfoTxt(
   albumPath: string,
   release: ReleaseInfo,
+  // The artist chosen for the album's folder and tags: the header says the same.
   artistName: string,
   disc?: { discNumber: string; noOfDiscs: string },
 ): Promise<boolean> {
-  const artist = release.artists?.[0] ?? artistName;
+  const artist = artistName || release.artists?.[0] || '';
   const album = release.title ?? '';
   const year = release.year ?? '';
 

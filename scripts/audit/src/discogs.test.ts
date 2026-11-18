@@ -9,6 +9,7 @@ import {
   fetchOriginalYear,
   fetchRelease,
   flattenTracklist,
+  joinArtistCredit,
   matchScore,
   numberTracklist,
   parseDiscogsRef,
@@ -172,6 +173,26 @@ describe('fetchOriginalYear', () => {
     fetchMock.mockClear();
     expect(await fetchOriginalYear('3422683', 'token')).toEqual(first);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('joinArtistCredit', () => {
+  it('joins the credited artists as Discogs shows them', () => {
+    // Releases 8614313 and 4508999.
+    expect(
+      joinArtistCredit([
+        { name: 'David Holland Quartet', join: '-' },
+        { name: 'Dave Holland', join: ',' },
+        { name: 'Sam Rivers', join: '' },
+      ]),
+    ).toBe('David Holland Quartet - Dave Holland, Sam Rivers');
+    expect(
+      joinArtistCredit([
+        { name: 'Patrick Woodroffe', join: '/' },
+        { name: 'Dave Greenslade (2)', join: '' },
+      ]),
+    ).toBe('Patrick Woodroffe, Dave Greenslade');
+    expect(joinArtistCredit([{ name: 'A' }, { name: 'B' }])).toBe('A, B');
   });
 });
 

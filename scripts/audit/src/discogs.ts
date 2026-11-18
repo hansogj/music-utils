@@ -254,7 +254,7 @@ interface RawRelease {
   year?: number | string;
   master_id?: number;
   title?: string;
-  artists?: Array<{ name: string }>;
+  artists?: Array<{ name: string; join?: string }>;
   genres?: string[];
   styles?: string[];
   country?: string;
@@ -405,10 +405,28 @@ export interface ReleaseInfo {
   title?: string; // album title: the master's, falling back to the release's own
   releaseTitle?: string;
   artists?: string[];
+  // Every credited artist joined as Discogs shows them, "/" as "," ("Patrick Woodroffe,
+  // Dave Greenslade"); only when more than one is credited.
+  artistCredit?: string;
   genres?: string[];
   styles?: string[];
   country?: string;
   extraartists?: Array<{ name: string; role: string }>;
+}
+
+// Discogs disambiguation suffixes like " (2)" off an artist name.
+const withoutNumber = (name: string) => name.replace(/\s*\(\d+\)\s*$/, '').trim();
+
+// "A, B", "A - B, C": each artist's `join` between it and the next. "/" and a missing join
+// become "," ("Patrick Woodroffe, Dave Greenslade"): the name goes in a folder name too.
+export function joinArtistCredit(artists: Array<{ name: string; join?: string }>): string {
+  return artists
+    .map((a, i) => {
+      if (i === artists.length - 1) return withoutNumber(a.name);
+      const join = a.join?.trim().replace(/^\/$/, ',') || ',';
+      return `${withoutNumber(a.name)}${join === ',' ? ', ' : ` ${join} `}`;
+    })
+    .join('');
 }
 
 // Fetch full release metadata (tracklist, year, title, artists, genres) for use in repair.ts.
@@ -427,11 +445,12 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     title: master?.title ?? data.title,
     releaseTitle: data.title,
     // Strip Discogs disambiguation suffixes like " (2)" from artist names.
-    artists: data.artists?.map((a) => a.name.replace(/\s*\(\d+\)\s*$/, '').trim()),
+    artists: data.artists?.map((a) => withoutNumber(a.name)),
+    ...(data.artists && data.artists.length > 1 ? { artistCredit: joinArtistCredit(data.artists) } : {}),
     genres: data.genres,
     styles: data.styles,
     country: data.country,
-    extraartists: data.extraartists?.map((a) => ({ name: a.name.replace(/\s*\(\d+\)\s*$/, '').trim(), role: a.role })),
+    extraartists: data.extraartists?.map((a) => ({ name: withoutNumber(a.name), role: a.role })),
   };
 }
 
