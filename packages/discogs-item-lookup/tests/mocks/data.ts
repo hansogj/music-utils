@@ -142,3 +142,42 @@ export const mockReissueMaster: DiscogsMasterResponse = {
   title: 'Deep Purple In Rock',
   main_release: 3422683,
 };
+
+// Two credited artists joined with "/", a suite listed as an index entry with sub-tracks,
+// a heading, track and release credits (shapes as in releases 4508999 and Yessongs).
+export const mockCreditsRelease: DiscogsReleaseResponse = {
+  ...mockRelease,
+  id: 5000001,
+  master_id: 0,
+  year: 1979,
+  title: 'The Pentateuch',
+  country: 'UK',
+  genres: ['Rock', 'Electronic'],
+  styles: ['Prog Rock'],
+  artists: [
+    { name: 'Patrick Woodroffe', id: 1, join: '/' },
+    { name: 'Dave Greenslade (2)', id: 2, join: '' },
+  ],
+  extraartists: [{ name: 'Rod Argent (2)', role: 'Keyboards' }],
+  tracklist: [
+    { position: '', title: 'Part One', type_: 'heading' },
+    {
+      position: '1',
+      title: 'Moondance',
+      type_: 'track',
+      duration: '4:10',
+      extraartists: [{ name: 'Dave Greenslade (2)', role: 'Written-By' }],
+    },
+    {
+      position: '',
+      title: 'And You And I',
+      type_: 'index',
+      duration: '10:09',
+      sub_tracks: [
+        { position: '2.a', title: 'Cord Of Life', type_: 'track' },
+        { position: '2.b', title: 'Eclipse', type_: 'track' },
+      ],
+    },
+    { position: '3', title: 'Coda', type_: 'track', duration: '2:00' },
+  ],
+};

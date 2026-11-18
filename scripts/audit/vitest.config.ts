@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Workspace packages from their src/, as tsx runs them: no build needed first.
+  resolve: { conditions: ['@hansogj/source'] },
+  ssr: { resolve: { conditions: ['@hansogj/source'] } },
   test: {
     environment: 'node',
     globals: true,

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import {
+  mockCreditsRelease,
   mockMaster,
   mockRelease,
   mockReleaseWithNumberedArtist,
@@ -56,6 +57,11 @@ export const handlers = [
   }),
   http.get(`${API_BASE_URL}/masters/4001`, () => {
     return HttpResponse.json({ ...mockMaster, id: 4001, year: 0, main_release: 4000001 });
+  }),
+
+  // Joined artists, an index entry, credits
+  http.get(`${API_BASE_URL}/releases/5000001`, () => {
+    return HttpResponse.json(mockCreditsRelease);
   }),
 
   // Handler for a not found error

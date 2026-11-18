@@ -16,9 +16,9 @@
     "dist"
   ],
   "scripts": {
-    "audit": "tsx src/audit.ts",
-    "test": "DISCOGS_TOKEN= tsx src/audit.ts --root=../../packages/music-utils/test-data/raw",
-    "completion": "tsx src/completion.ts bash",
+    "audit": "tsx --conditions=@hansogj/source src/audit.ts",
+    "test": "DISCOGS_TOKEN= tsx --conditions=@hansogj/source src/audit.ts --root=../../packages/music-utils/test-data/raw",
+    "completion": "tsx --conditions=@hansogj/source src/completion.ts bash",
     "vitest": "vitest run",
     "vitest:watch": "vitest watch",
     "vitest:ci": "vitest run --coverage",
@@ -29,6 +29,7 @@
     "format:check": "prettier --check src README.md eslint.config.mjs vitest.config.ts tsup.config.ts --ignore-path=../../.prettierignore"
   },
   "dependencies": {
+    "@hansogj/discogs-item-lookup": "workspace:1.5.1",
     "chalk": "^5.6.2",
     "dotenv": "^18.0.10"
   },

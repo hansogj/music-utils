@@ -11,4 +11,8 @@ export default defineConfig({
   sourcemap: false,
   dts: false,
   banner: { js: '#!/usr/bin/env node' },
+  // Workspace packages from their src/ (bundled in), as tsx runs them.
+  esbuildOptions(options) {
+    options.conditions = ['@hansogj/source'];
+  },
 });

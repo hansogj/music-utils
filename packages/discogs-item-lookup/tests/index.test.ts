@@ -64,6 +64,37 @@ describe('lookupRelease', () => {
     expect(result.releaseId).toBe('249504');
   });
 
+  it('returns the credited artists, the joined credit, genres and personnel', async () => {
+    const result = await lookupRelease({ releaseId: '5000001' });
+
+    expect(result.artists).toEqual(['Patrick Woodroffe', 'Dave Greenslade']);
+    expect(result.artistCredit).toBe('Patrick Woodroffe, Dave Greenslade');
+    expect(result.artist).toBe('Patrick Woodroffe, Dave Greenslade');
+    expect(result.genres).toEqual(['Rock', 'Electronic']);
+    expect(result.styles).toEqual(['Prog Rock']);
+    expect(result.country).toBe('UK');
+    expect(result.extraartists).toEqual([{ name: 'Rod Argent', role: 'Keyboards' }]);
+  });
+
+  it('keeps a suite (index entry) as one track and drops headings', async () => {
+    const result = await lookupRelease({ releaseId: '5000001' });
+
+    expect(result.discs).toHaveLength(1);
+    expect(result.discs[0].tracks.map((t) => [t.position, t.title, t.duration])).toEqual([
+      ['1', 'Moondance', '4:10'],
+      ['2', 'And You And I', '10:09'],
+      ['3', 'Coda', '2:00'],
+    ]);
+    expect(result.tracklist[0].extraartists).toEqual([{ name: 'Dave Greenslade', role: 'Written-By' }]);
+  });
+
+  it('gives no artistCredit for a single artist', async () => {
+    const result = await lookupRelease({ releaseId: '249504' });
+
+    expect(result.artists).toEqual(['Daft Punk']);
+    expect(result.artistCredit).toBeUndefined();
+  });
+
   it('should throw an error for an invalid release ID format', async () => {
     await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow(DiscogsApiError);
     await expect(lookupRelease({ releaseId: 'invalid-id' })).rejects.toThrow('Invalid Release ID format: "invalid-id"');

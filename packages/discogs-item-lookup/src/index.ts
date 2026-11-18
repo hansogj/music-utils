@@ -1,14 +1,16 @@
 import 'dotenv/config';
-import maybe from '@hansogj/maybe';
 import { fetchRelease, fetchMaster } from './core/api-client';
 import { parseDiscogsId } from './core/sanitizer';
 import { getToken } from './core/config';
 import { DiscogsApiError } from './errors';
-import type { LookupResult } from './types';
+import { cleanArtistName, flattenTracklist, joinArtistCredit } from './format';
+import type { DiscogsCredit } from './format';
+import type { LookupResult, LookupTrack } from './types';
 
 // By re-exporting, we make these part of the package's public API.
-export type { LookupResult } from './types';
+export type { LookupResult, LookupTrack } from './types';
 export { DiscogsApiError } from './errors';
+export * from './format';
 
 /**
  * Fetches and formats comprehensive release data from the Discogs API.
@@ -49,7 +51,15 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
   // - "1.01" => prefix before '.' indicates disc number
   // - "1" => track number on disc 1
   // Otherwise assume disc 1.
-  const tracklist = release.tracklist || [];
+  const cleanCredits = (credits: DiscogsCredit[] | undefined): DiscogsCredit[] =>
+    (credits ?? []).map(({ name, role }) => ({ name: cleanArtistName(name), role }));
+  // Index entries (suites with sub-tracks) are one track; headings are dropped.
+  const tracklist: LookupTrack[] = flattenTracklist(release.tracklist || []).map((t) => ({
+    position: t.position,
+    title: t.title,
+    ...(t.duration ? { duration: t.duration } : {}),
+    ...(t.extraartists?.length ? { extraartists: cleanCredits(t.extraartists) } : {}),
+  }));
 
   function parseDiscFromPosition(pos: string | undefined): number {
     if (!pos) return 1;
@@ -65,16 +75,14 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
     return 1;
   }
 
-  const discsMap = new Map<number, { position: string; title: string }[]>();
+  const discsMap = new Map<number, LookupTrack[]>();
 
-  tracklist
-    .filter(({ type_ }) => type_ === 'track')
-    .forEach((t, idx) => {
-      const pos = t.position || String(idx + 1);
-      const discNum = parseDiscFromPosition(pos);
-      if (!discsMap.has(discNum)) discsMap.set(discNum, []);
-      discsMap.get(discNum)!.push({ position: pos, title: t.title });
-    });
+  tracklist.forEach((t, idx) => {
+    const pos = t.position || String(idx + 1);
+    const discNum = parseDiscFromPosition(pos);
+    if (!discsMap.has(discNum)) discsMap.set(discNum, []);
+    discsMap.get(discNum)!.push({ ...t, position: pos });
+  });
 
   // Build discs array sorted by disc number
   let discs = Array.from(discsMap.entries())
@@ -83,7 +91,7 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
 
   // If every disc only has one track and the number of discs equals the number of tracks,
   // treat as a single disc (common for single-disc releases with positions "1", "2", ...)
-  const totalTracks = tracklist.filter(({ type_ }) => type_ === 'track').length;
+  const totalTracks = tracklist.length;
   if (discs.length === totalTracks && discs.every((d) => d.tracks.length === 1)) {
     discs = [{ disc: 1, tracks: discs.map((d) => d.tracks[0]) }];
   }
@@ -95,16 +103,23 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
     discs = discs.filter((d) => d.disc === discFilter);
   }
 
+  const artists = (release.artists ?? []).map((a) => cleanArtistName(a.name));
+
   // Format the final data structure
   return {
-    artist: maybe(release.artists)
-      .map((artists) => artists.map((a) => a.name.replace(/\s*\(\d+\)\s*$/, '').trim()).join(', '))
-      .valueOr('Unknown Artist'),
+    artist: artists.length ? artists.join(', ') : 'Unknown Artist',
+    artists,
+    ...(release.artists && release.artists.length > 1 ? { artistCredit: joinArtistCredit(release.artists) } : {}),
     // Album title and year come from the master (the original album) when there is one.
     title: master?.title ?? release.title,
     releaseTitle: release.title,
     totalDiscs,
     discs,
+    tracklist,
+    genres: release.genres ?? [],
+    styles: release.styles ?? [],
+    ...(release.country ? { country: release.country } : {}),
+    extraartists: cleanCredits(release.extraartists),
     masterYear: masterYear,
     releaseYear: release.year,
     releaseId: sanitizedId,

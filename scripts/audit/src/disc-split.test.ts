@@ -1,7 +1,8 @@
+import { flattenTracklist } from '@hansogj/discogs-item-lookup/format';
 import { describe, expect, it } from 'vitest';
 
 import { albumBaseOfFolder, describeSlice, discOfFolder, sliceForDisc, windowAt } from './disc-split.js';
-import { flattenTracklist, numberTracklist } from './discogs.js';
+import { numberTracklist } from './discogs.js';
 
 const track = (position: string, title: string) => ({ position, title, type_: 'track' });
 const index = (title: string, subPositions: string[]) => ({

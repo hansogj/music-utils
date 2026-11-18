@@ -74,7 +74,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 
 ## `scripts/audit/` — music-audit
 
-Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-audit run audit -- [options]` or via the installed `music-audit` binary. The binary (`scripts/audit/bin/music-audit`, linked by `scripts/install-bins.sh`) runs `src/audit.ts` from this checkout through tsx: the checked-out branch is what runs, with no build or publish step. User docs, including the prompt keys: `scripts/audit/README.md`.
+Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-audit run audit -- [options]` or via the installed `music-audit` binary. The binary (`scripts/audit/bin/music-audit`, linked by `scripts/install-bins.sh`) runs `src/audit.ts` from this checkout through tsx: the checked-out branch is what runs, with no build or publish step. It imports `@hansogj/discogs-item-lookup/format` (`workspace:<version>`) from that package's `src/` through the `@hansogj/source` export condition (tsx `--conditions`, vitest `resolve.conditions`, tsup `esbuildOptions`, tsconfig `customConditions`), so the package needs no build either; `publishConfig.exports` leaves the condition out of the published package. User docs, including the prompt keys: `scripts/audit/README.md`.
 
 ### Architecture
 
@@ -94,8 +94,8 @@ scripts/audit/src/
   discogs.ts      — searchDiscogs() (+ matchScore(), per disc for a disc folder),
                     fetchRelease(), fetchMaster(), fetchOriginalYear(), parseDiscogsRef(),
                     resolveReleaseId(), pickMasterVersion() (master → CD version for a disc
-                    folder), flattenTracklist() (index entries → one track),
-                    numberTracklist(); fetchReleaseCover() / downloadImage() / discogsCoverSource()
+                    folder), numberTracklist(); flattenTracklist() (index entries → one
+                    track) and joinArtistCredit() come from discogs-item-lookup/format; fetchReleaseCover() / downloadImage() / discogsCoverSource()
                     (cover hashes cached in ~/.cache/music-audit/cover-hashes.json); all HTTP through discogsGet(), which waits on
                     the shared rate limiter and retries 429/500; releases cached per session
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
@@ -125,7 +125,8 @@ scripts/audit/src/
   report.ts       — printReport(); terminal-formatted severity sections
   server.ts       — serveReport(): HTML UI mode (--ui flag)
   logger.ts       — AuditLogger: JSON Lines session/album/summary events (--log)
-  info-txt.ts     — writeInfoTxt() (Discogs-rich); writeInfoTxtFromTags() (fallback); both skip
+  info-txt.ts     — writeInfoTxt() (Discogs-rich, text from discogs-item-lookup's
+                    formatInfoTxt(), shared with rip); writeInfoTxtFromTags() (fallback); both skip
                     the write when the text is unchanged; appendChangeset() (dated lines under
                     a Changeset header at the bottom, kept across rewrites)
   paste.ts        — parsePastedTracklist(): a tracklist the user pastes (titles, "01 - Title",
