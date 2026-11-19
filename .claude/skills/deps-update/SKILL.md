@@ -26,9 +26,44 @@ Show what's outdated before touching anything:
 cd /git/music/music-utils && npx npm-check-updates --deep -t minor
 ```
 
-Report the list to the user. If nothing is outdated, tell them and stop.
+Report the list to the user. Don't stop yet when nothing is outdated: Step 1b may still find something to fix.
 
 For major updates the user must explicitly ask (e.g. `/deps-update majors`). In that case use `-t latest` instead of `-t minor` in all commands below.
+
+---
+
+## Step 1b — Check open Dependabot alerts
+
+List the open alerts (`gh` needs the sandbox off):
+
+```bash
+cd /git/music/music-utils && gh api repos/hansogj/music-utils/dependabot/alerts --paginate \
+  --jq '.[] | select(.state=="open") | [.number, .security_advisory.severity, .dependency.package.name, .security_vulnerability.vulnerable_version_range, (.security_vulnerability.first_patched_version.identifier // "none"), (.dependency.scope // ""), .security_advisory.summary] | @tsv'
+```
+
+For each alert, find what pulls the package in and whether a published package ships it:
+
+```bash
+cd /git/music/music-utils && pnpm why <package> -r
+```
+
+A package only under `devDependencies` (vite, vitest, eslint, changesets, …) never reaches users; one under a published package's `dependencies` does. Go by `pnpm why`, not the alert's scope column: Dependabot can't tell dev from runtime in `pnpm-lock.yaml` and often says `runtime` for dev tooling.
+
+An advisory whose summary starts with "Withdrawn Advisory" is no longer considered a vulnerability: GitHub usually closes such alerts by itself. Report it; if it stays open, offer to dismiss it (`dismissed_reason=inaccurate`, comment "Advisory withdrawn").
+
+Sort the alerts into:
+
+1. **Fixed by the updates**: a direct dependency, or a transitive one whose parent's new version takes the patched release. Step 3 handles it; check afterwards (Step 3b).
+2. **Patched, but nothing pulls the fix in**: add an override to `pnpm-workspace.yaml` under `overrides:`, in the style of the ones there (comment: advisory, affected range, `Via:` chain). Keep the override to the vulnerable major, e.g. `picomatch@4: '^4.0.8'`, so a parent that needs another major isn't forced onto it. If `minimumReleaseAge` rejects the patched version because it's too fresh, don't weaken the policy: report it and leave the alert for the next run.
+3. **No patched version yet**: nothing to install. Report it with its exposure (dev-only or shipped) and ask the user with `AskUserQuestion` whether to leave it open or dismiss it. Never dismiss an alert without asking. A dismissal, for a dev-only package whose input is the repo's own code, looks like:
+
+   ```bash
+   gh api -X PATCH repos/hansogj/music-utils/dependabot/alerts/<n> \
+     -f state=dismissed -f dismissed_reason=tolerable_risk \
+     -f dismissed_comment="Dev-only (<via chain>); no patched version yet; input is the repo's own globs/config."
+   ```
+
+Report the sorted list to the user together with the outdated list. **Stop here** when nothing is outdated and no alert is in group 1 or 2.
 
 ---
 
@@ -53,7 +88,19 @@ For major updates:
 cd /git/music/music-utils && npx npm-check-updates -u -t latest --deep && pnpm run post:update
 ```
 
-`post:update` removes `node_modules`, prunes, and reinstalls cleanly.
+`post:update` removes `node_modules`, prunes, and reinstalls cleanly. If Step 1b added overrides, run `pnpm install` once more after editing `pnpm-workspace.yaml`.
+
+Then check `git diff pnpm-workspace.yaml`: pnpm sometimes adds `minimumReleaseAge` exemptions on its own. Remove them and pick a version one release older instead.
+
+### Step 3b — Check the alerts are gone
+
+For each alert from groups 1 and 2 of Step 1b:
+
+```bash
+cd /git/music/music-utils && pnpm why <package> -r
+```
+
+No version in the vulnerable range may be left. If one is, add or widen an override (Step 1b, group 2) and install again. GitHub closes the alerts by itself once the PR's lockfile reaches `main`.
 
 ---
 
@@ -69,7 +116,7 @@ This is what the git pre-commit hook runs (tests, coverage thresholds, CI tag te
 
 ## Step 5 — Add a changeset (only if needed)
 
-A changeset is needed only for a published package whose **`dependencies`** (runtime) changed — that changes what users install. Pure `devDependencies` bumps don't need a release; skip this step for them.
+A changeset is needed only for a published package whose **`dependencies`** (runtime) changed — that changes what users install. Pure `devDependencies` bumps don't need a release; skip this step for them. An override in `pnpm-workspace.yaml` doesn't need one either: it changes only this repo's lockfile, not what users install (to fix a shipped transitive dependency for users, raise the direct dependency's range instead).
 
 Ask the user for the bump type with `AskUserQuestion` (default **patch** — dependency updates rarely change public API). Write the file directly (avoid the interactive `pnpm changeset` CLI), listing only the affected published packages:
 
@@ -108,6 +155,9 @@ cd /git/music/music-utils && gh pr create --base main \
 ## Summary
 - Bump dependencies to latest minor versions
 - Full precommit suite passing
+
+## Dependabot
+<"Fixes #<n> (<package>, <severity>) by …", one line per alert; alerts left open (no patch yet) and why; or "No open alerts.">
 
 ## Release
 <"Changeset included for …" or "Dev dependencies only — no release needed.">
