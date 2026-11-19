@@ -45,7 +45,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 ### Key conventions
 
 - The `∕` character (DISC_NO_SPLIT, not a regular slash) separates disc number from total in folder names
-- Definite articles ("the", "los", "il", etc.) can be moved to suffix position for artist sorting ("The Beatles" -> "Beatles, The"); off by default, enabled with `artist.sortArticles: true` in config
+- Definite articles ("the", "los", "il", etc.) can be moved to suffix position for artist sorting ("The Beatles" -> "Beatles, The"); off by default, enabled with `artist.sortArticles: true` in config. Only the artist tags (and track file names' artist) change, in `tag album` and rip; the artist folder keeps "The Beatles". music-audit reads the same setting (`scripts/audit/src/articles.ts`)
 - `@hansogj/array.utils` provides `.defined()` (filter nullish) and `.onEmpty()` chainable array methods used extensively throughout
 - `@hansogj/maybe` provides Maybe/Optional monad used for null-safe value access
 - **rip tags like music-audit** (`src/run/rip.ts`): `artistChoicePrompt()` (prompt.ts: first credited artist / all credits / typed, only when Discogs credits several), `Release.discogs` (`DiscogsTags`: release/master ID, genre, URL) → FLAC ORIGINALDATE, GENRE, COMMENT, DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID; DISCTOTAL instead of the old DISCID; MP3 TPE2; info.txt from discogs-item-lookup's `formatInfoTxt()`. The confirm prompt prints `releaseTable()` (utils/release-table.ts). Tags keep names as they are; `folderSafe()` (config/render.ts, as audit's `sanitizeFilename()`) makes artist/album folder names safe
@@ -156,7 +156,12 @@ scripts/audit/src/
                     included (tags carry them); NFC, case-insensitive, diacritics kept; Various
                     Artists skipped. Repair: folder name → ALBUMARTIST (+ ARTIST where empty/same),
                     or move the album to the tags' artist (expectedLetter()). Hidden while an
-                    artist folder rename is pending (rescanAlbum())
+                    artist folder rename is pending (rescanAlbum()). expectedArtistTag(): with
+                    music-utils' artist.sortArticles on, "Beatles, The" for folder "The Beatles"
+  articles.ts     — loadArticleSort() (./music-utils.config.json, ~/.music-utilsrc.json, as
+                    music-utils' config/load.ts), sortArtist() / unsortArtist(); every tag
+                    write of the artist (Discogs, paste, folder, artist fix) goes through
+                    sortArtist(); tests run with it off (test-setup.ts, setArticleSort())
     duplicates.ts — DUPLICATE_TRACKS: whole titles, qualifier included; likelyExtras()
     discogs-ids.ts — MISSING_RELEASE_ID: mp3 with a master ID but no release ID (lost by
                     the 81963c0/43bd432 writer); repair restores it from the comment URL

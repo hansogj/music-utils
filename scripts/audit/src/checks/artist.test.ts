@@ -68,6 +68,39 @@ describe('checkArtistFolder', () => {
     ]);
   });
 
+  describe('with music-utils artist.sortArticles on', () => {
+    const sorted = { sortArticles: true, articles: ['the', 'le'] };
+    const sortedCodes = (artist: string, ...tags: TrackTags[]) =>
+      checkArtistFolder(layout(artist), tags.map(track), sorted).map((i) => [i.code, i.message, i.suggestion]);
+
+    it('expects the article last, as music-utils tags it', () => {
+      expect(sortedCodes('The Beatles', { albumArtist: 'Beatles, The' })).toEqual([]);
+      expect(sortedCodes('Beatles, The', { albumArtist: 'Beatles, The' })).toEqual([]);
+      expect(sortedCodes('The Dionysos [Canada]', { albumArtist: 'Dionysos, The [Canada]' })).toEqual([]);
+      expect(sortedCodes('Henry Cow', { albumArtist: 'Henry Cow' })).toEqual([]);
+    });
+
+    it('reports the plain name, and the repair writes the sorted one', () => {
+      expect(sortedCodes('The Beatles', { albumArtist: 'The Beatles' })).toEqual([
+        [
+          'ARTIST_TAG_INVERTED',
+          'Artist tag "The Beatles" should be "Beatles, The" (artist.sortArticles is on)',
+          'Write "Beatles, The" to the artist tags',
+        ],
+      ]);
+    });
+
+    it("suggests the plain folder name when moving to the tags' artist", () => {
+      expect(sortedCodes('Beatles Tribute', { albumArtist: 'Rolling Stones, The' })[0][2]).toBe(
+        'Write "Beatles Tribute" to the artist tags, or move the album to "The Rolling Stones"',
+      );
+    });
+  });
+
+  it('reports the tag of a sorted folder name in plain order', () => {
+    expect(codes('Beatles, The', { albumArtist: 'The Beatles' }).map((c) => c[0])).toEqual(['ARTIST_TAG_INVERTED']);
+  });
+
   it('skips Various Artists and albums without artist tags', () => {
     expect(codes('Various Artists', { artist: 'Yes' })).toEqual([]);
     expect(codes('Yes', { title: 'Roundabout' })).toEqual([]);

@@ -108,7 +108,7 @@ Templates use `{token}` substitution. Available tokens: `{artist}`, `{album}`, `
 
 ### `artist.sortArticles` / `artist.articles`
 
-Off by default: artist folders keep the article (`The Beatles`). When `true`, definite articles listed in `articles` move to the end during folder naming: `"The Beatles" → "Beatles, The"`; replace `articles` with your own list if needed.
+Off by default: tags keep the article (`The Beatles`). When `true`, definite articles listed in `articles` move to the end in the artist tags that `music-utils rip` and `music-utils tag album` write (and the artist in track file names): `"The Beatles" → "Beatles, The"`. The artist folder keeps its name (`The Beatles`). Replace `articles` with your own list if needed. `music-audit` reads the same setting and expects the same tags.
 
 ### `cover.filename`
 

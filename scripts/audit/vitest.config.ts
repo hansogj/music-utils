@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['src/**/*.test.ts'],
+    setupFiles: ['src/test-setup.ts'],
     reporters: ['default'],
     coverage: {
       provider: 'v8',
@@ -16,6 +17,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: [
         '**/*.test.ts',
+        '**/test-setup.ts',
         '**/audit.ts',
         '**/repair.ts',
         '**/server.ts',
