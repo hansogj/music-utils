@@ -1,7 +1,7 @@
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import type { Release, Track } from '../types';
 import { DEFAULT_CONFIG } from './defaults';
-import { renderAlbumFolder, renderArtistFolder, renderTemplate, renderTrackName } from './render';
+import { folderSafe, renderAlbumFolder, renderArtistFolder, renderTemplate, renderTrackName } from './render';
 import type { Config } from './schema';
 
 describe('renderTemplate', () => {
@@ -16,6 +16,24 @@ describe('renderTemplate', () => {
   });
   it('leaves non-token text untouched', () => {
     expect(renderTemplate('literal', {})).toBe('literal');
+  });
+});
+
+describe('folderSafe', () => {
+  it('turns path separators and colons into " - " and drops other unsafe characters', () => {
+    expect(folderSafe('Opening/Siberian Khatru')).toBe('Opening - Siberian Khatru');
+    expect(folderSafe('Title: Part 2')).toBe('Title - Part 2');
+    expect(folderSafe('What? "Me"*')).toBe('What Me');
+    expect(folderSafe(undefined)).toBeUndefined();
+  });
+});
+
+describe('folder names from Discogs titles', () => {
+  it('keeps unsafe characters out of album and artist folders', () => {
+    expect(renderAlbumFolder({ album: 'Tubular Bells / Hergest Ridge', year: '1980' }, DEFAULT_CONFIG)).toBe(
+      '1980 Tubular Bells - Hergest Ridge',
+    );
+    expect(renderArtistFolder({ artist: 'AC/DC' }, DEFAULT_CONFIG)).toBe('AC - DC');
   });
 });
 

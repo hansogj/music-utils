@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
 import { Release } from '../types';
-import { albumPrompt, Question, userDefinedPrompt, validate, validateCrossField } from './prompt';
+import { albumPrompt, artistChoicePrompt, Question, userDefinedPrompt, validate, validateCrossField } from './prompt';
 
 const { mockPrompt } = vi.hoisted(() => ({ mockPrompt: vi.fn() }));
 vi.mock('prompts', () => ({
@@ -61,6 +61,44 @@ describe('prompt', () => {
         album: 'Album with multiple space',
         noOfDiscs: '2',
       }));
+  });
+
+  describe('userDefinedPrompt with Discogs data', () => {
+    it('asks only the editable fields and keeps the Discogs IDs', async () => {
+      const discogs = { releaseId: '1', url: 'https://www.discogs.com/release/1' };
+      mockPrompt.mockResolvedValueOnce({ album: 'New' });
+      const response = await userDefinedPrompt({ artist: 'A', album: 'Old', discogs });
+      expect(mockPrompt.mock.calls[0][0].map((q: { name: string }) => q.name)).toEqual([
+        'artist',
+        'album',
+        'year',
+        'discNumber',
+        'noOfDiscs',
+        'aux',
+      ]);
+      expect(response).toEqual({ artist: 'A', album: 'New', discogs });
+    });
+  });
+
+  describe('artistChoicePrompt', () => {
+    it('asks nothing without several credits', async () => {
+      expect(await artistChoicePrompt({ first: 'Yes' })).toBe('Yes');
+      expect(mockPrompt).not.toHaveBeenCalled();
+    });
+
+    it('offers the first artist, all credits or a typed name', async () => {
+      const choice = { first: 'Patrick Woodroffe', credit: 'Patrick Woodroffe, Dave Greenslade' };
+      mockPrompt.mockResolvedValueOnce({ value: choice.credit });
+      expect(await artistChoicePrompt(choice)).toBe(choice.credit);
+      expect(mockPrompt.mock.calls[0][0].choices.map((c: { value: string }) => c.value)).toEqual([
+        choice.first,
+        choice.credit,
+        '',
+      ]);
+
+      mockPrompt.mockResolvedValueOnce({ value: '' }).mockResolvedValueOnce({ value: '  Woodroffe  &  Greenslade ' });
+      expect(await artistChoicePrompt(choice)).toBe('Woodroffe & Greenslade');
+    });
   });
 
   describe.each([

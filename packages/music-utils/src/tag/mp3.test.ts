@@ -81,6 +81,8 @@ describe('mp3', () => {
           [
             '--TPE1',
             'Magma',
+            '--TPE2',
+            'Magma',
             '--TPOS',
             '02/04',
             '--TYER',
