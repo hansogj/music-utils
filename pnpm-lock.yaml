@@ -270,7 +270,7 @@ importers:
         specifier: workspace:1.4.1
         version: link:../discogs-cover
       '@hansogj/discogs-item-lookup':
-        specifier: workspace:1.5.1
+        specifier: workspace:1.6.0
         version: link:../discogs-item-lookup
       '@hansogj/maybe':
         specifier: 2.7.3
@@ -358,7 +358,7 @@ importers:
   scripts/audit:
     dependencies:
       '@hansogj/discogs-item-lookup':
-        specifier: workspace:1.5.1
+        specifier: workspace:1.6.0
         version: link:../../packages/discogs-item-lookup
       chalk:
         specifier: ^5.6.2

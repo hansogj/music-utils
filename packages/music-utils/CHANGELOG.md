@@ -1,5 +1,25 @@
 # @hansogj/music-utils
 
+## 2.3.0
+
+### Minor Changes
+
+- dcad32d: `music-utils rip` tags and files an album the way `music-audit` does after Discogs tagging:
+
+  - When Discogs credits several artists, a list asks for the name (first credited artist, all credits, or typed). One name goes in the artist folder, `ARTIST`, `ALBUMARTIST` and `info.txt`.
+  - The confirm step (rip, `tag album`) shows the release as a table, with the folder it goes to and the Discogs IDs, instead of a JSON dump.
+  - FLAC tags also get `ORIGINALDATE`, `GENRE`, `COMMENT` (release URL), `DISCOGS_RELEASE_ID` and `DISCOGS_MASTER_ID`; `DISCTOTAL` replaces the old `DISCID=1/2` tag (removed when disc info is written).
+  - MP3 tags get `TPE2` (album artist) too.
+  - Tags keep titles as they are (`:` and `/` used to become `_`); folder names turn `/`, `\` and `:` into ` - `.
+  - An `info.txt` with the Discogs tracklist, durations, composers, personnel and `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines is written in the album folder (an existing one is kept).
+
+### Patch Changes
+
+- 539b092: Bash completion for `music-audit` no longer offers `--no-discogs`, which music-audit dropped: without a Discogs token it asks whether to go on offline.
+- 658cde9: `music-utils rip` follows `artist.sortArticles` like `tag album`: with it on, the artist tags say "Beatles, The" while the artist folder and `info.txt` keep "The Beatles". The README now says that the setting changes the tags, not the folder name.
+- Updated dependencies [71e7b99]
+  - @hansogj/discogs-item-lookup@1.6.0
+
 ## 2.2.2
 
 ### Patch Changes
