@@ -1382,10 +1382,28 @@ describe('repairAlbum — Discogs first', () => {
     ]);
   });
 
-  it('offers pasting first when Discogs finds nothing, and tags from the folder and the list', async () => {
+  it('takes a release ID on Enter when Discogs finds nothing', async () => {
     const audit = await scan();
     const done = answer([
-      [/^ {2}Choice \[1\]/, ''], // [1] Paste the tracklist
+      [/^ {2}Choice \[1\]/, ''], // [1] Enter a Discogs release ID
+      [/Release ID/, '4376665'],
+      [/Apply renames\?/, 'n'],
+      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/./, 'q'],
+    ]);
+    await repairAlbum(audit, first());
+    done();
+    expect(events[0]).toMatchObject({
+      issue: 'DISCOGS',
+      action: 'Tagged from Discogs release 4376665',
+      result: 'fixed',
+    });
+  });
+
+  it('offers a release ID first when Discogs finds nothing; [2] tags from the folder and a pasted list', async () => {
+    const audit = await scan();
+    const done = answer([
+      [/^ {2}Choice \[1\]/, '2'], // [2] Paste the tracklist
       ...pasted.map((l): [RegExp, string] => [/^$/, l]),
       [/^$/, ''],
       [/Tag 7 file\(s\) like this\? \[Y\/n\]/, ''],
@@ -1396,7 +1414,7 @@ describe('repairAlbum — Discogs first', () => {
     done();
     const out = output.join('\n');
     expect(out).toMatch(/Discogs search found no match for "Yezda Urfa – 1976 Sacred Baboon"/);
-    expect(out).toMatch(/\[2\] Enter a Discogs release ID/);
+    expect(out).toMatch(/\[1\] Enter a Discogs release ID\n {2}\[2\] Paste the tracklist/);
     const track1 = await readFake(path.join(layout.albumPath, "01 - Give 'Em Some Rawhide Chewies.mp3"));
     expect(track1).toEqual({
       TITLE: "Give 'Em Some Rawhide Chewies",
@@ -1420,7 +1438,7 @@ describe('repairAlbum — Discogs first', () => {
     await fs.writeFile(path.join(layout.albumPath, 'info.txt'), 'Ripped from my own LP, 1998\n');
     const audit = await scan();
     answer([
-      [/^ {2}Choice \[1\]/, '1'],
+      [/^ {2}Choice \[1\]/, '2'],
       ...pasted.map((l): [RegExp, string] => [/^$/, l]),
       [/^$/, ''],
       [/Tag 7 file\(s\)/, ''],
@@ -1435,9 +1453,9 @@ describe('repairAlbum — Discogs first', () => {
   it('asks again when the paste is cancelled or the pairing declined', async () => {
     const audit = await scan();
     const done = answer([
-      [/^ {2}Choice \[1\]/, '1'],
+      [/^ {2}Choice \[1\]/, '2'],
       [/^$/, ''], // nothing pasted
-      [/^ {2}Choice \[1\]/, '1'],
+      [/^ {2}Choice \[1\]/, '2'],
       ...pasted.map((l): [RegExp, string] => [/^$/, l]),
       [/^$/, ''],
       [/Tag 7 file\(s\)/, 'n'],

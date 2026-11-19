@@ -1732,15 +1732,11 @@ async function discogsFirstStep(
       ),
     );
     const paste = 'Paste the tracklist (one line per track; artist, album and year from the folder)';
-    const choices: Array<[string, 'discogs' | 'paste']> = found
-      ? [
-          [discogs.label, 'discogs'],
-          [paste, 'paste'],
-        ]
-      : [
-          [paste, 'paste'],
-          ['Enter a Discogs release ID', 'discogs'],
-        ];
+    // Discogs first ([1], Enter) also without a search hit: the release ID is often known.
+    const choices: Array<[string, 'discogs' | 'paste']> = [
+      [found ? discogs.label : 'Enter a Discogs release ID', 'discogs'],
+      [paste, 'paste'],
+    ];
     choices.forEach(([label], i) => console.log(`  [${i + 1}] ${label}`));
     const fixOne = audit.issues.length > 0;
     console.log(
