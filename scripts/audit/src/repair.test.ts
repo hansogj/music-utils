@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setArticleSort } from './articles.js';
 import type { ReleaseInfo } from './discogs.js';
 import type { AlbumAudit, AlbumLayout, TrackTags } from './types.js';
 
@@ -1592,6 +1593,61 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     ]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).not.toMatch(/Artist names differ/);
+  });
+});
+
+describe('repairAlbum — music-utils artist.sortArticles on', () => {
+  const SORTED = { sortArticles: true, articles: ['the'] };
+  // The fixture album under "Y/The Yezdas".
+  const moveToTheYezdas = async () => {
+    const artistDir = path.join(root, 'Y', 'The Yezdas');
+    await fs.rename(path.dirname(layout.albumPath), artistDir);
+    Object.assign(layout, { artistName: 'The Yezdas', albumPath: path.join(artistDir, layout.albumFolder) });
+  };
+  const firstTrack = async () => {
+    const track = (await fs.readdir(layout.albumPath)).find((f) => f.endsWith('.mp3'))!;
+    return readFake(path.join(layout.albumPath, track));
+  };
+
+  it('reports a plain artist tag and writes the article last', async () => {
+    await moveToTheYezdas();
+    await tagAll({ ARTIST: 'The Yezdas', ALBUMARTIST: 'The Yezdas' });
+    setArticleSort(SORTED);
+    const audit = await scan();
+    expect(audit.issues.find((i) => i.code === 'ARTIST_TAG_INVERTED')?.message).toBe(
+      'Artist tag "The Yezdas" should be "Yezdas, The" (artist.sortArticles is on)',
+    );
+    answer([
+      [/^ {2}Choice \[1\]/, 's'], // NAME_TAG_MISMATCH on track 6
+      [/Brackets:/, ''],
+      [/^ {2}Choice \[1\]/, ''],
+      [/./, 'q'],
+    ]);
+    await repairAlbum(audit, ctx());
+    expect(output.join('\n')).toMatch(/Write "Yezdas, The" to the artist tags/);
+    expect(await firstTrack()).toMatchObject({ ARTIST: 'Yezdas, The', ALBUMARTIST: 'Yezdas, The' });
+  });
+
+  it('tags from Discogs with the article last; folder and info.txt keep it first', async () => {
+    await moveToTheYezdas();
+    await tagAll({ ARTIST: 'Yezdas, The', ALBUMARTIST: 'Yezdas, The' });
+    setArticleSort(SORTED);
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, year: '1976', artists: ['The Yezdas'] });
+    const audit = await scan();
+    expect(audit.issues.map((i) => i.code)).not.toContain('ARTIST_TAG_INVERTED');
+    answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID/, '1'],
+      [/Apply renames\?/, 'n'],
+      [/./, 'q'],
+    ]);
+    await repairAlbum(audit, ctx());
+    // Folder, Discogs and tags agree once the tags' article is put back first.
+    expect(output.join('\n')).not.toMatch(/Artist names differ/);
+    expect(await firstTrack()).toMatchObject({ ARTIST: 'Yezdas, The', ALBUMARTIST: 'Yezdas, The' });
+    const info = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8');
+    expect(info.split('\n')[0]).toBe('The Yezdas - Sacred Baboon (1976)');
   });
 });
 

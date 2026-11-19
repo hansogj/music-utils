@@ -17,6 +17,7 @@ import {
 } from '@hansogj/discogs-item-lookup';
 
 import { tagAlbum } from '../album';
+import { artistSortable } from '../album/parse.path';
 import { getConfig, renderAlbumFolder, renderArtistFolder } from '../config';
 import { coverFromDiscogs } from '../covers/photo';
 import { Release } from '../types';
@@ -272,7 +273,10 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     console.log('\n✏️  Tagging tracks...');
     const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');
     const tracks = trackLines.split('\n').defined().map(replaceDangers);
-    const { files, release: taggedRelease } = await tagAlbum(process.cwd(), tracks, safeRelease);
+    // As `tag album` does: with artist.sortArticles on the tags say "Beatles, The"; the
+    // artist folder and info.txt keep "The Beatles".
+    const tagRelease = { ...safeRelease, artist: artistSortable(safeRelease.artist ?? '') };
+    const { files, release: taggedRelease } = await tagAlbum(process.cwd(), tracks, tagRelease);
     await syncTrackNames(files, taggedRelease as Release);
 
     console.log(`\n🔀 Returning to starting directory: ${initialDir}`);

@@ -6,7 +6,8 @@ import readline from 'node:readline/promises';
 
 import chalk from 'chalk';
 
-import { albumArtistOf, commonAlbumArtist } from './checks/artist.js';
+import { sortArtist, unsortArtist } from './articles.js';
+import { albumArtistOf, commonAlbumArtist, expectedArtistTag } from './checks/artist.js';
 import { releaseIdFrom, tracksMissingReleaseId } from './checks/discogs-ids.js';
 import { expectedLetter } from './checks/folder.js';
 import { localNumbering, matchNames } from './checks/names.js';
@@ -393,8 +394,10 @@ async function chooseArtist(
   const { name: folder, brackets } = splitArtistBrackets(layout.artistName);
   const discogs = release.artists?.[0];
   // The tags carry the folder's brackets ("Dionysos [Canada]"): compared without them.
+  // With artist.sortArticles on they hold "Beatles, The": compared as "The Beatles".
   const fullTag = commonAlbumArtist(tracks);
-  const tagged = brackets && fullTag?.endsWith(brackets) ? fullTag.slice(0, -brackets.length).trim() : fullTag;
+  const bare = brackets && fullTag?.endsWith(brackets) ? fullTag.slice(0, -brackets.length).trim() : fullTag;
+  const tagged = bare && unsortArtist(bare);
   if (!discogs) return folder;
   const names = [folder, discogs, ...(tagged ? [tagged] : [])];
   if (new Set(names.map(normName)).size === 1) return folder;
@@ -835,8 +838,9 @@ function buildDiscogsAction(
               : `${what} ${-extra} fewer track(s) — may be a different pressing`;
           },
           tags: ({ no, disc, total, title }) => ({
-            ARTIST: fullArtist,
-            ALBUMARTIST: fullArtist,
+            // As music-utils tags it: "Beatles, The" with artist.sortArticles on.
+            ARTIST: sortArtist(fullArtist),
+            ALBUMARTIST: sortArtist(fullArtist),
             ALBUM: album,
             TRACKNUMBER: `${no}/${total}`,
             DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
@@ -1035,8 +1039,8 @@ async function tagFromPaste(audit: AlbumAudit): Promise<boolean> {
     countWarning: (extra) =>
       extra > 0 ? `The list has ${extra} more line(s) than there are files` : `The list has ${-extra} line(s) too few`,
     tags: ({ no, disc, total, title }) => ({
-      ARTIST: meta.artist,
-      ALBUMARTIST: meta.artist,
+      ARTIST: sortArtist(meta.artist),
+      ALBUMARTIST: sortArtist(meta.artist),
       ALBUM: meta.album,
       TRACKNUMBER: `${no}/${total}`,
       DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
@@ -1159,8 +1163,8 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
           for (const [i, { name, ext }] of files.entries()) {
             const { no, disc } = local[i];
             const tags: Record<string, string> = {
-              ARTIST: meta.artist,
-              ALBUMARTIST: meta.artist,
+              ARTIST: sortArtist(meta.artist),
+              ALBUMARTIST: sortArtist(meta.artist),
               ALBUM: meta.album,
               TRACKNUMBER: `${no}/${total}`,
               DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
@@ -1276,7 +1280,8 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
     // ── MODERATE: artist folder vs the artist tags ────────────────────────
     case 'ARTIST_TAG_INVERTED':
     case 'ARTIST_FOLDER_MISMATCH': {
-      const folder = layout.artistName;
+      // The folder's name, or "Beatles, The" for "The Beatles" with artist.sortArticles on.
+      const folder = expectedArtistTag(layout.artistName);
       const tagged = commonAlbumArtist(audit.tracks);
       const actions: RepairAction[] = [
         {
@@ -1296,7 +1301,8 @@ async function repairActions(issue: Issue, audit: AlbumAudit, token?: string): P
       ];
       if (issue.code === 'ARTIST_FOLDER_MISMATCH' && tagged) {
         // "/" can't be in a folder name: "A / B" → "A, B", as a joined Discogs credit.
-        const target = sanitizeFilename(tagged.replace(/\s*\/\s*/g, ', '));
+        // Folders keep the article first ("Beatles, The" tags → "The Beatles").
+        const target = sanitizeFilename(unsortArtist(tagged).replace(/\s*\/\s*/g, ', '));
         const letterDir = layout.letterDir ?? '';
         const letter = /^[A-Z0-9]$/i.test(letterDir) ? expectedLetter(target) : undefined;
         const otherLetter = letter && letter !== letterDir.toUpperCase() ? letter : undefined;

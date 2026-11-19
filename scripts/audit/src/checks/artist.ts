@@ -1,3 +1,4 @@
+import { type ArticleSort, articleSort, sortArtist, unsortArtist } from '../articles.js';
 import type { AlbumLayout, Issue, TrackInfo } from '../types.js';
 
 // Names compared as written (NFC, case aside): "Ytre Suløens" and "Ytre Suloens" differ.
@@ -27,28 +28,45 @@ export function commonAlbumArtist(tracks: TrackInfo[]): string | undefined {
 // The folder's name without its own brackets: "Dionysos [Canada]" → "Dionysos".
 const withoutBrackets = (name: string) => name.replace(/(\s*\[[^\]]*\])+\s*$/, '').trim();
 
-// The artist folder names the album artist the tags give (ALBUMARTIST, else ARTIST), on at
-// least one track; the folder's brackets included ("Dionysos [Canada]"), so same-named
-// artists stay apart in a player. Players group by the tag. When no track agrees:
-// ARTIST_TAG_INVERTED when a tag is the folder's name inverted ("Doors, the"), else
+// The same artist with the article or the name order elsewhere: "Doors, the" for "The Doors",
+// "The Beatles" for "Beatles, The". Brackets aside, but a missing bracket alone doesn't count.
+function reordered(tag: string, folder: string): boolean {
+  const plainTag = withoutBrackets(tag);
+  const plainFolder = withoutBrackets(folder);
+  if (same(plainTag, plainFolder)) return false;
+  return same(uninvert(plainTag) ?? plainTag, uninvert(plainFolder) ?? plainFolder);
+}
+
+// The album artist the tags should hold for this artist folder: the folder's name, brackets
+// included ("Dionysos [Canada]"), so same-named artists stay apart in a player; with
+// music-utils' artist.sortArticles on, with its article last ("Beatles, The"), as rip and
+// `music-utils tag album` write it.
+export function expectedArtistTag(folder: string, sort: ArticleSort = articleSort()): string {
+  return sortArtist(folder, sort);
+}
+
+// At least one track's album artist (ALBUMARTIST, else ARTIST) is the expected name. Players
+// group by the tag. When no track agrees: ARTIST_TAG_INVERTED when a tag is the same name in
+// another order ("Doors, the"; "The Beatles" while sortArticles wants "Beatles, The"), else
 // ARTIST_FOLDER_MISMATCH. Report and ask: a leader's folder holding the band's album is fine.
-export function checkArtistFolder(layout: AlbumLayout, tracks: TrackInfo[]): Issue[] {
+export function checkArtistFolder(layout: AlbumLayout, tracks: TrackInfo[], sort = articleSort()): Issue[] {
   const folder = layout.artistName;
   if (/^various( artists)?$/i.test(withoutBrackets(folder))) return [];
+  const expected = expectedArtistTag(folder, sort);
   const names = [...new Set(tracks.map(albumArtistOf).filter((n): n is string => !!n))];
-  if (names.length === 0 || names.some((n) => same(n, folder))) return [];
+  if (names.length === 0 || names.some((n) => same(n, expected))) return [];
 
-  const inverted = names.find((n) => {
-    const plain = uninvert(n);
-    return plain !== undefined && (same(plain, folder) || same(plain, withoutBrackets(folder)));
-  });
+  const inverted = names.find((n) => reordered(n, folder) || reordered(n, expected));
   if (inverted)
     return [
       {
         severity: 'MODERATE',
         code: 'ARTIST_TAG_INVERTED',
-        message: `Artist tag "${inverted}" is the folder's name inverted: "${folder}"`,
-        suggestion: `Write "${folder}" to the artist tags`,
+        message:
+          expected === folder
+            ? `Artist tag "${inverted}" is the folder's name inverted: "${folder}"`
+            : `Artist tag "${inverted}" should be "${expected}" (artist.sortArticles is on)`,
+        suggestion: `Write "${expected}" to the artist tags`,
       },
     ];
   const tagged = commonAlbumArtist(tracks)!;
@@ -57,7 +75,7 @@ export function checkArtistFolder(layout: AlbumLayout, tracks: TrackInfo[]): Iss
       severity: 'MODERATE',
       code: 'ARTIST_FOLDER_MISMATCH',
       message: `Artist folder "${folder}" differs from the album artist in the tags: "${tagged}"`,
-      suggestion: `Write "${folder}" to the artist tags, or move the album to "${tagged}"`,
+      suggestion: `Write "${expected}" to the artist tags, or move the album to "${unsortArtist(tagged, sort)}"`,
     },
   ];
 }
