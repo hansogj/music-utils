@@ -3,8 +3,10 @@ import './polyfills';
 import { defined } from '@hansogj/array.utils';
 import prompts, { Answers } from 'prompts';
 
+import { getConfig } from '../config/singleton';
 import { Release } from '../types';
-import { exit, info, json } from './color.log';
+import { exit, info } from './color.log';
+import { releaseTable } from './release-table';
 import { removeDoubleSpace } from './string';
 
 const questions: Release = {
@@ -54,7 +56,7 @@ export const validateCrossField = (
 };
 
 const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>> => {
-  json(release);
+  console.log(['', ...releaseTable(release, getConfig()), ''].join('\n'));
 
   if (process.env.NO_PROMPT) {
     return release;
@@ -82,15 +84,17 @@ const verifyPrompt = async (release: Partial<Release>): Promise<Partial<Release>
 export const userDefinedPrompt = async (release: Partial<Release>): Promise<Partial<Release>> => {
   info('Type new record data. Leave blank to keep data');
 
+  // Only the editable fields: the rest of the release (Discogs IDs) is kept as it is.
+  const editable = { ...questions, ...release };
   const response: Answers<string> = await prompts(
-    Object.entries({ ...questions, ...release }).map(([name, originalValue]) => ({
+    (Object.keys(questions) as Question[]).map((name) => ({
       name,
-      message: `${name.toUpperCase()}: ${originalValue}`,
+      message: `${name.toUpperCase()}: ${editable[name] ?? ''}`,
       type: 'text',
       validate: (value: string, answers: Record<string, unknown>) => {
-        const single = validate(name as Question, value);
+        const single = validate(name, value);
         if (single !== true) return single;
-        return validateCrossField(name as Question, value, answers, release);
+        return validateCrossField(name, value, answers, release);
       },
     })),
   );
@@ -129,3 +133,37 @@ export const artistPrompt = (src: string, target: string): Promise<string> =>
     message: `Rename ${src} > ${target}?`,
     initial: true,
   }).then(({ value }) => (value ? Promise.resolve(value) : Promise.reject(value)));
+
+/** Discogs credits several artists: which name goes in the folder, ARTIST and ALBUMARTIST. */
+export interface ArtistChoice {
+  /** Discogs' first credited artist (default). */
+  first: string;
+  /** Every credit joined as Discogs shows it ("/" as ", "). */
+  credit?: string;
+}
+
+/**
+ * Asks which artist name to use, as music-audit does: Discogs' first artist (Enter), all
+ * credits, or a name typed in. Without several credits there is nothing to ask.
+ */
+export const artistChoicePrompt = async ({ first, credit }: ArtistChoice): Promise<string> => {
+  if (!credit || credit === first || process.env.NO_PROMPT) return first;
+
+  const { value } = await prompts({
+    type: 'select',
+    name: 'value',
+    message: 'Artist name for folder and tags',
+    choices: [
+      { title: `${first} (first credited artist)`, value: first },
+      { title: `${credit} (all credits)`, value: credit },
+      { title: 'Type a name', value: '' },
+    ],
+    initial: 0,
+  });
+  if (value === undefined) exit();
+  if (value) return value;
+
+  const typed = await prompts({ type: 'text', name: 'value', message: 'Artist', initial: first });
+  if (typed.value === undefined) exit();
+  return removeDoubleSpace(`${typed.value}`).trim() || first;
+};

@@ -4,11 +4,17 @@ import '../utils/polyfills';
 
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path, { join } from 'node:path';
 import { chdir, exit } from 'node:process';
 
-import { DiscogsApiError, lookupRelease, LookupReleaseOptions, LookupResult } from '@hansogj/discogs-item-lookup';
+import {
+  DiscogsApiError,
+  formatInfoTxt,
+  lookupRelease,
+  LookupReleaseOptions,
+  LookupResult,
+} from '@hansogj/discogs-item-lookup';
 
 import { tagAlbum } from '../album';
 import { getConfig, renderAlbumFolder, renderArtistFolder } from '../config';
@@ -17,7 +23,7 @@ import { Release } from '../types';
 import { getCommandLineArgs } from '../utils/cmd.options';
 import { loadEnv } from '../utils/env';
 import { replaceDangers } from '../utils/path';
-import { albumPrompt } from '../utils/prompt';
+import { albumPrompt, artistChoicePrompt } from '../utils/prompt';
 import { syncTrackNames } from '../utils/sync.tag.path';
 
 async function checkForUpdates(): Promise<void> {
@@ -84,10 +90,6 @@ function runCommandWithOutput(command: string, args: string[] = []): Promise<str
       reject(new Error(`Failed to start command "${command}": ${err.message}`));
     });
   });
-}
-
-function sanitizePath(input: string): string {
-  return input.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
 }
 
 function formatTracklist(tracks: { position: string; title: string }[]): string {
@@ -166,6 +168,35 @@ async function renameFlacFiles(): Promise<void> {
   }
 }
 
+// info.txt as music-audit writes it after Discogs tagging, so the audit sees the album as
+// tagged. An info.txt already in the folder (an earlier rip, own notes) is kept.
+async function writeRipInfoTxt(releaseData: LookupResult, release: Partial<Release>): Promise<void> {
+  const exists = await access('info.txt').then(
+    () => true,
+    () => false,
+  );
+
+  if (exists) {
+    console.log('\n📝 info.txt exists already, kept as it is.');
+    return;
+  }
+
+  const text = formatInfoTxt(
+    {
+      ...releaseData,
+      title: release.album,
+      year: release.year,
+      // The ripped disc's tracks (all of them when no disc was given).
+      tracklist: releaseData.discs.flatMap((d) => d.tracks),
+      masterId: releaseData.masterId,
+    },
+    release.artist ?? '',
+    { discNumber: release.discNumber ?? '1', noOfDiscs: release.noOfDiscs ?? '1' },
+  );
+  console.log('\n📝 Writing info.txt');
+  await writeFile('info.txt', text, 'utf8');
+}
+
 async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 'releaseId'>): Promise<void> {
   const initialDir = process.cwd();
   loadEnv();
@@ -175,23 +206,27 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
   try {
     console.log(`🔍 Looking up Discogs release ID: ${releaseId}...`);
     const releaseData: LookupResult = await lookupRelease({ releaseId, disc, token: process.env.DISCOGS_TOKEN });
-    console.log(`💿 Found: ${releaseData.artist} - ${releaseData.title}`);
+    const firstArtist = releaseData.artists[0] ?? releaseData.artist;
+    console.log(`💿 Found: ${releaseData.artistCredit ?? firstArtist} - ${releaseData.title}`);
 
-    const noOfDiscs = releaseData.totalDiscs;
+    // One name for the artist folder, ARTIST, ALBUMARTIST and info.txt, as music-audit picks it.
+    const artist = await artistChoicePrompt({ first: firstArtist, credit: releaseData.artistCredit });
     const releaseInfo: Partial<Release> = {
-      artist: sanitizePath(releaseData.artist),
+      artist,
       album: releaseData.title,
       year: `${releaseData.masterYear}`,
       discNumber: `${disc || 1}`,
-      noOfDiscs: `${noOfDiscs}`,
+      noOfDiscs: `${releaseData.totalDiscs}`,
+      discogs: {
+        releaseId: releaseData.releaseId,
+        ...(releaseData.masterId ? { masterId: releaseData.masterId } : {}),
+        genre: [...releaseData.genres, ...releaseData.styles].slice(0, 4).join(', ') || undefined,
+        url: releaseData.discogsUrl,
+      },
     };
 
-    const confirmed = await albumPrompt(releaseInfo);
-    const safeRelease: Partial<Release> = {
-      ...confirmed,
-      artist: sanitizePath(confirmed.artist ?? ''),
-      album: sanitizePath(confirmed.album ?? ''),
-    };
+    // Tags keep the names as they are; the folder templates make them folder-safe.
+    const safeRelease = await albumPrompt(releaseInfo);
     const cfg = getConfig();
     const libraryRoot = cfg.libraryRoot ?? process.cwd();
     const fullPath = join(libraryRoot, renderArtistFolder(safeRelease, cfg), renderAlbumFolder(safeRelease, cfg));
@@ -232,6 +267,7 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     await renameFlacFiles();
 
     await coverPromise;
+    await writeRipInfoTxt(releaseData, safeRelease);
 
     console.log('\n✏️  Tagging tracks...');
     const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');

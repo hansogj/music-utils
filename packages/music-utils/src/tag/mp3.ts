@@ -7,6 +7,7 @@ import { toIntOr } from '../utils/number';
 import { applyMatch, Parser, regExp } from './parser';
 
 const ARTIST = `TPE1`;
+const ALBUMARTIST = 'TPE2';
 const TPOS = 'TPOS';
 const YEAR = 'TYER';
 const ALBUM = 'TALB';
@@ -40,7 +41,7 @@ export const id3v1 = (unparsed: string): Partial<Track> => {
       ...res,
       ...(defined(trackName) && { trackName }),
       ...(toIntOr(trackNo, undefined) && { trackNo }),
-    } as Partial<Track>;
+    } as Record<string, string>;
   }, {});
 
   return reduced as Partial<Track>;
@@ -90,6 +91,7 @@ const generateTagArgs = ({
 }: Partial<Track>): string[] =>
   [
     mp3TagArgs(artist, ARTIST),
+    mp3TagArgs(artist, ALBUMARTIST),
     mp3TagArgs([discNumber, noOfDiscs].defined().join('/'), TPOS),
     mp3TagArgs(year, YEAR),
     mp3TagArgs(album, ALBUM),

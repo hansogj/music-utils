@@ -5,6 +5,19 @@ import type { Config } from './schema';
 export const renderTemplate = (template: string, vars: Record<string, string | undefined>): string =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? '');
 
+/**
+ * A name as a folder can hold it (as music-audit's sanitizeFilename()): a path separator
+ * or colon ("Opening/Siberian Khatru", "Title: Part 2") becomes " - ", the rest of
+ * `*?"<>|` and control characters are dropped. Tags keep the name as it is.
+ */
+export const folderSafe = (name?: string): string | undefined =>
+  name
+    ?.replace(/\s*[/\\:]\s*/g, ' - ')
+    .replace(/[*?"<>|\x00-\x1F]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s-]+|[\s-]+$/g, '')
+    .trim();
+
 const isMultiDisc = (release: Partial<Release>): boolean => {
   const n = parseInt(release.noOfDiscs ?? '', 10);
   return Number.isFinite(n) && n > 1;
@@ -20,10 +33,10 @@ export const renderAlbumFolder = (release: Partial<Release>, config: Config): st
         discSep: config.disc.separator,
       })
     : '';
-  const auxSuffix = release.aux ? renderTemplate(patterns.auxSuffix, { aux: release.aux }) : '';
+  const auxSuffix = release.aux ? renderTemplate(patterns.auxSuffix, { aux: folderSafe(release.aux) }) : '';
   return renderTemplate(patterns.albumFolder, {
     year: release.year,
-    album: release.album,
+    album: folderSafe(release.album),
     discSuffix,
     auxSuffix,
   })
@@ -33,7 +46,7 @@ export const renderAlbumFolder = (release: Partial<Release>, config: Config): st
 
 /** Render the artist folder name. */
 export const renderArtistFolder = (release: Partial<Release>, config: Config): string =>
-  renderTemplate(config.patterns.artistFolder, { artist: release.artist });
+  renderTemplate(config.patterns.artistFolder, { artist: folderSafe(release.artist) });
 
 /**
  * Render a track filename (excluding the file extension).

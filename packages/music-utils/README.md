@@ -150,6 +150,14 @@ $> music-utils rip -r <releaseId> -d <disc-number?>
 
 `<releaseId>` is the Discogs release ID (`4565937`, `r4565937`, or a release URL) or a master ID (`m1439`, or a master URL), which resolves to the master's main release; `<disc-number>` is used when there is more than one disc. Creates a folder `Artist/YYYY Album Name` (under `libraryRoot` if configured, otherwise the current directory), rips the CD via `cdparanoia`, converts WAV to FLAC, renames files, sets tags, and fetches the cover photo — all based on info from Discogs. Year and album title come from the Discogs master, so a reissue is filed under its original year.
 
+It tags and files the album the way `music-audit` does after Discogs tagging, so the audit sees a ripped album as tagged:
+
+- **Artist**: when Discogs credits several artists, a list asks for the name: the first credited artist (Enter), all credits joined as Discogs shows them (`/` as `, `), or one you type. That one name goes in the artist folder, `ARTIST`, `ALBUMARTIST` and `info.txt`.
+- **Confirm**: the release is shown as a table (artist, album, year, disc, folder, Discogs IDs) before the `Y/N` question.
+- **Tags** (FLAC): `ARTIST`, `ALBUMARTIST`, `ALBUM`, `DATE` and `ORIGINALDATE` (the master's year), `TITLE`, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL`, `GENRE` (genres then styles, at most 4), `COMMENT` (the release URL), `DISCOGS_RELEASE_ID`, `DISCOGS_MASTER_ID`. The old `DISCID=1/2` tag is no longer written.
+- **Folder names**: tags keep the title as it is; in folder names `/`, `\` and `:` become ` - ` and `*?"<>|` are dropped.
+- **info.txt**: the Discogs tracklist with durations and composers, personnel and `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines. An `info.txt` already in the folder is kept.
+
 ## cover
 
 ```

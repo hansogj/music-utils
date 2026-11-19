@@ -48,6 +48,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 - Definite articles ("the", "los", "il", etc.) can be moved to suffix position for artist sorting ("The Beatles" -> "Beatles, The"); off by default, enabled with `artist.sortArticles: true` in config
 - `@hansogj/array.utils` provides `.defined()` (filter nullish) and `.onEmpty()` chainable array methods used extensively throughout
 - `@hansogj/maybe` provides Maybe/Optional monad used for null-safe value access
+- **rip tags like music-audit** (`src/run/rip.ts`): `artistChoicePrompt()` (prompt.ts: first credited artist / all credits / typed, only when Discogs credits several), `Release.discogs` (`DiscogsTags`: release/master ID, genre, URL) → FLAC ORIGINALDATE, GENRE, COMMENT, DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID; DISCTOTAL instead of the old DISCID; MP3 TPE2; info.txt from discogs-item-lookup's `formatInfoTxt()`. The confirm prompt prints `releaseTable()` (utils/release-table.ts). Tags keep names as they are; `folderSafe()` (config/render.ts, as audit's `sanitizeFilename()`) makes artist/album folder names safe
 - Shell commands are executed via `src/utils/execute.ts`: `executeFile` (using `child_process.execFile`, preferred for safety) and `execute` (using `child_process.exec`, for shell-dependent commands)
 
 ### Module layout
