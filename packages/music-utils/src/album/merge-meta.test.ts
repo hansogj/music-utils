@@ -1,9 +1,9 @@
 import { File, Release } from '../types';
 import { mergeMetaData, sortable } from './merge-meta';
 
-type TestCase = { files: Array<File>; release: Partial<Release>; tracksFromFile: string[] };
+type TestCase = { files: Array<File>; release: Partial<Release>; tracksFromFile?: string[] };
 describe('mergeMetaData', () => {
-  describe.each([
+  describe.each<[TestCase, unknown[]]>([
     [{} as TestCase, []],
 
     [
@@ -108,14 +108,14 @@ describe('mergeMetaData', () => {
     ],
   ])(
     'of parameters files: %o ,  userInput release: %o and tracksFromFile: %o ',
-    ({ files, release, tracksFromFile }: TestCase, mergedData: Array<File>) => {
+    ({ files, release, tracksFromFile }: TestCase, mergedData: unknown[]) => {
       it(`should result in expected: ${JSON.stringify(mergedData)}`, () =>
         expect(mergeMetaData(files, release, tracksFromFile)).toStrictEqual(mergedData));
     },
   );
 });
 
-describe.each([
+describe.each<[File['track'] | undefined, File['track'] | undefined]>([
   [undefined, undefined],
   [{}, {}],
   [{ trackNo: '1' }, { trackNo: '1', discNumber: '1' }],
@@ -174,13 +174,14 @@ describe.each([
     { trackNoTotal: '9', discNumber: '02', trackNo: '1' },
     { trackNoTotal: '9', discNumber: '02', trackNo: '1' },
   ],
-])('with track  %o ', (track: File['track'], expected: File['track']) => {
+])('with track  %o ', (track, expected) => {
   it(`should alter trackNo as sortable result in ${JSON.stringify(expected)}`, () =>
     expect(
       sortable({
         path: './',
         fileType: 'flac',
-        track,
+        // sortable() also takes a file without tags (the first case).
+        track: track as File['track'],
       }).track,
     ).toStrictEqual(expected));
 });

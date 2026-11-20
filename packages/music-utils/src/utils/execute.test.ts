@@ -9,7 +9,8 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('node:child_process', () => mocks);
 
-type Callback = (error: any, stdout: string, stderr: string) => void;
+// child_process hands null output with an error.
+type Callback = (error: any, stdout: string | null, stderr: string | null) => void;
 describe('execute', () => {
   describe('when error occures', () => {
     beforeEach(() => void mocks.exec.mockImplementation((_: any, cb: Callback) => cb('some error', null, null)));
@@ -66,7 +67,7 @@ describe('execute', () => {
 });
 
 describe('executeFile', () => {
-  type ExecFileCallback = (error: any, stdout: string, stderr: string) => void;
+  type ExecFileCallback = (error: any, stdout: string | null, stderr: string | null) => void;
 
   describe('when all is well', () => {
     beforeEach(

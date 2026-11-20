@@ -29,9 +29,9 @@ describe('flac', () => {
       [metaflac[0], {}],
       [metaflac[1], { trackName: 'Flac Track', trackNo: '1' }],
       [metaflac[2], { trackName: `Flac Track with 'acute , / slash and extra space`, trackNo: '1' }],
-    ])('and metaflac returns of %s ', (metaflacOutput: string, expected: Partial<Track>) => {
+    ])('and metaflac returns of %s ', (metaflacOutput: string | undefined, expected: Partial<Track>) => {
       beforeEach(async () => {
-        mocks.executeFile.mockResolvedValueOnce(metaflacOutput);
+        mocks.executeFile.mockResolvedValueOnce(metaflacOutput as string);
         extraction = await flac.read(path);
       });
 

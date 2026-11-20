@@ -72,6 +72,7 @@ async function main() {
         default:
           printHelp('tag');
       }
+
       break;
 
     case 'cover':
@@ -85,6 +86,7 @@ async function main() {
         default:
           await import('./cover.photo.js');
       }
+
       break;
 
     case 'sync':
@@ -101,10 +103,12 @@ async function main() {
       if (sub === 'repair') auditArgs.unshift('--repair');
       else if (sub === 'retag') auditArgs.unshift('--retag');
       const result = spawnSync('music-audit', auditArgs, { stdio: 'inherit' });
+
       if (result.error) {
         process.stderr.write(`mu audit: music-audit not found in PATH. Install it separately.\n`);
         process.exit(1);
       }
+
       process.exit(result.status ?? 0);
     }
 

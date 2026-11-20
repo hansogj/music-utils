@@ -1,4 +1,9 @@
-import { DiscogsReleaseResponse, DiscogsMasterResponse } from '../../src/types';
+import { DiscogsReleaseResponse as Release, DiscogsMasterResponse as Master } from '../../src/types';
+
+// The API returns more fields than the lookup reads; the mocks keep them, as on discogs.com.
+type ApiPayload<T> = T & Record<string, unknown>;
+type DiscogsReleaseResponse = ApiPayload<Release>;
+type DiscogsMasterResponse = ApiPayload<Master>;
 
 export const mockRelease: DiscogsReleaseResponse = {
   id: 249504,

@@ -23,32 +23,29 @@ describe('artist.folder.name', () => {
   beforeEach(() => void mocks.artistPrompt.mockResolvedValue(true));
 
   describe('syncArtistFolder', () => {
-    describe.each([
+    describe.each<[string | undefined, string | undefined, CallParams | undefined]>([
       [undefined, undefined, undefined],
       ['', undefined, undefined],
       ['Artist', 'Artist/Album', undefined],
       ['Artist', '/store/Artist/Album', undefined],
       ['Altered Artist', '/store/Artist/Album', { src: 'Artist', target: 'Altered Artist', store: '/store' }],
       ['Artist, the', '/store/The Artist/Album', { src: 'The Artist', target: 'Artist, the', store: '/store' }],
-    ])(
-      'when artist name eq %s & dirName eq %s ',
-      (artist: Release['artist'], dirName: string, expected: CallParams) => {
-        let artistName: string;
-        beforeEach(() => void mocks.getAlbumDirectory.mockImplementation(() => dirName));
-        beforeEach(() => void mocks.parseAlbumInfo.mockImplementation(() => ({ artist })));
-        beforeEach(() => void mocks.renameFolder.mockResolvedValueOnce(artist));
+    ])('when artist name eq %s & dirName eq %s ', (artist, dirName, expected) => {
+      let artistName: string;
+      beforeEach(() => void mocks.getAlbumDirectory.mockImplementation(() => dirName as string));
+      beforeEach(() => void mocks.parseAlbumInfo.mockImplementation(() => ({ artist, album: '' }) as Release));
+      beforeEach(() => void mocks.renameFolder.mockResolvedValueOnce(artist ?? ''));
 
-        beforeEach(async () => (artistName = await tagAlbum.getArtistFolderName()));
-        it(`${might(expected)} call renameFolder with params ${JSON.stringify(expected)}`, () => {
-          if (defined(expected)) {
-            expect(mocks.renameFolder).toHaveBeenCalled();
-            expect(mocks.renameFolder).toHaveBeenCalledWith(expected.src, expected.target, expected.store);
-            expect(artistName).toEqual([expected.store, artist, 'Album'].join('/'));
-          } else {
-            expect(mocks.renameFolder).not.toHaveBeenCalled();
-          }
-        });
-      },
-    );
+      beforeEach(async () => (artistName = await tagAlbum.getArtistFolderName()));
+      it(`${might(expected)} call renameFolder with params ${JSON.stringify(expected)}`, () => {
+        if (expected) {
+          expect(mocks.renameFolder).toHaveBeenCalled();
+          expect(mocks.renameFolder).toHaveBeenCalledWith(expected.src, expected.target, expected.store);
+          expect(artistName).toEqual([expected.store, artist, 'Album'].join('/'));
+        } else {
+          expect(mocks.renameFolder).not.toHaveBeenCalled();
+        }
+      });
+    });
   });
 });

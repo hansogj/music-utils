@@ -4,6 +4,11 @@ export interface DiscogsArtist {
   name: string;
   id: number;
   join?: string;
+  /** Artist name variation used on this release. */
+  anv?: string;
+  role?: string;
+  tracks?: string;
+  resource_url?: string;
 }
 
 export interface DiscogsTrack {

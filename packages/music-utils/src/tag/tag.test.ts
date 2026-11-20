@@ -49,7 +49,6 @@ describe('tag test', () => {
     describe('when filetype is mp3', () => {
       describe.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
         beforeEach(async () => {
-          mp3Mock.read.mockResolvedValue({ tags });
           mocks.getFileType.mockResolvedValue('mp3');
           mp3Mock.read.mockResolvedValue(tags as Partial<Track>);
           extraction = await extractTags(path);
@@ -70,8 +69,6 @@ describe('tag test', () => {
     describe('when filetype is flac', () => {
       describe.each(trackReads)('and read track is %o ', (tags: Partial<Track>) => {
         beforeEach(async () => {
-          flacMock.read.mockResolvedValue({ track: tags });
-
           mocks.getFileType.mockResolvedValue('flac');
           flacMock.read.mockResolvedValue(tags as Partial<Track>);
           extraction = await extractTags(path);
@@ -98,7 +95,7 @@ describe('tag test', () => {
 
     beforeEach(() => {
       flacSpy = vi.spyOn(flac, 'write').mockResolvedValueOnce(undefined);
-      mp3Spy = vi.spyOn(mp3, 'write').mockResolvedValueOnce(undefined);
+      mp3Spy = vi.spyOn(mp3, 'write').mockResolvedValueOnce('');
       thenSpy = vi.fn();
     });
 
