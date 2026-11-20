@@ -189,7 +189,7 @@ Enter at the release ID prompt takes the suggested ID, in this order:
 - Where it doesn't (vinyl sides `A1`…`F2`, `1`…`15` straight through), disc _n_ is placed after the tracks of the other disc folders, checked against your titles; without the other folders, by titles alone. The track-by-track pairing is shown first: Enter accepts it, `n` starts the disc at another release track. If neither titles nor other folders tell, you're asked for the start track.
 - A master ID entered for a disc folder resolves to a CD version with that many discs (and, preferably, this disc's track count) instead of the master's main release, which is often the original vinyl.
 - Once one disc folder is tagged, the others suggest the same release.
-- Discogs "index" entries (a suite listed with its parts, e.g. _And You And I_) count as one track.
+- Discogs "index" entries (a suite listed with its parts): parts with track numbers of their own are tracks of their own, titled `Suite; part` (Dice's _War; a) Ouverture_); parts with lettered positions (_And You And I_, `1-5.a`) make one track. When that doesn't match the number of files, the other reading (every suite split, or every suite one track) is used if it fits.
 - The search's match score compares a disc folder with its own part of the release.
 
 Logs go to `~/.local/share/music-audit/`:

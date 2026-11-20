@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import {
   mockCreditsRelease,
+  mockSuitePartsRelease,
   mockMaster,
   mockRelease,
   mockReleaseWithNumberedArtist,
@@ -62,6 +63,11 @@ export const handlers = [
   // Joined artists, an index entry, credits
   http.get(`${API_BASE_URL}/releases/5000001`, () => {
     return HttpResponse.json(mockCreditsRelease);
+  }),
+
+  // Suites whose parts are tracks of their own
+  http.get(`${API_BASE_URL}/releases/11456763`, () => {
+    return HttpResponse.json(mockSuitePartsRelease);
   }),
 
   // Handler for a not found error

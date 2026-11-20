@@ -88,6 +88,43 @@ describe('lookupRelease', () => {
     expect(result.tracklist[0].extraartists).toEqual([{ name: 'Dave Greenslade', role: 'Written-By' }]);
   });
 
+  it('splits a suite whose parts carry track numbers of their own, as Discogs numbers them', async () => {
+    const result = await lookupRelease({ releaseId: '11456763' });
+
+    expect(result.discs).toHaveLength(1);
+    expect(result.discs[0].tracks.map((t) => [t.position, t.title])).toEqual([
+      ['1', 'War; a) Ouverture'],
+      ['2', 'War; b) Fronts'],
+      ['3', 'War; c) Battle'],
+      ['4', 'War; d) Deserted Battlegrounds'],
+      ['5', 'Disease'],
+      ['6', 'Greed'],
+      ['7', 'Death; a) Requiem'],
+      ['8', 'Death; b) Dance Of The Devils'],
+      ['9', 'Death; c) Transition'],
+      ['10', 'Death; d) Heaven'],
+    ]);
+    expect(result.tracklist[0]).toMatchObject({ suite: 'War', part: 'a) Ouverture', duration: '1:23' });
+  });
+
+  it('reads suites the way that fits trackCount', async () => {
+    const joined = await lookupRelease({ releaseId: '11456763', trackCount: 4 });
+    expect(joined.discs[0].tracks.map((t) => t.title)).toEqual(['War', 'Disease', 'Greed', 'Death']);
+
+    // A lettered suite (one track as Discogs numbers it) split into its parts.
+    const split = await lookupRelease({ releaseId: '5000001', trackCount: 4 });
+    expect(split.discs[0].tracks.map((t) => t.title)).toEqual([
+      'Moondance',
+      'And You And I; Cord Of Life',
+      'And You And I; Eclipse',
+      'Coda',
+    ]);
+
+    // Nothing fits: Discogs' own reading.
+    const none = await lookupRelease({ releaseId: '11456763', trackCount: 7 });
+    expect(none.discs[0].tracks).toHaveLength(10);
+  });
+
   it('gives no artistCredit for a single artist', async () => {
     const result = await lookupRelease({ releaseId: '249504' });
 

@@ -1614,6 +1614,59 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
   });
 });
 
+describe('repairAlbum — suites whose parts are tracks, or not', () => {
+  // A suite as Discogs lists it: an index entry with its parts as sub-tracks.
+  const suite = (positions: string[], titles: string[]) => ({
+    position: '',
+    title: 'Suite',
+    type_: 'index',
+    sub_tracks: positions.map((position, i) => ({ position, title: titles[i], type_: 'track' })),
+  });
+  const track = (position: string, title: string) => ({ position, title, type_: 'track' });
+  const titlesAfterRetag = async (rawTracklist: ReleaseInfo['rawTracklist']) => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, tracklist: [], rawTracklist });
+    const audit = await scan();
+    answer([
+      [/^ {2}Choice \[1\]/, '1'], // MISSING_TAGS: [1] Tag from Discogs release ID
+      [/Release ID/, '1'],
+      // Renames, the year in the folder name, the issues left: no, then quit.
+      ...Array.from({ length: 4 }, (): [RegExp, string] => [/./, 'q']),
+    ]);
+    await repairAlbum(audit, ctx());
+    const files = (await fs.readdir(layout.albumPath)).filter((f) => f.endsWith('.mp3')).sort();
+    return Promise.all(files.map(async (f) => (await readFake(path.join(layout.albumPath, f))).TITLE));
+  };
+
+  it('tags each part of its own as "Suite; part" when Discogs numbers the parts (Dice)', async () => {
+    const titles = await titlesAfterRetag([
+      suite(['1', '2', '3', '4'], TITLES.slice(0, 4)),
+      ...TITLES.slice(4).map((t, i) => track(String(i + 5), t)),
+    ]);
+    expect(titles.slice(0, 5)).toEqual([...TITLES.slice(0, 4).map((t) => `Suite; ${t}`), TITLES[4]]);
+    expect(output.join('\n')).not.toMatch(/Discogs has/);
+  });
+
+  it('splits a lettered suite when the files hold its parts', async () => {
+    const titles = await titlesAfterRetag([
+      suite(['1a', '1b', '1c', '1d'], TITLES.slice(0, 4)),
+      ...TITLES.slice(4).map((t, i) => track(String(i + 2), t)),
+    ]);
+    expect(titles[3]).toBe(`Suite; ${TITLES[3]}`);
+    expect(titles[4]).toBe(TITLES[4]);
+    expect(output.join('\n')).not.toMatch(/Discogs has/);
+  });
+
+  it('joins numbered parts when the folder has one file for the suite', async () => {
+    const titles = await titlesAfterRetag([
+      suite(['1', '2', '3', '4'], ['a) One', 'b) Two', 'c) Three', 'd) Four']),
+      ...TITLES.slice(1).map((t, i) => track(String(i + 5), t)),
+    ]);
+    expect(titles).toEqual(['Suite', ...TITLES.slice(1)]);
+    expect(output.join('\n')).not.toMatch(/Discogs has/);
+  });
+});
+
 describe('repairAlbum — music-utils artist.sortArticles on', () => {
   const SORTED = { sortArticles: true, articles: ['the'] };
   // The fixture album under "Y/The Yezdas".

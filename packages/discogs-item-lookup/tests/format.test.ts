@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { cleanArtistName, flattenTracklist, formatInfoTxt, infoTxtIdLines, joinArtistCredit } from '../src/format';
+import {
+  cleanArtistName,
+  fitTracklist,
+  flattenTracklist,
+  formatInfoTxt,
+  hasSuites,
+  infoTxtIdLines,
+  joinArtistCredit,
+} from '../src/format';
 
 describe('cleanArtistName', () => {
   it("drops Discogs' (n) suffix", () => {
@@ -55,6 +63,63 @@ describe('flattenTracklist', () => {
       { position: '', title: 'Suite', type_: 'index', sub_tracks: [{ position: 'B2a', title: 'x', type_: 'track' }] },
     ]);
     expect(flat[0].position).toBe('B2');
+  });
+});
+
+describe('suites whose parts are tracks of their own', () => {
+  const dice = [
+    {
+      position: '',
+      title: 'War',
+      type_: 'index',
+      sub_tracks: [
+        { position: '1', title: 'a) Ouverture', type_: 'track', duration: '1:23' },
+        { position: '2', title: 'b) Fronts', type_: 'track', duration: '6:17' },
+      ],
+    },
+    { position: '3', title: 'Disease', type_: 'track' },
+  ];
+  const titles = (tracks: Array<{ title: string }>) => tracks.map((t) => t.title);
+
+  it('splits parts with track numbers of their own ("1", "1-07"), titled "Suite; part"', () => {
+    expect(titles(flattenTracklist(dice))).toEqual(['War; a) Ouverture', 'War; b) Fronts', 'Disease']);
+    expect(flattenTracklist(dice)[1]).toMatchObject({
+      position: '2',
+      duration: '6:17',
+      suite: 'War',
+      part: 'b) Fronts',
+    });
+    const cd2 = [{ ...dice[0], sub_tracks: [{ position: '2-07', title: 'x', type_: 'track' }] }];
+    expect(flattenTracklist(cd2).map((t) => t.position)).toEqual(['2-07']);
+  });
+
+  it('reads them split or joined on request', () => {
+    expect(titles(flattenTracklist(dice, 'joined'))).toEqual(['War', 'Disease']);
+    expect(flattenTracklist(dice, 'joined')[0].position).toBe('1');
+    const lettered = [
+      { position: '', title: 'Suite', type_: 'index', sub_tracks: [{ position: '5.a', title: 'x', type_: 'track' }] },
+    ];
+    expect(titles(flattenTracklist(lettered))).toEqual(['Suite']);
+    expect(titles(flattenTracklist(lettered, 'split'))).toEqual(['Suite; x']);
+  });
+
+  it('fits the reading to the number of files', () => {
+    expect(titles(fitTracklist(dice, (t) => t.length === 2))).toEqual(['War', 'Disease']);
+    expect(fitTracklist(dice, (t) => t.length === 3)).toHaveLength(3);
+    expect(fitTracklist(dice, (t) => t.length === 9)).toHaveLength(3); // none fits: Discogs'
+    expect(hasSuites(dice)).toBe(true);
+    expect(hasSuites([dice[1]])).toBe(false);
+  });
+
+  it('lists the parts under the suite in info.txt', () => {
+    const text = formatInfoTxt({ releaseId: '1', title: 'T', tracklist: flattenTracklist(dice) }, 'Dice');
+    expect(text.split('\n').slice(2, 7)).toEqual([
+      'Songs',
+      ' War',
+      ` ${'1.'.padEnd(4)} ${'a) Ouverture'.padEnd(40)} 1:23`,
+      ` ${'2.'.padEnd(4)} ${'b) Fronts'.padEnd(40)} 6:17`,
+      ` ${'3.'.padEnd(4)} Disease`,
+    ]);
   });
 });
 

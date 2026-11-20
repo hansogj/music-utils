@@ -4,6 +4,7 @@ import path from 'node:path';
 import { emitKeypressEvents } from 'node:readline';
 import readline from 'node:readline/promises';
 
+import { fitTracklist } from '@hansogj/discogs-item-lookup/format';
 import chalk from 'chalk';
 
 import { sortArtist, unsortArtist } from './articles.js';
@@ -40,6 +41,7 @@ import {
   fetchMasterCover,
   fetchRelease,
   fetchReleaseCover,
+  fitsFolder,
   type NumberedTrack,
   numberTracklist,
   parseDiscogsRef,
@@ -790,7 +792,11 @@ function buildDiscogsAction(
           }
         }
 
-        const { tracklist } = release;
+        // Suites as one track or several, as fits the folder's files (Dice's "War; a) Ouverture").
+        const tracklist = fitTracklist(
+          release.rawTracklist ?? release.tracklist,
+          fitsFolder(audit.layout.albumFolder, files.length),
+        );
         if (tracklist.length === 0) {
           console.log(chalk.yellow('  No tracks found on this release'));
           return;
@@ -856,7 +862,7 @@ function buildDiscogsAction(
         if (!tagged) return;
         // ── write info.txt ─────────────────────────────────────────────────
         try {
-          const written = await writeInfoTxt(audit.layout.albumPath, release, fullArtist, {
+          const written = await writeInfoTxt(audit.layout.albumPath, { ...release, tracklist }, fullArtist, {
             discNumber: meta.discNumber,
             noOfDiscs: meta.noOfDiscs,
           });

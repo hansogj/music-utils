@@ -186,3 +186,42 @@ export const mockCreditsRelease: DiscogsReleaseResponse = {
     { position: '3', title: 'Coda', type_: 'track', duration: '2:00' },
   ],
 };
+
+// Dice (9) – The Four Riders Of The Apocalypse (r11456763, as the API lists it): two
+// suites whose parts carry track numbers of their own, so each part is a CD track.
+export const mockSuitePartsRelease: DiscogsReleaseResponse = {
+  ...mockRelease,
+  id: 11456763,
+  master_id: 0,
+  year: 0,
+  title: 'The Four Riders Of The Apocalypse',
+  artists: [{ name: 'Dice (9)', id: 9, join: '' }],
+  tracklist: [
+    {
+      position: '',
+      title: 'War',
+      type_: 'index',
+      duration: '11:00',
+      sub_tracks: [
+        { position: '1', title: 'a) Ouverture', type_: 'track', duration: '1:23' },
+        { position: '2', title: 'b) Fronts', type_: 'track', duration: '6:17' },
+        { position: '3', title: 'c) Battle', type_: 'track', duration: '2:37' },
+        { position: '4', title: 'd) Deserted Battlegrounds', type_: 'track', duration: '0:43' },
+      ],
+    },
+    { position: '5', title: 'Disease', type_: 'track', duration: '8:07' },
+    { position: '6', title: 'Greed', type_: 'track', duration: '7:47' },
+    {
+      position: '',
+      title: 'Death',
+      type_: 'index',
+      duration: '11:53',
+      sub_tracks: [
+        { position: '7', title: 'a) Requiem', type_: 'track', duration: '2:10' },
+        { position: '8', title: 'b) Dance Of The Devils', type_: 'track', duration: '4:24' },
+        { position: '9', title: 'c) Transition', type_: 'track', duration: '1:08' },
+        { position: '10', title: 'd) Heaven', type_: 'track', duration: '4:11' },
+      ],
+    },
+  ],
+};

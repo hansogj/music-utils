@@ -18,6 +18,9 @@ export interface DiscogsTrack {
   type_: 'track' | 'heading' | 'index';
   extraartists?: DiscogsCredit[];
   sub_tracks?: DiscogsTrack[];
+  /** Set by flattenTracklist() on a suite's part that is a track of its own. */
+  suite?: string;
+  part?: string;
 }
 
 export interface DiscogsReleaseResponse {
@@ -47,6 +50,10 @@ export interface LookupTrack {
   duration?: string;
   /** Track credits (composers, writers, soloists), names without Discogs' "(n)". */
   extraartists?: DiscogsCredit[];
+  /** A suite's part that is a track of its own: the suite's title ("War"); `title` is "War; a) Ouverture". */
+  suite?: string;
+  /** With `suite`: the part's own title ("a) Ouverture"). */
+  part?: string;
 }
 
 export interface LookupResult {

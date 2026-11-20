@@ -156,6 +156,7 @@ It tags and files the album the way `music-audit` does after Discogs tagging, so
 - **Confirm**: the release is shown as a table (artist, album, year, disc, folder, Discogs IDs) before the `Y/N` question.
 - **Tags** (FLAC): `ARTIST`, `ALBUMARTIST`, `ALBUM`, `DATE` and `ORIGINALDATE` (the master's year), `TITLE`, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL`, `GENRE` (genres then styles, at most 4), `COMMENT` (the release URL), `DISCOGS_RELEASE_ID`, `DISCOGS_MASTER_ID`. The old `DISCID=1/2` tag is no longer written.
 - **Folder names**: tags keep the title as it is; in folder names `/`, `\` and `:` become ` - ` and `*?"<>|` are dropped.
+- **Suites**: a Discogs suite whose parts are tracks of their own is tagged `Suite; part` (`War; a) Ouverture`); when the disc holds another number of tracks than Discogs lists, the suites are read the way that fits (parts split or joined).
 - **info.txt**: the Discogs tracklist with durations and composers, personnel and `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines. An `info.txt` already in the folder is kept.
 
 ## cover
