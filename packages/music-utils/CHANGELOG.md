@@ -1,5 +1,13 @@
 # @hansogj/music-utils
 
+## 2.3.1
+
+### Patch Changes
+
+- 33a3e24: `music-utils rip` tags a Discogs suite whose parts are tracks of their own as "Suite; part", and when the disc holds another number of tracks than Discogs lists, reads the suites the way that fits before tagging. `tracks.txt` is read back from where it was written (it was read from `../../tracks.txt`, wrong with `libraryRoot`), and a multi-disc tracklist keeps a line break between discs.
+- Updated dependencies [33a3e24]
+  - @hansogj/discogs-item-lookup@1.7.0
+
 ## 2.3.0
 
 ### Minor Changes
