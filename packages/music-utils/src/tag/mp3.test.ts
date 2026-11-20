@@ -65,9 +65,9 @@ describe('mp3', () => {
             trackNo: '2',
           },
         ],
-      ])('when commandline output is %s ', (unparsed: string, expectedTrack: Partial<Track>) => {
+      ])('when commandline output is %s ', (unparsed: string | undefined, expectedTrack: Partial<Track>) => {
         it(`id3v2 should return ${JSON.stringify(expectedTrack)}`, () => {
-          expect(mp3.parseId3Output(unparsed)).toEqual(expectedTrack);
+          expect(mp3.parseId3Output(unparsed as string)).toEqual(expectedTrack);
         });
       });
     });

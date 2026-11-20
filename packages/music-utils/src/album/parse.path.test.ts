@@ -198,7 +198,7 @@ describe('parse.path', () => {
 
 describe('getAlbumDirectory', () => {
   const getCommandLineArgs = cmdOptions.getCommandLineArgs as Mock;
-  const exit = colorLog.exit as Mock;
+  const exit = vi.mocked(colorLog.exit);
   let cwd: MockInstance;
   let chdir: MockInstance;
 

@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "sync_test_data": "rsync -a ./test-data/raw/* ./test-data/copy",
     "tsc": "tsc  --project ./tsconfig.build.json",
+    "typecheck": "tsc --noEmit --project ./tsconfig.json",
     "pretest": "run-s clear sync_test_data tsc",
     "ci:tsc": "tsc --project ./tsconfig.ci.json",
     "ci:pre": "run-s  clear pretest ci:tsc",
@@ -30,7 +31,7 @@
     "vitest:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=junit-TEST.xml",
     "vitest:watch": "vitest watch",
     "test": "run-s vitest vitest:ci ci:run-all",
-    "precommit": "run-s test lint format:check tsc build"
+    "precommit": "run-s test lint format:check typecheck tsc build"
   },
   "files": [
     "build"

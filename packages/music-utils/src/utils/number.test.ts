@@ -8,6 +8,6 @@ describe.each([
   ['1', 0, 1],
   ['a', 0, 0],
   ['a', undefined, undefined],
-])('when num is %o and fallback is %o ', (num: any, or: any, expected: number) => {
+])('when num is %o and fallback is %o ', (num: any, or: any, expected: number | undefined) => {
   it(`parse should result ${expected}`, () => expect(maybe(num).valueOr(or)).toEqual(expected));
 });

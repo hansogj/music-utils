@@ -12,7 +12,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "isolatedModules": true
   },
   "include": ["src/**/*", "test/**/*", "lib.d.ts", "@hansogj/array.utils"],

@@ -126,7 +126,7 @@ export const userDefinedRelease = (release: Partial<Release>, retries = MAX_RETR
 export const albumPrompt = (album: Partial<Release>): Promise<Partial<Release>> =>
   verifyPrompt(album).catch(() => userDefinedRelease(album));
 
-export const artistPrompt = (src: string, target: string): Promise<string> =>
+export const artistPrompt = (src: string, target: string): Promise<true> =>
   prompts({
     type: 'confirm',
     name: 'value',

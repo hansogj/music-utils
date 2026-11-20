@@ -53,7 +53,9 @@ describe('path', () => {
     let readdirSync: MockInstance;
 
     beforeEach(() => {
-      readdirSync = vi.spyOn(fs, 'readdirSync').mockReturnValue(entries as unknown as fs.Dirent[]);
+      readdirSync = vi
+        .spyOn(fs, 'readdirSync')
+        .mockReturnValue(entries as unknown as ReturnType<typeof fs.readdirSync>);
     });
     afterEach(() => readdirSync.mockRestore());
 

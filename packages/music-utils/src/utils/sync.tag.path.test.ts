@@ -55,11 +55,11 @@ describe('sync.tag.path', () => {
           target: `2020 New Album (${DISC_LABEL} ${[11, 12].join(DISC_NO_SPLIT)}) [1980 - 1981]`,
         },
       ],
-    ])('when release eq %o & dirName eq %s ', (release: Partial<Release>, dirName: string, expected: CallParams) => {
-      beforeEach(() => void mocks.renameFolder.mockResolvedValueOnce(release));
+    ])('when release eq %o & dirName eq %s ', (release?: Partial<Release>, dirName?: string, expected?: CallParams) => {
+      beforeEach(() => void mocks.renameFolder.mockResolvedValueOnce(''));
       beforeEach(async () => syncReleaseFolder(release as Release, dirName));
       it(`${might(expected)} call renameFolder with params ${JSON.stringify(expected)}`, () => {
-        if (defined(expected)) {
+        if (expected) {
           expect(mocks.renameFolder).toHaveBeenCalled();
           expect(mocks.renameFolder).toHaveBeenCalledWith(expected.src, expected.target);
         } else {
@@ -126,8 +126,8 @@ describe('sync.tag.path', () => {
       [{ src: 'd1 track.flac', target: 'd1t01. Magma - MyTrack.flac' }],
       { artist: 'Magma', album: 'Attak' },
     ],
-  ])('when files list is %o', (files: File[], expected: CallParams[], release = {} as Release) => {
-    beforeEach(() => void mocks.renameFile.mockResolvedValue({}));
+  ])('when files list is %o', (files?: File[], expected?: CallParams[], release = {} as Release) => {
+    beforeEach(() => void mocks.renameFile.mockResolvedValue(''));
     beforeEach(async () => syncTrackNames(files, release));
     it(`${might(expected)} call renameFile with params ${JSON.stringify(expected)}`, () => {
       maybe(expected)

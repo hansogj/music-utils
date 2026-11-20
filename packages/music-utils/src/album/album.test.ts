@@ -18,8 +18,9 @@ vi.mock('../tag');
 const mocks = { ...vi.mocked(parsePath), ...vi.mocked(prompt), ...vi.mocked(tags), ...vi.mocked(path) };
 
 const parsedAlbumFolderName = {
-  album: release.album,
-  year: release.year,
+  artist: release.artist!,
+  album: release.album!,
+  year: release.year!,
   discNumber: '1',
   noOfDiscs: '1',
 };
@@ -71,7 +72,7 @@ describe('tag album', () => {
             track: extractedTagsDefault,
           } as File),
         );
-        mocks.tagFile.mockImplementation((_, tag) => Promise.resolve(tag));
+        mocks.tagFile.mockImplementation((file) => Promise.resolve(file));
         await tagAlbum(mockDirName);
       });
       it(`has called readDir(${mockDirName})`, () => {
