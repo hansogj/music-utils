@@ -24,7 +24,8 @@
     "vitest:ci": "vitest run --coverage",
     "build": "tsup",
     "lint": "eslint .",
-    "precommit": "pnpm run lint && pnpm run format:check && pnpm run vitest:ci && pnpm run build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "precommit": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run vitest:ci && pnpm run build",
     "format": "prettier --write src README.md eslint.config.mjs vitest.config.ts tsup.config.ts --ignore-path=../../.prettierignore",
     "format:check": "prettier --check src README.md eslint.config.mjs vitest.config.ts tsup.config.ts --ignore-path=../../.prettierignore"
   },

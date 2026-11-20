@@ -4,11 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TypeScript CLI toolkit for managing FLAC and MP3 music collections. Handles tag reading/writing, CD ripping, Discogs metadata lookup, cover art fetching, and folder structure normalization. Relies on external CLI tools: `metaflac`, `id3v2`, `cdparanoia`, `flac`, `ffprobe`, `file`.
+TypeScript CLI toolkit for managing FLAC and MP3 music collections. Handles tag reading/writing, CD ripping, Discogs metadata lookup, cover art fetching, and folder structure normalization. Relies on external CLI tools: `metaflac`, `id3v2`, `cdparanoia`, `flac`, `ffprobe`, `file` (music-audit also `magick` for cover hashes).
+
+pnpm monorepo (`pnpm-workspace.yaml`):
+
+| Path | Package | Published | Bin |
+|---|---|---|---|
+| `packages/music-utils` | `@hansogj/music-utils` | yes | `music-utils`, `mu` (`build/run/cli.js`) |
+| `packages/discogs-item-lookup` | `@hansogj/discogs-item-lookup` | yes | `discogs-lookup` |
+| `packages/discogs-cover` | `@hansogj/discogs-cover` | yes | `discogs-cover` |
+| `scripts/audit` | `@hansogj/music-audit` | no (`"private": true`) | `music-audit` (tsx, see below) |
+
+GitHub Actions (`.github/workflows/build.yml`) runs the root `pnpm run precommit`, i.e. every package's precommit, on each PR. Run the same before pushing.
 
 ## Commands
 
 **Package manager**: pnpm. Node 26.x via nvm; run nvm use to switch to the version in .nvmrc. pnpm is not installed by hand: nvm installs it automatically into each Node version from ~/.nvm/default-packages (maintained in the dotfiles repo). If pnpm is missing after nvm use, that Node version was installed before the list existed; run npm i -g pnpm once, or reinstall that version with nvm install. Don't use corepack, and don't install tooling with pnpm add -g.
+
+From the repo root, `pnpm run build|test|lint|format:check|precommit` run that script in every package (`pnpm -r`). Inside `packages/music-utils`:
 
 ```bash
 pnpm run build              # Clean + compile TypeScript with declarations
@@ -19,7 +32,8 @@ pnpm test                   # Full suite: vitest + vitest:ci + CI integration te
 pnpm run lint               # ESLint
 pnpm run format:check       # Prettier check
 pnpm run format:lint:fix    # Fix both lint and format issues
-pnpm run precommit          # Full pre-commit chain: test + lint + format:check + tsc + build
+pnpm run typecheck          # tsc --noEmit on the full tsconfig (tests included)
+pnpm run precommit          # Full pre-commit chain: test + lint + format:check + typecheck + tsc + build
 ```
 
 **Releases**: Changesets only (root README, "Releases"). Add a `.changeset/*.md` with each user-facing change to a published package; `pnpm version-packages` on a branch, then `pnpm release` from `main`. `scripts/audit` is `"private": true` and never published. music-utils depends on discogs-cover and discogs-item-lookup with `workspace:<version>`: linked from the repo locally and in CI (no npm fetch, no release-age exemption), replaced by the real version when `pnpm publish` (used by `changeset publish`) packs it.
@@ -53,17 +67,21 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 
 ### Module layout
 
-- `src/run/` - Entry point scripts (excluded from build and test coverage). These orchestrate the CLI workflows.
-- `src/utils/` - Cross-cutting: shell execution, path ops, CLI arg parsing, colored logging, prompts
+- `src/run/` - Entry point scripts (`cli.ts` is the bin; built, but excluded from test coverage). These orchestrate the CLI workflows (rip, tag album/tracks, covers, similarities, sync track names, completion).
+- `src/config/` - `loadConfig()` (`./music-utils.config.json`, `~/.music-utilsrc.json`), `getConfig()` (cached), `validateConfig()`, defaults, and `render.ts` (folder/track name templates, `folderSafe()`)
+- `src/utils/` - Cross-cutting: shell execution, path ops, CLI arg parsing (`cmd.options.ts`), shared `.env` (`env.ts`, kept in sync with audit's), colored logging, prompts, `releaseTable()`, tag ↔ path sync
+- `src/artist/` - Artist folder name prompt
 - `src/similarities/` - Fuzzy artist name matching
-- `src/covers/` - Discogs cover art fetching
+- `src/covers/` - Cover art from Discogs (`photo.ts`, via discogs-cover)
+- `src/completion/` - Bash completion script
+- `src/constants.ts` - `DISC_NO_SPLIT`, `COVER_FILE_NAME`, `TRACKS_FILE_NAME`, …
 
 ### Testing
 
-- Vitest with ts-jest, tests colocated with source (`*.test.ts`)
-- Coverage thresholds: 50% statements, 80% branches, 90% functions, 90% lines
-- Mocks in `__mocks__/` subdirectories; `execute`, `path`, and tag reader modules are commonly mocked
-- `src/run/`, `prompt.ts`, `color.log.ts`, `photo.ts` are excluded from coverage
+- Vitest (`globals: true`, `vitest.setup.ts`), tests colocated with source (`*.test.ts`)
+- Coverage thresholds (`vitest:ci`): 90% statements, 80% branches, 90% functions, 90% lines
+- Mocks in `src/tag/__mocks__/` and `src/utils/__mocks__/`; `execute`, `path`, and tag reader modules are commonly mocked
+- `src/run/`, `prompt.ts`, `color.log.ts`, `photo.ts`, `index.ts` files and `__mocks__/` are excluded from coverage
 
 ### TypeScript config
 
@@ -71,7 +89,12 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 - ESNext target, Node16 module resolution
 - `tsconfig.build.json` excludes tests and mocks; `tsconfig.ci.json` is used for CI integration test compilation
 - TypeScript 7 (the native compiler) runs side by side with TypeScript 6, as the TS 7 release notes describe: `"@typescript/native": "npm:typescript@7.0.2"` gives `tsc` (7), and `"typescript": "npm:@typescript/typescript6@6.0.2"` gives tools that need the compiler API (typescript-eslint, tsup's `.d.ts` build) TypeScript 6, plus a `tsc6` binary. TS 7 ships no JS API; drop the alias once typescript-eslint and tsup support TS 7.1's new API
-- The full `tsconfig.json` of music-utils and discogs-item-lookup (tests included, `vitest/globals` in `types`) type-checks: `pnpm typecheck`, part of each package's precommit. music-utils' `tsconfig.build.json` sets `types: ["node"]`, so the build doesn't see the test globals. `describe.each` tables with `undefined` cases need a type argument or optional parameters
+- Every package type-checks with `pnpm typecheck` (`tsc --noEmit`) in its precommit: music-utils and discogs-item-lookup on their full `tsconfig.json` (tests included, `vitest/globals` in `types`), music-audit on `src/**` (tests included), discogs-cover on `src` without tests. music-utils' `tsconfig.build.json` sets `types: ["node"]`, so the build doesn't see the test globals. `describe.each` tables with `undefined` cases need a type argument or optional parameters
+
+## `packages/discogs-item-lookup/` and `packages/discogs-cover/`
+
+- **discogs-item-lookup**: `lookupRelease()` (index.ts) fetches a release + master through `core/api-client.ts`; `format.ts` (export `./format`) holds the helpers shared by rip and music-audit: `flattenTracklist()` / `fitTracklist()` (suites), `joinArtistCredit()`, `formatInfoTxt()`. Tests live in `tests/` (msw mocks in `tests/mocks`), not next to the source. Precommit: format:check, typecheck, test, build (tsup). No ESLint.
+- **discogs-cover**: `discogsMainCover()` finds and downloads a release's main image; used by music-utils' `covers/photo.ts`. Precommit: format:check, typecheck, test, build. No ESLint, no coverage thresholds in either Discogs package.
 
 ## `scripts/audit/` — music-audit
 
@@ -82,6 +105,10 @@ Private, unpublished audit + repair CLI. Run with `pnpm --filter @hansogj/music-
 ```
 scripts/audit/src/
   audit.ts        — CLI entry: arg parsing, walk → audit → report/repair/ui/json
+  types.ts        — AlbumAudit, Issue, TrackTags, Severity
+  env.ts          — shared ~/.config/music-utils/.env (as music-utils' utils/env.ts; sudo-safe home)
+  completion.ts   — bash completion script (`pnpm --dir scripts/audit run --silent completion`)
+  term-link.ts    — OSC 8 terminal hyperlinks (plain "text <url>" without a TTY)
   audit-album.ts  — auditAlbum(): read one album's tracks and run all checks; also the
                     re-scan repair runs after each fix (search: false)
   tag-write.ts    — writeTags(): metaflac / id3v2 writes with post-write verification
@@ -202,7 +229,7 @@ scripts/audit/src/
 
 ### Testing (audit)
 
-- `pnpm --filter @hansogj/music-audit run precommit`: ESLint, Prettier check, vitest with 80% coverage thresholds, then tsup build. `repair.ts`, `discogs.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts` and a few others are excluded from coverage (`vitest.config.ts`), but `repair.ts` and `discogs.ts` still have tests.
+- `pnpm --filter @hansogj/music-audit run precommit`: ESLint, Prettier check, typecheck (`tsc --noEmit`), vitest with coverage thresholds (90% statements/functions/lines, 85% branches), then tsup build. `repair.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts`, `logger.ts`, `completion.ts`, `term-link.ts` and `types.ts` are excluded from coverage (`vitest.config.ts`); `repair.ts` (~72% covered on its own) still has tests in `repair.test.ts`.
 - `repair.test.ts` drives `repairAlbum()` end to end: fake "audio" files hold their tags as JSON (mocked `tags.js` / `tag-write.js`), prompts are scripted with `setPrompt()` (an unexpected prompt fails the test), and `fetchRelease` is mocked per test with `mockResolvedValueOnce`.
 - Audio files (`*.mp3`, `*.flac`) are gitignored (except music-utils' CI test albums), so tests must build every file they use; `tag-write.test.ts` is skipped where `id3v2` is missing (CI installs it now), the cover hash tests where `magick` (ImageMagick 7) is missing.
 - Discogs fixtures mirror real API shapes (positions, `index` entries with `sub_tracks`, master versions); check the live API (`curl https://api.discogs.com/releases/<id>`) when adding a case.
