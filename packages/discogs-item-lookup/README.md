@@ -6,7 +6,7 @@ A CLI and library to look up information about a specific music release from the
 
 - **Artist Name:** Get the credited artists for the release (`artists`), and every credit joined as Discogs shows it (`artistCredit`, when several).
 - **Item Title:** Find the album or single name.
-- **Tracklist:** View the complete tracklist for the specific release version, with durations and track credits. A suite listed with sub-tracks (an index entry) is one track.
+- **Tracklist:** View the complete tracklist for the specific release version, with durations and track credits. A suite listed with sub-tracks (an index entry) is one track, unless its parts carry track numbers of their own: then each part is a track, titled `Suite; part`. `trackCount` picks the reading that gives that many tracks.
 - **Genres, country and personnel:** `genres`, `styles`, `country`, `extraartists`.
 - **Release Years:** See both the year for this specific release and the year of the original master release.
 - **Direct Link:** A convenient link to view the release directly on the Discogs website.
@@ -80,7 +80,8 @@ getReleaseInfo();
 
 - `cleanArtistName(name)`: drops Discogs' `(n)` suffix (`Dave Greenslade (2)` → `Dave Greenslade`).
 - `joinArtistCredit(artists)`: every credited artist with Discogs' `join`s; `/` becomes `, ` (`Patrick Woodroffe, Dave Greenslade`), so the name fits a folder name.
-- `flattenTracklist(tracklist)`: index entries as one track (position from the first sub-track), headings dropped.
+- `flattenTracklist(tracklist, reading?)`: headings dropped; a suite (index entry) split into its parts when they carry track numbers of their own (`Suite; part`, with `suite` / `part` fields), else one track (position from the first part). `reading` `'split'` / `'joined'` forces either.
+- `fitTracklist(tracklist, fits)`: Discogs' reading, or the split / joined one when only that `fits` (e.g. the number of files). `hasSuites(tracklist)` tells whether there is a choice.
 - `formatInfoTxt(release, artistName, disc?)`: the `info.txt` text: `Artist - Title (year)`, reissue year, country, songs with composers and durations, personnel, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines.
 
 The same helpers are exported from the package root too.

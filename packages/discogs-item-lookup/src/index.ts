@@ -3,9 +3,9 @@ import { fetchRelease, fetchMaster } from './core/api-client';
 import { parseDiscogsId } from './core/sanitizer';
 import { getToken } from './core/config';
 import { DiscogsApiError } from './errors';
-import { cleanArtistName, flattenTracklist, joinArtistCredit } from './format';
+import { cleanArtistName, fitTracklist, flattenTracklist, joinArtistCredit } from './format';
 import type { DiscogsCredit } from './format';
-import type { LookupResult, LookupTrack } from './types';
+import type { DiscogsTrack, LookupResult, LookupTrack } from './types';
 
 // By re-exporting, we make these part of the package's public API.
 export type { LookupResult, LookupTrack } from './types';
@@ -23,10 +23,16 @@ export interface LookupReleaseOptions {
   releaseId: string;
   token?: string;
   disc?: number;
+  /**
+   * The number of files the tracks go on (for `disc`, that disc's): when a suite's parts
+   * could be one track or several, the reading that gives this many tracks is used
+   * (see SuiteReading). Without it, Discogs' own reading.
+   */
+  trackCount?: number;
 }
 
 export async function lookupRelease(options: LookupReleaseOptions): Promise<LookupResult> {
-  const { releaseId, token: discogsToken, disc: discFilter } = options;
+  const { releaseId, token: discogsToken, disc: discFilter, trackCount } = options;
   const parsed = parseDiscogsId(releaseId);
   if (!parsed) {
     throw new DiscogsApiError(
@@ -45,63 +51,33 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
   // Discogs reports year 0 when unknown, so fall back to the release year.
   const master = masterFromInput ?? (release.master_id ? await fetchMaster(release.master_id, token) : undefined);
   const masterYear = master?.year || release.year;
-  // Heuristic: determine the disc number for each track from its position string.
-  // Common patterns:
-  // - "1-1" or "2-03" => prefix before '-' indicates disc number
-  // - "1.01" => prefix before '.' indicates disc number
-  // - "1" => track number on disc 1
-  // Otherwise assume disc 1.
   const cleanCredits = (credits: DiscogsCredit[] | undefined): DiscogsCredit[] =>
     (credits ?? []).map(({ name, role }) => ({ name: cleanArtistName(name), role }));
-  // Index entries (suites with sub-tracks) are one track; headings are dropped.
-  const tracklist: LookupTrack[] = flattenTracklist(release.tracklist || []).map((t) => ({
+  const toLookupTrack = (t: DiscogsTrack): LookupTrack => ({
     position: t.position,
     title: t.title,
     ...(t.duration ? { duration: t.duration } : {}),
     ...(t.extraartists?.length ? { extraartists: cleanCredits(t.extraartists) } : {}),
-  }));
-
-  function parseDiscFromPosition(pos: string | undefined): number {
-    if (!pos) return 1;
-    // digits before -, ., / or :
-    const m = pos.match(/^(\d+)(?:[-.\/:])/);
-    if (m) return parseInt(m[1], 10);
-    // simple numeric position like "1" or "2"
-    const m2 = pos.match(/^(\d+)$/);
-    if (m2) return parseInt(m2[1], 10);
-    // patterns like "1/2"
-    const m3 = pos.match(/^(\d+)\/\d+/);
-    if (m3) return parseInt(m3[1], 10);
-    return 1;
-  }
-
-  const discsMap = new Map<number, LookupTrack[]>();
-
-  tracklist.forEach((t, idx) => {
-    const pos = t.position || String(idx + 1);
-    const discNum = parseDiscFromPosition(pos);
-    if (!discsMap.has(discNum)) discsMap.set(discNum, []);
-    discsMap.get(discNum)!.push({ ...t, position: pos });
+    ...(t.suite ? { suite: t.suite, part: t.part } : {}),
   });
-
-  // Build discs array sorted by disc number
-  let discs = Array.from(discsMap.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([disc, tracks]) => ({ disc, tracks }));
-
-  // If every disc only has one track and the number of discs equals the number of tracks,
-  // treat as a single disc (common for single-disc releases with positions "1", "2", ...)
-  const totalTracks = tracklist.length;
-  if (discs.length === totalTracks && discs.every((d) => d.tracks.length === 1)) {
-    discs = [{ disc: 1, tracks: discs.map((d) => d.tracks[0]) }];
-  }
-
+  const onDisc = (all: ReturnType<typeof discsOf>) =>
+    typeof discFilter === 'number' ? all.filter((d) => d.disc === discFilter) : all;
+  // Headings are dropped; a suite is one track or several, as Discogs numbers its parts,
+  // or as fits `trackCount`.
+  const raw = release.tracklist || [];
+  const flat =
+    trackCount === undefined
+      ? flattenTracklist(raw)
+      : fitTracklist(
+          raw,
+          (tracks) => onDisc(discsOf(tracks.map(toLookupTrack))).flatMap((d) => d.tracks).length === trackCount,
+        );
+  const tracklist: LookupTrack[] = flat.map(toLookupTrack);
+  let discs = discsOf(tracklist);
   const totalDiscs = discs.length;
 
   // If a disc filter was provided, return only that disc (if present).
-  if (typeof discFilter === 'number') {
-    discs = discs.filter((d) => d.disc === discFilter);
-  }
+  discs = onDisc(discs);
 
   const artists = (release.artists ?? []).map((a) => cleanArtistName(a.name));
 
@@ -126,4 +102,23 @@ export async function lookupRelease(options: LookupReleaseOptions): Promise<Look
     ...(master ? { masterId: master.id } : {}),
     discogsUrl: `https://www.discogs.com/release/${sanitizedId}`,
   };
+}
+
+// A disc prefix before the track number: "1-1", "2-03", "1.01", "1/2", "2:05". A lettered
+// part ("2.a") or a plain number ("3") has none.
+const DISC_PREFIX = /^(\d+)[-./:]\d/;
+
+/** The tracks per disc, sorted by disc number; one disc when no position has a disc prefix. */
+function discsOf(tracklist: LookupTrack[]): { disc: number; tracks: LookupTrack[] }[] {
+  const tracks = tracklist.map((t, idx) => ({ ...t, position: t.position || String(idx + 1) }));
+  if (!tracks.some((t) => DISC_PREFIX.test(t.position))) return tracks.length ? [{ disc: 1, tracks }] : [];
+  const discsMap = new Map<number, LookupTrack[]>();
+  tracks.forEach((t) => {
+    const discNum = parseInt(t.position.match(DISC_PREFIX)?.[1] ?? '1', 10);
+    if (!discsMap.has(discNum)) discsMap.set(discNum, []);
+    discsMap.get(discNum)!.push(t);
+  });
+  return Array.from(discsMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([disc, discTracks]) => ({ disc, tracks: discTracks }));
 }

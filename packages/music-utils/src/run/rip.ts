@@ -206,7 +206,7 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
 
   try {
     console.log(`🔍 Looking up Discogs release ID: ${releaseId}...`);
-    const releaseData: LookupResult = await lookupRelease({ releaseId, disc, token: process.env.DISCOGS_TOKEN });
+    let releaseData: LookupResult = await lookupRelease({ releaseId, disc, token: process.env.DISCOGS_TOKEN });
     const firstArtist = releaseData.artists[0] ?? releaseData.artist;
     console.log(`💿 Found: ${releaseData.artistCredit ?? firstArtist} - ${releaseData.title}`);
 
@@ -235,9 +235,9 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     console.log(`\n📁 Creating directory: ${fullPath}`);
     await mkdir(fullPath, { recursive: true });
 
-    const tracksContent = releaseData.discs.flatMap((releaseDisc) => formatTracklist(releaseDisc.tracks));
-    const tracksFilePath = 'tracks.txt';
-    console.log(`📝 Writing tracklist to: ${path.resolve(tracksFilePath)}`);
+    const tracksContent = releaseData.discs.map((releaseDisc) => formatTracklist(releaseDisc.tracks)).join('\n');
+    const tracksFilePath = path.resolve('tracks.txt');
+    console.log(`📝 Writing tracklist to: ${tracksFilePath}`);
     await writeFile(tracksFilePath, tracksContent);
 
     console.log(`\n🔀 Changing directory to: ${fullPath}`);
@@ -267,11 +267,28 @@ async function main({ releaseId, disc }: Pick<LookupReleaseOptions, 'disc' | 're
     await convertWavFilesToFlac();
     await renameFlacFiles();
 
+    // A suite (Discogs index entry) is one track or one per part: when the disc holds another
+    // number of tracks than Discogs' reading gives, read the suites the way that fits.
+    const ripped = (await readdir('.')).filter((f) => f.endsWith('.flac')).length;
+    const listed = releaseData.discs.flatMap((d) => d.tracks).length;
+
+    if (ripped > 0 && ripped !== listed) {
+      const refit = await lookupRelease({ releaseId, disc, trackCount: ripped, token: process.env.DISCOGS_TOKEN });
+      const tracks = refit.discs.flatMap((d) => d.tracks);
+
+      if (tracks.length === ripped) {
+        console.log(`\n🔀 ${ripped} tracks ripped, Discogs lists ${listed}: suites read to fit (${ripped} tracks).`);
+        releaseData = refit;
+        await writeFile(tracksFilePath, refit.discs.map((d) => formatTracklist(d.tracks)).join('\n'));
+      }
+    }
+
     await coverPromise;
     await writeRipInfoTxt(releaseData, safeRelease);
 
     console.log('\n✏️  Tagging tracks...');
-    const trackLines = readFileSync(path.resolve('../../tracks.txt'), 'utf8');
+    // The file written above (and perhaps edited during the rip), wherever libraryRoot put the album.
+    const trackLines = readFileSync(tracksFilePath, 'utf8');
     const tracks = trackLines.split('\n').defined().map(replaceDangers);
     // As `tag album` does: with artist.sortArticles on the tags say "Beatles, The"; the
     // artist folder and info.txt keep "The Beatles".

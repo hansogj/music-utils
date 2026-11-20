@@ -95,8 +95,8 @@ scripts/audit/src/
   discogs.ts      — searchDiscogs() (+ matchScore(), per disc for a disc folder),
                     fetchRelease(), fetchMaster(), fetchOriginalYear(), parseDiscogsRef(),
                     resolveReleaseId(), pickMasterVersion() (master → CD version for a disc
-                    folder), numberTracklist(); flattenTracklist() (index entries → one
-                    track) and joinArtistCredit() come from discogs-item-lookup/format; fetchReleaseCover() / downloadImage() / discogsCoverSource()
+                    folder), numberTracklist(), fitsFolder(); flattenTracklist() / fitTracklist() (suites,
+                    see Suites below) and joinArtistCredit() come from discogs-item-lookup/format; fetchReleaseCover() / downloadImage() / discogsCoverSource()
                     (cover hashes cached in ~/.cache/music-audit/cover-hashes.json); all HTTP through discogsGet(), which waits on
                     the shared rate limiter and retries 429/500; releases cached per session
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
@@ -187,7 +187,8 @@ scripts/audit/src/
 - **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines); in repair mode only, silently created from existing tags if none exists. Never rewritten with the same text (a library mirror watches its mtime). Album and artist folder renames add a dated line to the Changeset section at the bottom (`renameAlbumFolder()` / `noteChange()` in repair.ts)
 - **Bracket after a skip**: the first `[s]` in an album (issue menu or the Discogs-first step) asks `askSkipAux()` for the folder's brackets, pre-filled with the current ones (e.g. add `bootleg`); stored as `aux` in the pending folder rename (`planFolderRename()` merges it with a Discogs rename) and applied last
 - **Old year bracket**: every repair that changes a folder's year (Discogs folder rename, YEAR_NOT_ORIGINAL) asks `askOldYearBracket()`; the answer is kept per album set for the run (`resetRepairSession()` at run start and in tests). The repair log records the final folder name
-- **Split disc folders**: Discogs tagging uses only the folder's disc (see disc-split.ts); a master entered for a disc folder resolves to a CD version with that many discs (`pickMasterVersion()`); index entries (suites with sub-tracks) count as one track (`flattenTracklist()`)
+- **Suites** (Discogs index entries; `flattenTracklist()` / `fitTracklist()` in discogs-item-lookup/format): parts with track numbers of their own (Dice r11456763: "War" a)–d) on tracks 1–4) are tracks of their own, titled "War; a) Ouverture" (`suite`/`part` fields; info.txt lists them under a " War" heading); lettered parts ("1-5.a", "B2a") make one track. When that count doesn't match the files, the other reading (all split / all joined) is used if it fits: `fitsFolder()` in discogs.ts for search scoring, `pickMasterVersion()` and Discogs tagging (`ReleaseInfo.rawTracklist`); rip re-reads with `lookupRelease({ trackCount })` after ripping
+- **Split disc folders**: Discogs tagging uses only the folder's disc (see disc-split.ts); a master entered for a disc folder resolves to a CD version with that many discs (`pickMasterVersion()`); suites (index entries with sub-tracks) follow `flattenTracklist()` / `fitTracklist()` (below)
 - **File renames**: after Discogs tagging, preview + apply renames to `NN - Title.ext`, also in a `(Disc n∕m)` folder (`dDtNN - Title.ext` only when one folder holds the files of several discs) to prevent NAME_TAG_MISMATCH on next audit run
 - **`--retag`**: implies `--repair`; visits all albums including those that already pass, each opening with the Discogs-first step (its own release ID suggested)
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release (for a disc folder: `pickMasterVersion()`)

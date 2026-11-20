@@ -14,6 +14,10 @@ export interface DiscogsRawTrack {
   duration?: string;
   extraartists?: DiscogsCredit[];
   sub_tracks?: DiscogsRawTrack[];
+  /** Set by flattenTracklist() on a suite's part that is a track of its own: the suite's title. */
+  suite?: string;
+  /** With `suite`: the part's own title as Discogs writes it ("a) Ouverture"). */
+  part?: string;
 }
 
 /** Drops a Discogs disambiguation suffix: "Dave Greenslade (2)" → "Dave Greenslade". */
@@ -37,23 +41,71 @@ export function joinArtistCredit(artists: Array<{ name: string; join?: string }>
 }
 
 /**
- * The release's tracks as files on a disc. An "index" entry (a suite such as "And You And I",
- * listed with its parts as sub-tracks and no position of its own) is one file: it keeps its
- * title and takes its position from the first part ("1-5.a" → "1-5", "B2a" → "B2").
- * Headings are dropped.
+ * How a suite (an "index" entry: a title with its parts as sub-tracks) maps onto files:
+ * - `discogs`: as Discogs numbers it. Parts with track numbers of their own ("1", "2", "1-07")
+ *   are tracks of their own (Dice's "War": a) to d) on tracks 1–4); parts with lettered
+ *   positions ("1-5.a", "B2a") or none are one track (Yes' "And You And I").
+ * - `split`: every part a track of its own.
+ * - `joined`: every suite one track.
  */
-export function flattenTracklist<T extends DiscogsRawTrack>(tracklist: T[]): T[] {
-  return tracklist.flatMap((t) => {
+export type SuiteReading = 'discogs' | 'split' | 'joined';
+
+const OWN_TRACK_NUMBER = /^(?:\d+[-./:])?\d+$/;
+
+const isSuite = (t: DiscogsRawTrack) => t.type_ === 'index' && !!t.sub_tracks?.length;
+
+/** Whether some suite could be read either way: then the readings differ. */
+export function hasSuites(tracklist: DiscogsRawTrack[]): boolean {
+  return tracklist.some(isSuite);
+}
+
+/**
+ * The release's tracks as files on a disc. Headings are dropped. A suite is split into its
+ * parts or kept as one track (see SuiteReading). A part of its own is titled "Suite; part"
+ * ("War; a) Ouverture") and keeps its own position and duration; a suite kept whole keeps its
+ * title and takes its position from the first part ("1-5.a" → "1-5", "B2a" → "B2").
+ */
+export function flattenTracklist<T extends DiscogsRawTrack>(tracklist: T[], reading: SuiteReading = 'discogs'): T[] {
+  return tracklist.flatMap((t): T[] => {
     if (t.type_ === 'track') return [t];
-    if (t.type_ !== 'index' || !t.sub_tracks?.length) return [];
-    const position = t.position?.trim() || t.sub_tracks[0].position.trim().replace(/\.?[a-z]$/, '');
+    if (!isSuite(t)) return [];
+    const parts = t.sub_tracks!;
+    const split =
+      reading === 'split' || (reading === 'discogs' && parts.every((p) => OWN_TRACK_NUMBER.test(p.position.trim())));
+    if (split)
+      return parts.map((p) => ({
+        ...(p as T),
+        type_: 'track',
+        position: p.position.trim(),
+        title: `${t.title}; ${p.title}`,
+        suite: t.title,
+        part: p.title,
+      }));
+    const position = t.position?.trim() || parts[0].position.trim().replace(/\.?[a-z]$/, '');
     return [{ ...t, type_: 'track', position }];
   });
+}
+
+/**
+ * The tracklist read the way that fits the files: Discogs' own reading when `fits` it,
+ * else whole suites split or joined, whichever fits; Discogs' reading when none does.
+ */
+export function fitTracklist<T extends DiscogsRawTrack>(tracklist: T[], fits: (tracks: T[]) => boolean): T[] {
+  const own = flattenTracklist(tracklist);
+  if (fits(own) || !hasSuites(tracklist)) return own;
+  for (const reading of ['split', 'joined'] as const) {
+    const other = flattenTracklist(tracklist, reading);
+    if (fits(other)) return other;
+  }
+  return own;
 }
 
 export interface InfoTxtTrack {
   position: string;
   title: string;
+  /** A suite's part (flattenTracklist()): listed as `part` under a "suite" heading. */
+  suite?: string;
+  part?: string;
   duration?: string;
   extraartists?: DiscogsCredit[];
 }
@@ -114,7 +166,10 @@ export function formatInfoTxt(release: InfoTxtRelease, artistName: string, disc?
 
   if (release.tracklist.length > 0) {
     lines.push('Songs');
+    let suite: string | undefined;
     for (const track of release.tracklist) {
+      if (track.suite && track.suite !== suite) lines.push(` ${track.suite}`);
+      suite = track.suite;
       const posMatch = track.position.match(/^(?:\d+[-./:])?(\d+)$/);
       const num = posMatch ? parseInt(posMatch[1], 10) : 0;
       const numStr = num ? `${num}.` : `${track.position}.`;
@@ -122,7 +177,7 @@ export function formatInfoTxt(release: InfoTxtRelease, artistName: string, disc?
         .filter((a) => /written|compos|music|lyric/i.test(a.role))
         .map((a) => cleanArtistName(a.name))
         .join(', ');
-      const parts: string[] = [padCol(numStr, 4), padCol(track.title, 40)];
+      const parts: string[] = [padCol(numStr, 4), padCol(track.suite ? (track.part ?? track.title) : track.title, 40)];
       if (composers) parts.push(padCol(composers, 24));
       if (track.duration) parts.push(track.duration);
       lines.push(' ' + parts.join(' ').trimEnd());

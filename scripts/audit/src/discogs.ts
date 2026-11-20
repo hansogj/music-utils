@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   cleanArtistName,
   type DiscogsRawTrack,
+  fitTracklist,
   flattenTracklist,
   joinArtistCredit,
 } from '@hansogj/discogs-item-lookup/format';
@@ -163,7 +164,13 @@ export async function pickMasterVersion(
   for (const id of ids.slice(0, maxChecks)) {
     let numbered: NumberedTrack[];
     try {
-      numbered = numberTracklist((await fetchRelease(String(id), token)).tracklist);
+      const { rawTracklist, tracklist } = await fetchRelease(String(id), token);
+      numbered = numberTracklist(
+        fitTracklist(
+          rawTracklist ?? tracklist,
+          (t) => numberTracklist(t).filter((n) => n.disc === want.disc).length === want.localCount,
+        ),
+      );
     } catch {
       continue;
     }
@@ -227,6 +234,16 @@ export function numberTracklist(tracklist: Array<{ position: string; title: stri
   });
 }
 
+// Whether a reading of the release's suites (see fitTracklist()) gives as many tracks as the
+// folder has files; for a "(Disc n∕m)" folder, as many on its disc.
+export function fitsFolder(albumFolder: string, localCount: number) {
+  const { disc, noOfDiscs } = discOfFolder(albumFolder);
+  return (tracks: Array<{ position: string; title: string }>): boolean => {
+    const numbered = numberTracklist(tracks);
+    return (noOfDiscs <= 1 ? numbered : numbered.filter((t) => t.disc === disc)).length === localCount;
+  };
+}
+
 function cleanAlbumTitle(folderName: string): string {
   return folderName
     .replace(/^\d{4}\s+/, '') // strip leading year
@@ -271,10 +288,15 @@ function getRelease(releaseId: string, token: string): Promise<RawRelease> {
   return cached;
 }
 
-async function fetchReleaseTracks(releaseId: number, token: string): Promise<NumberedTrack[]> {
+// A suite is one track or several as fits the folder's files (Dice's parts, Yes' suites).
+async function fetchReleaseTracks(
+  releaseId: number,
+  token: string,
+  fits: (tracks: RawTrack[]) => boolean,
+): Promise<NumberedTrack[]> {
   try {
     const data = await getRelease(String(releaseId), token);
-    return numberTracklist(flattenTracklist(data.tracklist ?? []));
+    return numberTracklist(fitTracklist(data.tracklist ?? [], fits));
   } catch {
     return [];
   }
@@ -309,7 +331,7 @@ async function scoreAndRank(
 
   const scored = await Promise.all(
     toScore.map(async (r) => {
-      const numbered = await fetchReleaseTracks(r.id, token);
+      const numbered = await fetchReleaseTracks(r.id, token, fitsFolder(albumFolder, localNames.length));
       return {
         ...r,
         trackCount: numbered.length,
@@ -385,7 +407,10 @@ async function withOriginalYears(
 
 export interface ReleaseInfo {
   releaseId: string;
+  // Suites as Discogs numbers their parts (flattenTracklist()); fitTracklist(rawTracklist, …)
+  // for the reading that fits the files (without it, `tracklist` as it is).
   tracklist: RawTrack[];
+  rawTracklist?: RawTrack[];
   year?: string; // original year: the master's, falling back to the release's own
   releaseYear?: string; // year of this specific pressing/reissue
   masterId?: number;
@@ -411,6 +436,7 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
   return {
     releaseId,
     tracklist: flattenTracklist(data.tracklist ?? []),
+    rawTracklist: data.tracklist ?? [],
     year: master?.year ?? releaseYear,
     releaseYear,
     ...(data.master_id ? { masterId: data.master_id } : {}),
