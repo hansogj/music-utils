@@ -131,12 +131,27 @@ scripts/audit/src/
   rate-limit.ts   — RateLimiter: moving 60s window sized from X-Discogs-Ratelimit headers
                     (60/min with a token, 25 without), one shared pause on 429;
                     interactive() gives repair-prompt requests slots the scan can't use
-  repair.ts       — runRepair() → repairAlbum() per album; printAlbumTable() (opening table, Format
-                    row from formatSummary(): only mp3/flac are read, others "(not checked)"); AuditStream (background scan
-                    queue); repairActions() (per issue code); discogsActionFor() /
-                    buildDiscogsAction() (release prompt, chooseDiscSlice(), tag write,
-                    info.txt, file renames, folder rename plan); BackSignal (Esc → action
-                    menu); RestartSignal (o → album start); setPrompt() for tests
+  repair.ts       — runRepair() → repairAlbum() per album (restart on o), discogsFirstStep(),
+                    repairAlbumPass() (issue menu loop), scanLine(); re-exports setPrompt(),
+                    resetRepairSession(), splitArtistBrackets(), formatSummary(), AuditStream
+  repair/
+    prompt.ts         — ask() (o → RestartSignal while setRestartable(true)), askLines(),
+                        setPrompt() for tests, BackSignal (Esc → action menu), closeRl()
+    release-picker.ts — pickRelease() (raw-mode list), parseReleaseRef(), yearLabel()
+    folder.ts         — folderTitle(), albumMetaFromLayout(), splitArtistBrackets(),
+                        planFolderRename() / askFolderRename() / applyFolderRename() (pending
+                        rename, applied last), askSkipAux(), askSetAux(), askOldYearBracket(),
+                        chooseArtist(), renameAlbumFolder(), noteChange(), moveToArtist();
+                        per-run answers reset by resetRepairSession()
+    discogs-action.ts — RepairAction; discogsActionFor() / buildDiscogsAction() (release
+                        prompt, chooseDiscSlice(), tag write, info.txt, file renames, folder
+                        rename plan); taggedReleaseId()
+    tagging.ts        — tagFromTracklist() (pair + write), offerFileRenames(), tagFromPaste()
+    issue-actions.ts  — repairActions(): the actions offered per issue code
+    covers.ts         — coverActions(), downloadCover()
+    album-table.ts    — printAlbumTable() (opening table; Format row from formatSummary(): only
+                        mp3/flac are read, others "(not checked)"), folderFiles()
+    stream.ts         — AuditStream (background scan queue), RepairEvent, ScanProgress
   rename-plan.ts  — sanitizeFilename() ("/" and ":" → " - "), pairWithRelease() (by disc/no,
                     else by order: one folder of a 2-CD release), pairingProblem() (asks
                     before tagging when titles repeat), checkRenames() (no renames that clash),
@@ -159,7 +174,7 @@ scripts/audit/src/
                     a Changeset header at the bottom, kept across rewrites)
   paste.ts        — parsePastedTracklist(): a tracklist the user pastes (titles, "01 - Title",
                     "A1 Title", "1-03 Title"; trailing duration dropped; positions only when
-                    every line has one) → NumberedTrack[] for tagFromPaste() in repair.ts
+                    every line has one) → NumberedTrack[] for tagFromPaste() in repair/tagging.ts
   year-bracket.ts — oldYearBracket() (l → live YYYY, r → rec. YYYY: appended), customAux()
                     (c: the folder's brackets, pre-filled via ask(q, prefill), edited and
                     replacing them; plain text → a bracket), applyOldYear(), albumSetKey()
@@ -211,7 +226,7 @@ scripts/audit/src/
 - **Report mode is read-only**: without `--repair`/`--retag` nothing in the library is written
 - **Tag writes**: FLAC via `metaflac`, MP3 via `id3v2` for standard frames and `id3-frames.ts` for TXXX (Discogs IDs) and COMM (empty description, full URL). Both include post-write verification (TRACKNUMBER/DATE checked before TITLE) to catch silent NFS/CIFS write failures. Fields written from Discogs: TITLE, ARTIST, ALBUMARTIST, ALBUM, DATE, ORIGINALDATE (MP3: TORY), TRACKNUMBER, DISCNUMBER, GENRE, COMMENT (release URL), DISCOGS_RELEASE_ID and DISCOGS_MASTER_ID (MP3: TXXX with description; JSON report: `tags.discogsReleaseId` / `tags.discogsMasterId`)
 - **Original year & title**: DATE, ORIGINALDATE, ALBUM and the folder's year/title always use the Discogs **master** (falling back to the release), never a reissue's year or title. Tracks are matched by numeric position when all positions are numeric, else by listing order (`numberTracklist()`, for vinyl `A1/B1`). `fetchOriginalYear()` results are cached on disk at `~/.cache/music-audit/original-years.json`
-- **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines); in repair mode only, silently created from existing tags if none exists. Never rewritten with the same text (a library mirror watches its mtime). Album and artist folder renames add a dated line to the Changeset section at the bottom (`renameAlbumFolder()` / `noteChange()` in repair.ts)
+- **info.txt**: written after Discogs tagging (rich: tracklist, personnel, durations, then `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines); in repair mode only, silently created from existing tags if none exists. Never rewritten with the same text (a library mirror watches its mtime). Album and artist folder renames add a dated line to the Changeset section at the bottom (`renameAlbumFolder()` / `noteChange()` in repair/folder.ts)
 - **Bracket after a skip**: the first `[s]` in an album (issue menu or the Discogs-first step) asks `askSkipAux()` for the folder's brackets, pre-filled with the current ones (e.g. add `bootleg`); stored as `aux` in the pending folder rename (`planFolderRename()` merges it with a Discogs rename) and applied last
 - **Old year bracket**: every repair that changes a folder's year (Discogs folder rename, YEAR_NOT_ORIGINAL) asks `askOldYearBracket()`; the answer is kept per album set for the run (`resetRepairSession()` at run start and in tests). The repair log records the final folder name
 - **Suites** (Discogs index entries; `flattenTracklist()` / `fitTracklist()` in discogs-item-lookup/format): parts with track numbers of their own (Dice r11456763: "War" a)–d) on tracks 1–4) are tracks of their own, titled "War; a) Ouverture" (`suite`/`part` fields; info.txt lists them under a " War" heading); lettered parts ("1-5.a", "B2a") make one track. When that count doesn't match the files, the other reading (all split / all joined) is used if it fits: `fitsFolder()` in discogs.ts for search scoring, `pickMasterVersion()` and Discogs tagging (`ReleaseInfo.rawTracklist`); rip re-reads with `lookupRelease({ trackCount })` after ripping
@@ -222,14 +237,14 @@ scripts/audit/src/
 - **Disc set release**: in a disc folder whose sibling was tagged already, the Discogs action first asks "Use the same release ID [rN] as Disc k? [Y/n]" (`siblingWithRelease()`); a no drops that ID from the suggestion. After a yes, `askSetAux()` offers keep / Disc k's brackets / type new when they differ (minus the set's old-year bracket); the first skip in such a folder asks the same instead of the plain bracket editor
 - **Suggested release ID**: the album's own (tags, else the comment URL / `info.txt` via `releaseIdFrom()`), then the other disc folders' (`siblingReleaseId()`), then the top search hit
 - **Folder rename safety**: all renames go through `guardedRename()` (folder-move.ts), which refuses to overwrite and does a case-only rename ("Speed of Love" → "Speed Of Love") via a temporary name: on an SMB share the target "exists" already, being the folder itself. Albums are compared by `folderTitle()` (parentheses kept), so a case difference isn't offered as a rename
-- **One artist name** (`chooseArtist()` in repair.ts): Discogs tagging picks one name for the artist folder, ARTIST/ALBUMARTIST and the info.txt header before writing (it used to tag the folder's name while the folder rename and header took Discogs': they drifted apart). Asked only when folder, Discogs' first artist and the tags' most common album artist differ: Enter Discogs', `k` the folder's, `a` `ReleaseInfo.artistCredit` (`joinArtistCredit()`, every credit with Discogs' `join`s, `/` as `, `, only when several). The folder's brackets are added to the tags and header too ("Dionysos [Canada]": same-named artists stay apart in players); tags are compared without them. `askFolderRename()` then renames the artist folder to it unasked; answer kept per album set (`artistAnswers`)
+- **One artist name** (`chooseArtist()` in repair/folder.ts): Discogs tagging picks one name for the artist folder, ARTIST/ALBUMARTIST and the info.txt header before writing (it used to tag the folder's name while the folder rename and header took Discogs': they drifted apart). Asked only when folder, Discogs' first artist and the tags' most common album artist differ: Enter Discogs', `k` the folder's, `a` `ReleaseInfo.artistCredit` (`joinArtistCredit()`, every credit with Discogs' `join`s, `/` as `, `, only when several). The folder's brackets are added to the tags and header too ("Dionysos [Canada]": same-named artists stay apart in players); tags are compared without them. `askFolderRename()` then renames the artist folder to it unasked; answer kept per album set (`artistAnswers`)
 - **Artist change** (`moveAlbumToArtist()`): only the album moves, into the new artist folder (created, or joined when it exists); the old artist folder is kept while it has other albums, else its files (cover.jpg) follow and it is removed, `@eaDir`/`.DS_Store`/`Thumbs.db` and all. A change of case only renames the whole artist folder. The artist folder's trailing `[...]` ("Dionysos [Canada]") is ignored when comparing with the Discogs artist and kept on a rename (`splitArtistBrackets()`)
 - **Covers** (`cover.ts`, on unless `--no-covers`; `auditAlbum({ checkCovers })` defaults off, so tests opt in): `cover.jpg` or `folder.jpg` (equals) in every album and artist folder; with Discogs, each cover file is compared with the release's front image (150px thumbnail), then the master's. Repair writes under the issue's file name (`issue.file`; cover.jpg when none): the release/master/entered cover (600px `uri`), the folder's other good cover file, or another image (one matching Discogs first); or copies an album cover to the artist folder; cover changes are noted in info.txt's Changeset. Images from `i.discogs.com` don't go through the rate limiter
 - **UX**: Enter defaults to action `[1]`; Esc in release picker throws `BackSignal` → returns to action menu; Enter in release ID prompt uses the suggested ID; `b` opens browse list; `[d]` in any issue menu retags the album from a chosen Discogs release; `o` at any prompt starts the album over
 
 ### Testing (audit)
 
-- `pnpm --filter @hansogj/music-audit run precommit`: ESLint, Prettier check, typecheck (`tsc --noEmit`), vitest with coverage thresholds (90% statements/functions/lines, 85% branches), then tsup build. `repair.ts`, `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts`, `logger.ts`, `completion.ts`, `term-link.ts` and `types.ts` are excluded from coverage (`vitest.config.ts`); `repair.ts` (~72% covered on its own) still has tests in `repair.test.ts`.
+- `pnpm --filter @hansogj/music-audit run precommit`: ESLint, Prettier check, typecheck (`tsc --noEmit`), vitest with coverage thresholds (90% statements/functions/lines, 85% branches), then tsup build. `repair.ts`, `repair/prompt.ts` and `repair/release-picker.ts` (TTY glue), `repair/covers.ts`, `repair/discogs-action.ts` and `repair/issue-actions.ts` (below the thresholds for now), `tags.ts`, `tag-write.ts`, `audit.ts`, `report.ts`, `server.ts`, `logger.ts`, `completion.ts`, `term-link.ts` and `types.ts` are excluded from coverage (`vitest.config.ts`); all of `repair/` is exercised by `repair.test.ts`. Take a `repair/` file off the list once it reaches the thresholds.
 - `repair.test.ts` drives `repairAlbum()` end to end: fake "audio" files hold their tags as JSON (mocked `tags.js` / `tag-write.js`), prompts are scripted with `setPrompt()` (an unexpected prompt fails the test), and `fetchRelease` is mocked per test with `mockResolvedValueOnce`.
 - Audio files (`*.mp3`, `*.flac`) are gitignored (except music-utils' CI test albums), so tests must build every file they use; `tag-write.test.ts` is skipped where `id3v2` is missing (CI installs it now), the cover hash tests where `magick` (ImageMagick 7) is missing.
 - Discogs fixtures mirror real API shapes (positions, `index` entries with `sub_tracks`, master versions); check the live API (`curl https://api.discogs.com/releases/<id>`) when adding a case.

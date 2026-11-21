@@ -20,6 +20,13 @@ export default defineConfig({
         '**/test-setup.ts',
         '**/audit.ts',
         '**/repair.ts',
+        // readline / raw-mode TTY glue, driven through setPrompt() in tests
+        '**/repair/prompt.ts',
+        '**/repair/release-picker.ts',
+        // not yet at the thresholds; tested through repair.test.ts
+        '**/repair/covers.ts',
+        '**/repair/discogs-action.ts',
+        '**/repair/issue-actions.ts',
         '**/server.ts',
         '**/logger.ts',
         '**/term-link.ts',
