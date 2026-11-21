@@ -24,9 +24,7 @@ export default defineConfig({
         '**/repair/prompt.ts',
         '**/repair/release-picker.ts',
         // not yet at the thresholds; tested through repair.test.ts
-        '**/repair/covers.ts',
         '**/repair/discogs-action.ts',
-        '**/repair/issue-actions.ts',
         '**/server.ts',
         '**/logger.ts',
         '**/term-link.ts',
