@@ -4,7 +4,7 @@ import path from 'node:path';
 import chalk from 'chalk';
 
 import { unsortArtist } from '../articles.js';
-import { commonAlbumArtist } from '../checks/artist.js';
+import { commonAlbumArtist, sameName } from '../checks/artist.js';
 import { folderYear, withFolderYear } from '../checks/year.js';
 import { type SiblingDisc, siblingDiscs } from '../disc-siblings.js';
 import { guardedRename as renameSafely, moveAlbumToArtist } from '../folder-move.js';
@@ -69,8 +69,13 @@ export async function musicFilesIn(dir: string): Promise<{ name: string; ext: 'f
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+// Case and punctuation aside ("Give'em" = "Give 'Em"); letters of any script count, "ø" and
+// "é" included ("Hønene" ≠ "Hnene").
+export function normName(s: string): string {
+  return s
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '');
 }
 
 // "Dionysos [Canada]" → { name: "Dionysos", brackets: " [Canada]" }: the trailing [...] parts.
@@ -273,7 +278,9 @@ export async function askFolderRename(
   const discogsAlbum = release.title;
   const localYear = folderYear(layout.albumFolder);
 
-  const artistMismatch = normName(artist) !== normName(localArtist);
+  // As ARTIST_FOLDER_MISMATCH compares (checks/artist.ts): punctuation counts, so "Kaada, Mike
+  // Patton" chosen for folder "Kaada & Mike Patton" renames it, and folder and tags agree.
+  const artistMismatch = !sameName(artist, localArtist);
   // The folder's title with its parentheses ("Transformation (The Speed of Love)"): only
   // the year, the disc part and the brackets are left out. Case and punctuation don't count.
   const localTitle = folderTitle(layout.albumFolder);
