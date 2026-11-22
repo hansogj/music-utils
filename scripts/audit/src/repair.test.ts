@@ -1646,6 +1646,31 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     expect(await header()).toBe('Patrick Woodroffe, Dave Greenslade - Sacred Baboon (1976)');
   });
 
+  // "Kaada, Mike Patton" chosen for folder "Kaada & Mike Patton": the names differ only in
+  // punctuation, and the folder used to stay, leaving an ARTIST_FOLDER_MISMATCH after the tagging.
+  it('a renames a folder whose name differs from the credits only in punctuation', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({
+      ...holland,
+      artists: ['Dave Holland', 'Quartet'],
+      artistCredit: 'Dave Holland, Quartet',
+    });
+    const audit = await scan();
+    answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID/, '4508999'],
+      [/^ {2}Artist \[Enter\/k\/a\]: $/, 'a'],
+      [/Apply renames\?/, 'n'],
+      [/./, 'q'],
+    ]);
+    await repairAlbum(audit, ctx());
+    const out = output.join('\n');
+    expect(out).toMatch(/Artist folder: "Dave Holland Quartet" {2}→ {2}"Dave Holland, Quartet" \(as chosen\)/);
+    expect(out).not.toMatch(/differs from the album artist in the tags/);
+    expect(layout.artistName).toBe('Dave Holland, Quartet');
+    expect(await tagsOf()).toMatchObject({ ALBUMARTIST: 'Dave Holland, Quartet' });
+  });
+
   it('asks nothing when folder, Discogs and tags agree', async () => {
     await tagAll({ ARTIST: 'Dave Holland Quartet', ALBUMARTIST: 'Dave Holland Quartet' });
     const { fetchRelease } = await import('./discogs.js');
@@ -1819,12 +1844,12 @@ describe('repairAlbum — artist folder vs the artist tags', () => {
     );
   });
 
-  it('ARTIST_FOLDER_MISMATCH [1] writes the folder’s name; a guest keeps its ARTIST', async () => {
+  it('ARTIST_FOLDER_MISMATCH [2] writes the folder’s name; a guest keeps its ARTIST', async () => {
     await tagAll({ ARTIST: 'Phil Miller', ALBUMARTIST: 'Phil Miller' });
     const guest = path.join(layout.albumPath, '02 - Cancer Of The Band.mp3');
     await fs.writeFile(guest, JSON.stringify({ ...(await readFake(guest)), ARTIST: 'Phil Miller & Guest' }));
     const audit = await scan();
-    const done = answer(firstThenArtist('1'));
+    const done = answer(firstThenArtist('2'));
     await repairAlbum(audit, ctx());
     done();
     expect(output.join('\n')).toMatch(
@@ -1840,13 +1865,13 @@ describe('repairAlbum — artist folder vs the artist tags', () => {
     });
   });
 
-  it('ARTIST_FOLDER_MISMATCH [2] moves the album to the tags’ artist, under its letter', async () => {
+  it('ARTIST_FOLDER_MISMATCH [1] (Enter) moves the album to the tags’ artist, under its letter', async () => {
     await tagAll({ ARTIST: 'Tonbruket', ALBUMARTIST: 'Tonbruket' });
     const audit = await scan();
-    const done = answer(firstThenArtist('2'));
+    const done = answer(firstThenArtist(''));
     await repairAlbum(audit, ctx());
     done();
-    expect(output.join('\n')).toMatch(/\[2\] Move the album to artist folder "T\/Tonbruket" \(the tags' name\)/);
+    expect(output.join('\n')).toMatch(/\[1\] Move the album to artist folder "T\/Tonbruket" \(the tags' name\)/);
     expect(layout.albumPath).toBe(path.join(root, 'T', 'Tonbruket', '1976 Sacred Baboon'));
   });
 

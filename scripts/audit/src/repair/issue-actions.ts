@@ -270,7 +270,8 @@ const artistMismatch: ActionsFor = async (issue, audit) => {
     const letterDir = layout.letterDir ?? '';
     const letter = /^[A-Z0-9]$/i.test(letterDir) ? expectedLetter(target) : undefined;
     const otherLetter = letter && letter !== letterDir.toUpperCase() ? letter : undefined;
-    actions.push({
+    // First, so Enter takes it: the tags hold the name chosen when they were written.
+    actions.unshift({
       label: `Move the album to artist folder "${otherLetter ? `${otherLetter}/` : ''}${target}" (the tags' name)`,
       run: () => moveToArtist(layout, target, otherLetter),
     });

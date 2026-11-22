@@ -2,7 +2,7 @@ import { type ArticleSort, articleSort, sortArtist, unsortArtist } from '../arti
 import type { AlbumLayout, Issue, TrackInfo } from '../types.js';
 
 // Names compared as written (NFC, case aside): "Ytre Suløens" and "Ytre Suloens" differ.
-const same = (a: string, b: string) => a.normalize('NFC').toLowerCase() === b.normalize('NFC').toLowerCase();
+export const sameName = (a: string, b: string) => a.normalize('NFC').toLowerCase() === b.normalize('NFC').toLowerCase();
 
 // "Doors, the" → "the Doors", "Cow, Henry" → "Henry Cow"; undefined when there's no comma.
 export function uninvert(name: string): string | undefined {
@@ -33,8 +33,8 @@ const withoutBrackets = (name: string) => name.replace(/(\s*\[[^\]]*\])+\s*$/, '
 function reordered(tag: string, folder: string): boolean {
   const plainTag = withoutBrackets(tag);
   const plainFolder = withoutBrackets(folder);
-  if (same(plainTag, plainFolder)) return false;
-  return same(uninvert(plainTag) ?? plainTag, uninvert(plainFolder) ?? plainFolder);
+  if (sameName(plainTag, plainFolder)) return false;
+  return sameName(uninvert(plainTag) ?? plainTag, uninvert(plainFolder) ?? plainFolder);
 }
 
 // The album artist the tags should hold for this artist folder: the folder's name, brackets
@@ -54,7 +54,7 @@ export function checkArtistFolder(layout: AlbumLayout, tracks: TrackInfo[], sort
   if (/^various( artists)?$/i.test(withoutBrackets(folder))) return [];
   const expected = expectedArtistTag(folder, sort);
   const names = [...new Set(tracks.map(albumArtistOf).filter((n): n is string => !!n))];
-  if (names.length === 0 || names.some((n) => same(n, expected))) return [];
+  if (names.length === 0 || names.some((n) => sameName(n, expected))) return [];
 
   const inverted = names.find((n) => reordered(n, folder) || reordered(n, expected));
   if (inverted)

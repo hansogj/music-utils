@@ -299,12 +299,15 @@ describe('artist folder vs tags', () => {
     );
   });
 
-  it("ARTIST_FOLDER_MISMATCH also offers a move to the tags' artist, under its letter", async () => {
+  it("ARTIST_FOLDER_MISMATCH first offers a move to the tags' artist, under its letter", async () => {
     await album('1976 Sacred Baboon', ['01 - One.mp3']);
     const tracks = [track('01 - One.mp3', { albumArtist: 'Banana / Urfa' })];
     const actions = await repairActions(issue('ARTIST_FOLDER_MISMATCH'), auditOf(tracks));
-    expect(actions[1].label).toBe('Move the album to artist folder "B/Banana, Urfa" (the tags\' name)');
-    await actions[1].run();
+    expect(labels(actions)).toEqual([
+      'Move the album to artist folder "B/Banana, Urfa" (the tags\' name)',
+      'Write "Yezda Urfa" to the artist tags (ALBUMARTIST; ARTIST where it is empty or the same)',
+    ]);
+    await actions[0].run();
     expect(layout.albumPath).toBe(path.join(root, 'B', 'Banana, Urfa', '1976 Sacred Baboon'));
   });
 });
