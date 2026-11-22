@@ -142,8 +142,8 @@ function buildDiscogsAction(
     ? `Tag from Discogs release ID (suggested: ${suggested.id}, from ${suggested.source})`
     : topResult
       ? `Tag from Discogs release ID (suggested: ${topResult.id} — ${topResult.title}${
-          topResult.matchScore !== undefined ? `, ${Math.round(topResult.matchScore * 100)}% match` : ''
-        })`
+          topResult.format?.[0] ? `, ${topResult.format[0]}` : ''
+        }${topResult.matchScore !== undefined ? `, ${Math.round(topResult.matchScore * 100)}% match` : ''})`
       : 'Tag from Discogs release ID';
 
   return {

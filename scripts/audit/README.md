@@ -86,10 +86,12 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 
 ```
   No Discogs release ID yet — tag from Discogs first:
-  [1] Tag from Discogs release ID (suggested: 4565937 — Sacred Baboon, 92% match)
+  [1] Tag from Discogs release ID (suggested: 4565937 — Sacred Baboon, CD, 92% match)
   [2] Paste the tracklist (one line per track; artist, album and year from the folder)
   [f] Fix the 3 issue(s) one by one   [s] Skip album   [o] Start album over   [q] Quit repair
 ```
+
+The suggestion is the search hit whose track titles best match the files. A digital release (CD, CDr, SACD, DVD-Audio or a download, `File`) comes before vinyl or cassette when its match is at most 5 points lower: the library holds digital versions, and an LP's sides, track splits or missing bonus tracks fit them less well. When none of the first three hits is digital, the first one among the top five is compared too. The album table and the release list show each hit's format, and mark the suggested hit with ★.
 
 When the Discogs search finds nothing, `[1]` (Enter) still takes a release ID, one you look up yourself, and `[2]` pastes the tracklist. After tagging the album is scanned again and the issues still left are shown one by one; `[f]` goes straight to them (with today's fixes, such as renaming a file to match its tag), and `[s]` skips the album (with the bracket question below). An album tagged from a release already isn't fetched again: its tags and `info.txt` are trusted. With `--retag` every album gets this step, the album's own release ID suggested.
 

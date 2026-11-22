@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import { termLink } from '../term-link.js';
 import { type AlbumAudit } from '../types.js';
 import { albumMetaFromLayout } from './folder.js';
-import { yearLabel } from './release-picker.js';
+import { formatLabel, yearLabel } from './release-picker.js';
 
 // The album table that opens each album in repair.
 
@@ -82,15 +82,16 @@ export function printAlbumTable(audit: AlbumAudit, fileNames: string[]): void {
   if (discogsResults && discogsResults.length > 0) {
     rows.push(['', '']);
     rows.push([chalk.bold('Discogs'), '']);
-    const bestScore = Math.max(...discogsResults.map((x) => x.matchScore ?? -1));
-    for (const r of discogsResults) {
+    // ★ on the suggested hit: the first, ranked by rankResults() (a CD may go before a vinyl
+    // that matches a little better).
+    for (const [i, r] of discogsResults.entries()) {
       const yr = yearLabel(r);
-      const star = r.matchScore !== undefined && r.matchScore === bestScore ? '★ ' : '  ';
+      const star = i === 0 && r.matchScore !== undefined ? '★ ' : '  ';
       const score =
         r.matchScore !== undefined
           ? chalk.dim(` ${Math.round(r.matchScore * 100)}%${r.trackCount !== undefined ? ` · ${r.trackCount}tr` : ''}`)
           : '';
-      const label = `${star}[${r.id}] ${r.title}${yr}`;
+      const label = `${star}[${r.id}] ${r.title}${yr}${formatLabel(r)}`;
       rows.push(['  release', termLink(chalk.cyan(label), r.releaseUrl) + score]);
       if (r.masterUrl) rows.push(['  master', termLink(chalk.dim('open master'), r.masterUrl)]);
     }
