@@ -162,7 +162,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → [1] Tag from Discogs
       [/Release ID \[4376665\]/, ''], // use the suggested release
-      [/Apply renames\?/, 'y'], // 01 - Give'em → 01 - Give 'Em
+      [/Apply renames\?/, ''], // Enter applies them: 01 - Give'em → 01 - Give 'Em
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, deferred
       [/Old year \[Enter\/l\/r\/c\]/, 'r'], // recorded 1976, released 1989
       [/Next album/, ''],
@@ -393,7 +393,7 @@ describe('repairAlbum — start the album over', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID \[4376665\]/, ''],
-      [/Apply renames\?/, 'n'], // so track 1's file name disagrees with its new title
+      [/Apply renames\?/, 'x'], // a typo declines: track 1's file name disagrees with its new title
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
       [/Old year \[Enter\/l\/r\/c\]/, ''], // no bracket
       [/^ {2}Choice \[1\]/, 'o'], // at the track 1 mismatch: regret

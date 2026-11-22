@@ -140,8 +140,9 @@ export async function offerFileRenames(
   if (pending.length === 0) return;
   console.log(chalk.dim(`\n  File renames to match ${source} (${pending.length} of ${files.length}):`));
   for (const p of pending) console.log(`    ${chalk.dim(p.old)}  →  ${p.new}`);
-  const doRename = await ask('  Apply renames? [y/N] ');
-  if (doRename.toLowerCase() !== 'y') return;
+  // Enter applies them: they follow from the tags just written. Only Enter or "y" does; a typo declines.
+  const doRename = await ask('  Apply renames? [Y/n] ');
+  if (!['', 'y'].includes(doRename.toLowerCase())) return;
   for (const p of pending) {
     try {
       await fs.rename(path.join(albumPath, p.old), path.join(albumPath, p.new));
