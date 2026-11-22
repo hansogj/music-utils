@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { TrackInfo } from '../types.js';
 import { checkDuplicates, likelyExtras } from './duplicates.js';
 
-function track(title: string, fileName = `${title}.flac`): TrackInfo {
+function track(title: string, fileName = `${title}.flac`, trackNo?: string): TrackInfo {
   return {
     filePath: `/music/${fileName}`,
     fileName,
     ext: 'flac',
-    tags: { title },
+    tags: { title, ...(trackNo ? { trackNo } : {}) },
     parsedName: title,
   };
 }
@@ -19,8 +19,8 @@ describe('checkDuplicates', () => {
     expect(checkDuplicates(tracks)).toHaveLength(0);
   });
 
-  it('returns DUPLICATE_TRACKS for two tracks with the same title', () => {
-    const tracks = [track('Loser', '04 - Loser.flac'), track('Loser', '05 - Loser.flac')];
+  it('returns DUPLICATE_TRACKS for two tracks with the same title on one track number', () => {
+    const tracks = [track('Loser', '04 - Loser.flac', '4'), track('Loser', '05 - Loser.flac', '4')];
     const issues = checkDuplicates(tracks);
     expect(issues).toHaveLength(1);
     expect(issues[0].code).toBe('DUPLICATE_TRACKS');
@@ -55,8 +55,8 @@ describe('checkDuplicates', () => {
 
   it('flags the same title with the same qualifier', () => {
     const tracks = [
-      track('Soul Suckin Jerk (Live)', '04 - Soul Suckin Jerk.flac'),
-      track('Soul Suckin Jerk (live)', '05 - Soul Suckin Jerk.flac'),
+      track('Soul Suckin Jerk (Live)', '04 - Soul Suckin Jerk.flac', '4'),
+      track('Soul Suckin Jerk (live)', '05 - Soul Suckin Jerk.flac', '4'),
       track('Soul Suckin Jerk', '06 - Soul Suckin Jerk.flac'),
     ];
     const issues = checkDuplicates(tracks);
@@ -90,7 +90,7 @@ describe('checkDuplicates', () => {
   });
 
   it('lists filenames of true duplicates in the message', () => {
-    const tracks = [track('Loser', '04 - Loser.flac'), track('Loser', '05 - Loser 2.flac')];
+    const tracks = [track('Loser', '04 - Loser.flac', '4'), track('Loser', '05 - Loser 2.flac', '4')];
     const issues = checkDuplicates(tracks);
     expect(issues[0].message).toContain('04 - Loser.flac');
     expect(issues[0].message).toContain('05 - Loser 2.flac');
@@ -131,8 +131,43 @@ describe('checkDuplicates', () => {
   });
 
   it('names no extra copy when both look the same', () => {
-    const issues = checkDuplicates([track('Loser', '04 - Loser.flac'), track('Loser', '05 - Loser.flac')]);
+    const issues = checkDuplicates([track('Loser', '04 - Loser.flac', '4'), track('Loser', '05 - Loser.flac', '4')]);
     expect(issues[0].message).not.toMatch(/likely extra/);
+  });
+
+  describe('the same title on tracks of their own (Visan I Sommaren on 06 and 12)', () => {
+    it('is no duplicate when the file names give each copy its own number', () => {
+      const tracks = [
+        track('Visan I Sommaren', '06 - Visan I Sommaren.mp3'),
+        track('Visan I Sommaren', '12 - Visan I Sommaren.mp3'),
+      ];
+      expect(checkDuplicates(tracks)).toEqual([]);
+    });
+
+    it('is no duplicate when the tags give each copy its own number', () => {
+      const tracks = [track('Visan', 'a.mp3', '6/12'), track('Visan', 'b.mp3', '12/12')];
+      expect(checkDuplicates(tracks)).toEqual([]);
+    });
+
+    it('takes the tag before the file name: one TRACKNUMBER for both is a duplicate', () => {
+      const tracks = [track('Visan', '06 - Visan.mp3', '6'), track('Visan', '12 - Visan.mp3', '6')];
+      expect(checkDuplicates(tracks)).toHaveLength(1);
+    });
+
+    it('is no duplicate on the same number of two discs', () => {
+      const disc = (n: string): TrackInfo => ({
+        ...track('Visan', `d${n}t06 - Visan.mp3`, '6'),
+        tags: { title: 'Visan', trackNo: '6', discNumber: `${n}/2` },
+      });
+      expect(checkDuplicates([disc('1'), disc('2')])).toEqual([]);
+      const fromNames = [track('Visan', 'd1t06 - Visan.mp3'), track('Visan', 'd2t06 - Visan.mp3')];
+      expect(checkDuplicates(fromNames)).toEqual([]);
+    });
+
+    it('is a duplicate when one copy has no number at all', () => {
+      const tracks = [track('Visan', '06 - Visan.mp3'), track('Visan', 'Visan.mp3')];
+      expect(checkDuplicates(tracks)).toHaveLength(1);
+    });
   });
 
   it('likelyExtras ranks a missing number above a missing title tag', () => {
