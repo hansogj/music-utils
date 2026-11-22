@@ -121,6 +121,13 @@ describe('discogsActionFor — the release ID prompt', () => {
     expect(action.label).toBe('Tag from Discogs release ID (suggested: 42 — Yezda Urfa - Sacred Baboon, 88% match)');
   });
 
+  it('names the top search hit’s format', async () => {
+    const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3']);
+    const results = [{ id: 42, title: 'Sacred Baboon', matchScore: 0.9, releaseUrl: '', format: ['CD', 'Album'] }];
+    const action = await discogsActionFor(auditOf(tracks, { discogsResults: results }), 'token');
+    expect(action.label).toBe('Tag from Discogs release ID (suggested: 42 — Sacred Baboon, CD, 90% match)');
+  });
+
   it('asks for another ID after a failed fetch, or gives up', async () => {
     const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3', '02 - Two.mp3']);
     vi.mocked(fetchRelease).mockRejectedValueOnce(new Error('Discogs 404'));

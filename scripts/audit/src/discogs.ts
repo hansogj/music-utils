@@ -190,6 +190,7 @@ interface RawResult {
   master_id?: number;
   genre?: string[];
   style?: string[];
+  format?: string[];
 }
 
 interface SearchResponse {
@@ -315,8 +316,40 @@ export function matchScore(localNames: string[], numbered: NumberedTrack[], albu
   return sliceForDisc(numbered, { ...folderDisc, localNames, localCount: localNames.length }).score;
 }
 
-// Fetch tracklists for up to `scoreCandidates` results in parallel,
-// score each against local track names, and sort best-first.
+// The library holds digital versions: a CD (CDr, SACD), a DVD-Audio or a download ("File")
+// is what the files were made from, more likely than an LP (sides, other track splits, no
+// bonus tracks). The search lists a DVD-Audio as ["DVD", "DVD-Audio", …]: a plain DVD
+// (video) doesn't count.
+const DIGITAL_FORMATS = new Set(['CD', 'CDr', 'SACD', 'DVD-Audio', 'File']);
+export const isDigital = (r: Pick<DiscogsSearchResult, 'format'>) =>
+  (r.format ?? []).some((f) => DIGITAL_FORMATS.has(f));
+
+// Points (of 100) a digital release may match worse and still come first.
+const DIGITAL_BONUS = 5;
+const rankScore = (r: DiscogsSearchResult) =>
+  r.matchScore === undefined ? -1 : Math.round(r.matchScore * 100) + (isDigital(r) ? DIGITAL_BONUS : 0);
+
+// Best match first; within DIGITAL_BONUS points (as shown, in %) a CD or File release
+// goes before vinyl. Results without a score keep their order, digital ones first.
+export function rankResults(results: DiscogsSearchResult[]): DiscogsSearchResult[] {
+  return [...results].sort(
+    (a, b) =>
+      rankScore(b) - rankScore(a) ||
+      Number(isDigital(b)) - Number(isDigital(a)) ||
+      (b.matchScore ?? -1) - (a.matchScore ?? -1),
+  );
+}
+
+// The results to score: the first `n`, plus the first CD/File one when none of those is.
+export function candidatesToScore(results: DiscogsSearchResult[], n: number): DiscogsSearchResult[] {
+  const top = results.slice(0, n);
+  if (top.some(isDigital)) return top;
+  const digital = results.slice(n).find(isDigital);
+  return digital ? [...top, digital] : top;
+}
+
+// Fetch tracklists for up to `scoreCandidates` results (and a CD/File one, see
+// candidatesToScore()) in parallel, score each against local track names, and rank them.
 async function scoreAndRank(
   results: DiscogsSearchResult[],
   localNames: string[],
@@ -326,8 +359,8 @@ async function scoreAndRank(
 ): Promise<DiscogsSearchResult[]> {
   if (localNames.length === 0 || results.length === 0) return results;
 
-  const toScore = results.slice(0, scoreCandidates);
-  const rest = results.slice(scoreCandidates);
+  const toScore = candidatesToScore(results, scoreCandidates);
+  const rest = results.filter((r) => !toScore.includes(r));
 
   const scored = await Promise.all(
     toScore.map(async (r) => {
@@ -340,10 +373,8 @@ async function scoreAndRank(
     }),
   );
 
-  // Sort scored results best-first; unscored results stay at the end.
-  scored.sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
-
-  return [...scored, ...rest];
+  // Scored results first, unscored after.
+  return [...rankResults(scored), ...rankResults(rest)];
 }
 
 export async function searchDiscogs(
@@ -375,12 +406,13 @@ export async function searchDiscogs(
     masterUrl: r.master_id ? `https://www.discogs.com/master/${r.master_id}` : undefined,
     genre: r.genre,
     style: r.style,
+    ...(r.format ? { format: r.format } : {}),
   }));
 
   const ranked =
     localTrackNames.length > 0
       ? await scoreAndRank(results, localTrackNames, albumFolder, token, scoreCandidates)
-      : results;
+      : rankResults(results);
   return withOriginalYears(ranked, token, scoreCandidates);
 }
 

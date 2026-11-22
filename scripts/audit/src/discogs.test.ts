@@ -5,17 +5,21 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  candidatesToScore,
   fetchMaster,
   fetchOriginalYear,
   fetchRelease,
+  isDigital,
   matchScore,
   numberTracklist,
   parseDiscogsRef,
   pickMasterVersion,
+  rankResults,
   resetDiscogsCaches,
   resolveReleaseId,
   searchDiscogs,
 } from './discogs.js';
+import type { DiscogsSearchResult } from './types.js';
 
 const RESPONSES: Record<string, unknown> = {
   '/releases/3422683': { title: 'In Rock', year: 1989, master_id: 1439, tracklist: [] },
@@ -242,5 +246,68 @@ describe('pickMasterVersion', () => {
       releaseId: '1849291',
       why: 'main release',
     });
+  });
+});
+
+describe('CD and File releases before vinyl', () => {
+  const result = (id: number, format: string, matchScore?: number): DiscogsSearchResult => ({
+    id,
+    title: `R${id}`,
+    releaseUrl: '',
+    format: [format, 'Album'],
+    ...(matchScore !== undefined ? { matchScore } : {}),
+  });
+  const ids = (results: DiscogsSearchResult[]) => rankResults(results).map((r) => r.id);
+
+  it('puts a CD or File release first when it matches within 5 points', () => {
+    expect(ids([result(1, 'Vinyl', 0.92), result(2, 'CD', 0.88)])).toEqual([2, 1]);
+    expect(ids([result(1, 'Vinyl', 0.92), result(2, 'File', 0.87)])).toEqual([2, 1]);
+    expect(ids([result(1, 'Vinyl', 0.9), result(2, 'CD', 0.9)])).toEqual([2, 1]);
+  });
+
+  it('keeps a vinyl release first when it matches clearly better', () => {
+    expect(ids([result(1, 'CD', 0.8), result(2, 'Vinyl', 0.92)])).toEqual([2, 1]);
+    expect(ids([result(1, 'Vinyl', 0.92), result(2, 'CD', 0.86)])).toEqual([1, 2]);
+  });
+
+  it('counts CDr, SACD and DVD-Audio as digital, not a plain DVD', () => {
+    const fmt = (...format: string[]) => isDigital({ format });
+    expect([fmt('CDr', 'Album'), fmt('SACD', 'Hybrid'), fmt('DVD', 'DVD-Audio'), fmt('File', 'FLAC')]).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect([fmt('DVD', 'NTSC'), fmt('Vinyl', 'LP'), fmt('Cassette')]).toEqual([false, false, false]);
+  });
+
+  it('ranks CD and File alike, and unscored results digital first, else in search order', () => {
+    expect(ids([result(1, 'CD', 0.9), result(2, 'File', 0.9)])).toEqual([1, 2]);
+    expect(ids([result(1, 'Vinyl'), result(2, 'Cassette'), result(3, 'CD')])).toEqual([3, 1, 2]);
+  });
+
+  it('scores the first CD/File result too when none of the top ones is', () => {
+    const vinyl = [1, 2, 3].map((id) => result(id, 'Vinyl'));
+    expect(candidatesToScore([...vinyl, result(4, 'Vinyl'), result(5, 'CD')], 3).map((r) => r.id)).toEqual([
+      1, 2, 3, 5,
+    ]);
+    expect(candidatesToScore([result(9, 'CD'), ...vinyl], 3).map((r) => r.id)).toEqual([9, 1, 2]);
+  });
+
+  it('searchDiscogs scores a CD from place 5 and ranks it first on an equal match', async () => {
+    const search = [911, 912, 913, 914].map((id) => ({ id, title: 'Yes - Yessongs', format: ['Vinyl', 'LP'] }));
+    RESPONSES['/database/search'] = {
+      results: [...search, { id: 915, title: 'Yes - Yessongs', format: ['CD', 'Album'] }],
+    };
+    for (const id of [911, 912, 913, 915]) RESPONSES[`/releases/${id}`] = { tracklist: cdTracks(2) };
+    try {
+      const results = await searchDiscogs('Yes', '1973 Yessongs', 'token', ['T1.1', 'T1.2']);
+      expect(results.map((r) => r.id)).toEqual([915, 911, 912, 913, 914]);
+      expect(results[0]).toMatchObject({ format: ['CD', 'Album'], matchScore: 1 });
+      expect(results[4].matchScore).toBeUndefined();
+    } finally {
+      delete RESPONSES['/database/search'];
+      for (const id of [911, 912, 913, 915]) delete RESPONSES[`/releases/${id}`];
+    }
   });
 });

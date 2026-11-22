@@ -14,22 +14,26 @@ export function yearLabel(r: DiscogsSearchResult): string {
   return r.originalYear && r.originalYear !== r.year ? ` (${r.year}, orig. ${r.originalYear})` : ` (${r.year})`;
 }
 
+// " · CD", " · Vinyl", " · File": the release's format as the search lists it first.
+export function formatLabel(r: DiscogsSearchResult): string {
+  return r.format?.[0] ? ` · ${r.format[0]}` : '';
+}
+
 // Returns: selected release ID string, undefined = "enter different ID", null = Esc (go back)
 export async function pickRelease(results: DiscogsSearchResult[]): Promise<string | null | undefined> {
   if (results.length === 0) return undefined;
   if (!process.stdin.isTTY) return undefined; // non-interactive — fall back to text input
 
-  const bestScore = Math.max(...results.map((x) => x.matchScore ?? -1));
-
   const items = [
-    ...results.map((r) => {
+    // ★ on the suggested hit: the first, as ranked by rankResults().
+    ...results.map((r, i) => {
       const yr = yearLabel(r);
-      const isBest = r.matchScore !== undefined && r.matchScore === bestScore;
+      const isBest = i === 0 && r.matchScore !== undefined;
       const score =
         r.matchScore !== undefined
           ? ` ${Math.round(r.matchScore * 100)}%${r.trackCount ? ` · ${r.trackCount}tr` : ''}`
           : '';
-      return { id: String(r.id), label: `[${r.id}] ${r.title}${yr}`, score, isBest };
+      return { id: String(r.id), label: `[${r.id}] ${r.title}${yr}${formatLabel(r)}`, score, isBest };
     }),
     { id: '', label: 'Enter a different release ID…', score: '', isBest: false },
   ];
