@@ -310,6 +310,54 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
   });
 });
 
+describe('repairAlbum — the issue menu', () => {
+  it('applies a name/tag fix to the other mismatches when asked', async () => {
+    // Track 5's TITLE cut short too: two mismatches.
+    const track5 = path.join(layout.albumPath, "05 - Flow Guides Aren't My Bag.mp3");
+    await fs.writeFile(track5, JSON.stringify({ TITLE: 'Flow Guides' }));
+    const audit = await scan();
+    audit.issues = audit.issues.filter((i) => i.code === 'NAME_TAG_MISMATCH');
+    expect(audit.issues).toHaveLength(2);
+    const done = answer([
+      [/^ {2}Choice \[1\]/, '2'], // Update TITLE tag to match the file name
+      [/Apply this to all remaining/, 'y'], // the second mismatch is fixed without a menu
+      [/Next album/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx(false))).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/→ bulk strategy: Update TITLE tag → "\(My Doc Told Me I Had\) Doggie Head"/);
+    expect(events.map((e) => e.result)).toEqual(['fixed', 'fixed']);
+    expect((await readFake(track5)).TITLE).toBe("Flow Guides Aren't My Bag");
+  });
+
+  it('lists the files, asks again after an invalid choice, and logs an issue with no repair', async () => {
+    const audit = await scan();
+    audit.issues = [
+      { severity: 'MODERATE', code: 'SOMETHING_ELSE', message: 'nothing to do here' },
+      ...audit.issues.filter((i) => i.code === 'NAME_TAG_MISMATCH'),
+    ];
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 'l'],
+      [/^ {2}Choice \[1\]/, '9'], // not an action: the menu again
+      [/^ {2}Choice \[1\]/, 's'],
+      [/Brackets:/, ''],
+      [/\[r\] Retry/, ''],
+    ]);
+
+    expect(await repairAlbum(audit, ctx(false))).toBe('next');
+    done();
+    const shown = output.join('\n');
+    expect(shown).toMatch(/No automated repair available/);
+    expect(shown).toMatch(/Files in .*1976 Sacred Baboon:\n {4}01 - Give'em Some Rawhide Chewies\.mp3/);
+    expect(shown).toMatch(/Invalid choice\./);
+    expect(events.map((e) => [e.issue, e.action, e.result])).toEqual([
+      ['SOMETHING_ELSE', 'none', 'no-action'],
+      ['NAME_TAG_MISMATCH', 'skipped', 'skipped'],
+    ]);
+  });
+});
+
 describe('repairAlbum — start the album over', () => {
   const albumHeaders = () => output.filter((l) => l.includes('📁')).length;
 
