@@ -208,7 +208,8 @@ scripts/audit/src/
                     music-utils' config/load.ts), sortArtist() / unsortArtist(); every tag
                     write of the artist (Discogs, paste, folder, artist fix) goes through
                     sortArtist(); tests run with it off (test-setup.ts, setArticleSort())
-    duplicates.ts — DUPLICATE_TRACKS: whole titles, qualifier included; likelyExtras()
+    duplicates.ts — DUPLICATE_TRACKS: whole titles, qualifier included; not when every copy
+                    has its own number (tag, else file name: 06 and 12); likelyExtras()
     discogs-ids.ts — MISSING_RELEASE_ID: mp3 with a master ID but no release ID (lost by
                     the 81963c0/43bd432 writer); repair restores it from the comment URL
                     or info.txt, or retags from a chosen release
