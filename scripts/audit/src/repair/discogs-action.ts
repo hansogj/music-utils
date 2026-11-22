@@ -182,8 +182,9 @@ function buildDiscogsAction(
             if (input === 'b' && results.length > 0) {
               const picked = await pickRelease(results);
               if (picked === null) throw new BackSignal(); // Esc → back to action menu
-              if (picked !== undefined) releaseId = picked;
-              // undefined = "enter different ID" row selected — fall through to re-prompt
+              // undefined: the "enter different ID" row (or no TTY for the list) → ask again
+              if (picked === undefined) continue;
+              releaseId = picked;
             } else if (input) {
               const ref = parseReleaseRef(input);
               releaseId = ref?.id ?? '';

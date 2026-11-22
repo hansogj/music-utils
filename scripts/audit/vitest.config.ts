@@ -23,8 +23,6 @@ export default defineConfig({
         // readline / raw-mode TTY glue, driven through setPrompt() in tests
         '**/repair/prompt.ts',
         '**/repair/release-picker.ts',
-        // not yet at the thresholds; tested through repair.test.ts
-        '**/repair/discogs-action.ts',
         '**/server.ts',
         '**/logger.ts',
         '**/term-link.ts',
