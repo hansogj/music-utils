@@ -9,6 +9,7 @@ import {
   joinArtistCredit,
 } from '@hansogj/discogs-item-lookup/format';
 
+import { DIGITAL_FORMATS, getCollection, ownedReleasesOf } from './collection.js';
 import { type CoverSource, imageHash } from './cover.js';
 import { discOfFolder, sliceForDisc } from './disc-split.js';
 import { userHome } from './env.js';
@@ -316,11 +317,10 @@ export function matchScore(localNames: string[], numbered: NumberedTrack[], albu
   return sliceForDisc(numbered, { ...folderDisc, localNames, localCount: localNames.length }).score;
 }
 
-// The library holds digital versions: a CD (CDr, SACD), a DVD-Audio or a download ("File")
-// is what the files were made from, more likely than an LP (sides, other track splits, no
-// bonus tracks). The search lists a DVD-Audio as ["DVD", "DVD-Audio", …]: a plain DVD
-// (video) doesn't count.
-const DIGITAL_FORMATS = new Set(['CD', 'CDr', 'SACD', 'DVD-Audio', 'File']);
+// The library holds digital versions: a CD (CDr, HDCD, SACD), a DVD-Audio or a download
+// ("File") is what the files were made from, more likely than an LP (sides, other track
+// splits, no bonus tracks). The search lists a DVD-Audio as ["DVD", "DVD-Audio", …]: a plain
+// DVD (video) doesn't count.
 export const isDigital = (r: Pick<DiscogsSearchResult, 'format'>) =>
   (r.format ?? []).some((f) => DIGITAL_FORMATS.has(f));
 
@@ -329,9 +329,16 @@ const DIGITAL_BONUS = 5;
 const rankScore = (r: DiscogsSearchResult) =>
   r.matchScore === undefined ? -1 : Math.round(r.matchScore * 100) + (isDigital(r) ? DIGITAL_BONUS : 0);
 
-// Best match first; within DIGITAL_BONUS points (as shown, in %) a CD or File release
-// goes before vinyl. Results without a score keep their order, digital ones first.
-export function rankResults(results: DiscogsSearchResult[]): DiscogsSearchResult[] {
+// Points (of 100) a release in the user's collection may match worse than the best one
+// not in it and still come first: it is most likely the very edition the files came from.
+const OWNED_MARGIN = 15;
+// Owned releases scored per album at most (each costs a tracklist request).
+export const MAX_OWNED = 3;
+const percent = (r: DiscogsSearchResult) => Math.round((r.matchScore ?? 0) * 100);
+
+// Releases not in the collection: best match first; within DIGITAL_BONUS points (as shown,
+// in %) a digital release goes before vinyl. Without a score: search order, digital first.
+function rankOthers(results: DiscogsSearchResult[]): DiscogsSearchResult[] {
   return [...results].sort(
     (a, b) =>
       rankScore(b) - rankScore(a) ||
@@ -340,16 +347,61 @@ export function rankResults(results: DiscogsSearchResult[]): DiscogsSearchResult
   );
 }
 
-// The results to score: the first `n`, plus the first CD/File one when none of those is.
-export function candidatesToScore(results: DiscogsSearchResult[], n: number): DiscogsSearchResult[] {
-  const top = results.slice(0, n);
-  if (top.some(isDigital)) return top;
-  const digital = results.slice(n).find(isDigital);
-  return digital ? [...top, digital] : top;
+// Owned releases (the collection holds digital ones only) go first when they match within
+// OWNED_MARGIN points of the best release not owned; then the rest as rankOthers() orders
+// them. Owned CD 80% before a not-owned CD 92%, after one at 96%.
+export function rankResults(results: DiscogsSearchResult[]): DiscogsSearchResult[] {
+  const owned = results.filter((r) => r.owned).sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
+  const others = rankOthers(results.filter((r) => !r.owned));
+  const ranked: DiscogsSearchResult[] = [];
+  while (owned.length > 0 && others.length > 0) {
+    const [o, x] = [owned[0], others[0]];
+    const ownedFirst =
+      x.matchScore === undefined || (o.matchScore !== undefined && percent(o) + OWNED_MARGIN >= percent(x));
+    ranked.push((ownedFirst ? owned : others).shift()!);
+  }
+  return [...ranked, ...owned, ...others];
 }
 
-// Fetch tracklists for up to `scoreCandidates` results (and a CD/File one, see
-// candidatesToScore()) in parallel, score each against local track names, and rank them.
+// The results to score: the first `n`, plus the first digital one when none of those is,
+// plus the owned ones (MAX_OWNED at most).
+export function candidatesToScore(results: DiscogsSearchResult[], n: number): DiscogsSearchResult[] {
+  const top = results.slice(0, n);
+  const digital = top.some(isDigital) ? undefined : results.slice(n).find(isDigital);
+  const owned = results.filter((r) => r.owned).slice(0, MAX_OWNED);
+  const picked = new Set([...top, ...(digital ? [digital] : []), ...owned]);
+  return results.filter((r) => picked.has(r));
+}
+
+// Marks the search hits the user owns (a digital release in the Discogs collection CSV)
+// and adds the album's owned releases the search didn't find (by artist and title), up to
+// MAX_OWNED owned in all. Without a CSV the results stay as they are.
+export function withOwnedReleases(
+  results: DiscogsSearchResult[],
+  artist: string,
+  albumTitle: string,
+): DiscogsSearchResult[] {
+  const collection = getCollection();
+  if (!collection) return results;
+  const marked = results.map((r) => (collection.has(r.id) ? { ...r, owned: true } : r));
+  const room = Math.max(0, MAX_OWNED - marked.filter((r) => r.owned).length);
+  const found = ownedReleasesOf(collection, artist, albumTitle)
+    .filter((o) => !marked.some((r) => r.id === o.releaseId))
+    .slice(0, room)
+    .map((o): DiscogsSearchResult => ({
+      id: o.releaseId,
+      title: `${o.artist} - ${o.title}`,
+      ...(o.year ? { year: o.year } : {}),
+      releaseUrl: `https://www.discogs.com/release/${o.releaseId}`,
+      format: [o.format],
+      owned: true,
+    }));
+  return [...marked, ...found];
+}
+
+// Fetch tracklists for up to `scoreCandidates` results (and a digital one and the owned
+// ones, see candidatesToScore()) in parallel, score each against local track names, and
+// rank them.
 async function scoreAndRank(
   results: DiscogsSearchResult[],
   localNames: string[],
@@ -365,8 +417,13 @@ async function scoreAndRank(
   const scored = await Promise.all(
     toScore.map(async (r) => {
       const numbered = await fetchReleaseTracks(r.id, token, fitsFolder(albumFolder, localNames.length));
+      // An owned release found in the CSV comes without its master: the release (cached
+      // by the fetch above) has it, for the original year.
+      const masterId =
+        r.masterId ?? (r.owned ? (await getRelease(String(r.id), token).catch(() => undefined))?.master_id : undefined);
       return {
         ...r,
+        ...(masterId ? { masterId, masterUrl: `https://www.discogs.com/master/${masterId}` } : {}),
         trackCount: numbered.length,
         matchScore: matchScore(localNames, numbered, albumFolder),
       };
@@ -408,11 +465,12 @@ export async function searchDiscogs(
     style: r.style,
     ...(r.format ? { format: r.format } : {}),
   }));
+  const candidates = withOwnedReleases(results, artist, title);
 
   const ranked =
     localTrackNames.length > 0
-      ? await scoreAndRank(results, localTrackNames, albumFolder, token, scoreCandidates)
-      : rankResults(results);
+      ? await scoreAndRank(candidates, localTrackNames, albumFolder, token, scoreCandidates)
+      : rankResults(candidates);
   return withOriginalYears(ranked, token, scoreCandidates);
 }
 

@@ -14,9 +14,10 @@ export function yearLabel(r: DiscogsSearchResult): string {
   return r.originalYear && r.originalYear !== r.year ? ` (${r.year}, orig. ${r.originalYear})` : ` (${r.year})`;
 }
 
-// " · CD", " · Vinyl", " · File": the release's format as the search lists it first.
+// " · CD", " · Vinyl", " · File": the release's format as the search lists it first;
+// " · in collection" for one the user owns (the Discogs collection CSV).
 export function formatLabel(r: DiscogsSearchResult): string {
-  return r.format?.[0] ? ` · ${r.format[0]}` : '';
+  return `${r.format?.[0] ? ` · ${r.format[0]}` : ''}${r.owned ? ' · in collection' : ''}`;
 }
 
 // Returns: selected release ID string, undefined = "enter different ID", null = Esc (go back)

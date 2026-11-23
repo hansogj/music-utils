@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { collectionFromCsv, setCollection } from './collection.js';
 import {
   candidatesToScore,
   fetchMaster,
@@ -18,6 +19,7 @@ import {
   resetDiscogsCaches,
   resolveReleaseId,
   searchDiscogs,
+  withOwnedReleases,
 } from './discogs.js';
 import type { DiscogsSearchResult } from './types.js';
 
@@ -308,6 +310,85 @@ describe('CD and File releases before vinyl', () => {
     } finally {
       delete RESPONSES['/database/search'];
       for (const id of [911, 912, 913, 915]) delete RESPONSES[`/releases/${id}`];
+    }
+  });
+});
+
+describe('releases in the user’s collection first', () => {
+  const result = (id: number, format: string, matchScore?: number, owned = false): DiscogsSearchResult => ({
+    id,
+    title: `R${id}`,
+    releaseUrl: '',
+    format: [format],
+    ...(matchScore !== undefined ? { matchScore } : {}),
+    ...(owned ? { owned } : {}),
+  });
+  const ids = (results: DiscogsSearchResult[]) => rankResults(results).map((r) => r.id);
+  // A collection export with the given (artist, title, format, release id) rows.
+  const collection = (...rows: Array<[string, string, string, number]>) =>
+    collectionFromCsv(
+      ['Artist,Title,Format,Released,release_id', ...rows.map(([a, t, f, id]) => `${a},${t},"${f}",1990,${id}`)].join(
+        '\n',
+      ),
+    );
+
+  it('puts an owned release first when it matches within 15 points of the best one not owned', () => {
+    expect(ids([result(1, 'CD', 0.92), result(2, 'CD', 0.8, true)])).toEqual([2, 1]);
+    expect(ids([result(1, 'Vinyl', 0.95), result(2, 'CD', 0.8, true)])).toEqual([2, 1]);
+    expect(ids([result(1, 'CD', 0.96), result(2, 'CD', 0.8, true), result(3, 'CD', 0.92)])).toEqual([1, 2, 3]);
+  });
+
+  it('orders owned releases by match, and puts unscored owned ones first among unscored', () => {
+    // 90 is within 15 of 99, 70 isn't.
+    expect(ids([result(1, 'CD', 0.7, true), result(2, 'CD', 0.9, true), result(3, 'Vinyl', 0.99)])).toEqual([2, 3, 1]);
+    expect(ids([result(1, 'Vinyl'), result(2, 'CD'), result(3, 'CD', undefined, true)])).toEqual([3, 2, 1]);
+  });
+
+  it('scores the owned results too, beyond the top three', () => {
+    const vinyl = [1, 2, 3, 4].map((id) => result(id, 'Vinyl'));
+    const owned = [5, 6, 7, 8].map((id) => result(id, 'CD', undefined, true));
+    expect(candidatesToScore([...vinyl, ...owned], 3).map((r) => r.id)).toEqual([1, 2, 3, 5, 6, 7]);
+  });
+
+  it('marks owned search hits and adds the album’s other owned releases, three owned at most', () => {
+    setCollection(
+      collection(
+        ['Yes', 'Fragile', 'CD, Album', 11],
+        ['Yes', 'Fragile', 'CD, Album, RE', 12],
+        ['Yes', 'Fragile', 'File, FLAC', 13],
+        ['Yes', 'Fragile', 'SACD', 14],
+        ['Yes', 'Fragile', 'LP', 15],
+      ),
+    );
+    const out = withOwnedReleases([result(11, 'CD'), result(20, 'Vinyl')], 'Yes', 'Fragile');
+    expect(out.map((r) => [r.id, r.owned ?? false])).toEqual([
+      [11, true],
+      [20, false],
+      [12, true],
+      [13, true],
+    ]);
+    expect(out[3]).toMatchObject({ title: 'Yes - Fragile', format: ['File'], year: '1990' });
+  });
+
+  it('leaves the results alone without a collection', () => {
+    const results = [result(1, 'CD')];
+    expect(withOwnedReleases(results, 'Yes', 'Fragile')).toBe(results);
+  });
+
+  it('searchDiscogs scores an owned CD the search missed and suggests it on an equal match, with its master', async () => {
+    setCollection(collection(['Yes', 'Yessongs', '2xCD, Album', 920]));
+    RESPONSES['/database/search'] = { results: [{ id: 921, title: 'Yes - Yessongs', format: ['CD', 'Album'] }] };
+    RESPONSES['/releases/920'] = { master_id: 35063, tracklist: cdTracks(3) };
+    RESPONSES['/releases/921'] = { tracklist: cdTracks(3) };
+    try {
+      const results = await searchDiscogs('Yes', '1973 Yessongs', 'token', ['T1.1', 'T1.2', 'T1.3']);
+      expect(results.map((r) => [r.id, r.owned ?? false])).toEqual([
+        [920, true],
+        [921, false],
+      ]);
+      expect(results[0]).toMatchObject({ masterId: 35063, originalYear: '1973', format: ['CD'] });
+    } finally {
+      for (const p of ['/database/search', '/releases/920', '/releases/921']) delete RESPONSES[p];
     }
   });
 });

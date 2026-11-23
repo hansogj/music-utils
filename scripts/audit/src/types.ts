@@ -56,6 +56,7 @@ export interface DiscogsSearchResult {
   trackCount?: number; // tracks in this release (type_=track only)
   matchScore?: number; // 0–1 similarity against local files; undefined = not yet scored
   format?: string[]; // as Discogs' search lists it: ["CD", "Album"], ["Vinyl", "LP", "Album"], ["File", "FLAC"]
+  owned?: boolean; // in the user's Discogs collection (the CSV export, digital releases only)
 }
 
 // Original release year resolved from a release ID already in the album's tags.

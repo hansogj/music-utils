@@ -121,6 +121,15 @@ describe('discogsActionFor — the release ID prompt', () => {
     expect(action.label).toBe('Tag from Discogs release ID (suggested: 42 — Yezda Urfa - Sacred Baboon, 88% match)');
   });
 
+  it('says when the top search hit is in the collection', async () => {
+    const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3']);
+    const results = [{ id: 42, title: 'Sacred Baboon', matchScore: 0.9, releaseUrl: '', format: ['CD'], owned: true }];
+    const action = await discogsActionFor(auditOf(tracks, { discogsResults: results }), 'token');
+    expect(action.label).toBe(
+      'Tag from Discogs release ID (suggested: 42 — Sacred Baboon, CD, in collection, 90% match)',
+    );
+  });
+
   it('names the top search hit’s format', async () => {
     const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3']);
     const results = [{ id: 42, title: 'Sacred Baboon', matchScore: 0.9, releaseUrl: '', format: ['CD', 'Album'] }];
