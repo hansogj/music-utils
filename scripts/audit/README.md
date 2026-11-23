@@ -63,6 +63,23 @@ MUSIC_AUDIT_CHECK_YEARS=true
 
 `DISCOGS_TOKEN` can also be set as an environment variable or in `~/.config/music-utils/.env` (shared with the music-utils CLIs; under `sudo` the invoking user's home is used) instead of `--token`.
 
+### Your Discogs collection (optional)
+
+With your collection at hand, music-audit suggests the releases you own (see **Your Discogs collection** under repair mode below). No setting is needed:
+
+1. On discogs.com: your collection → Export → download the CSV.
+2. Put it in `~/.config/music-utils/` with the name Discogs gives it, for example `~/.config/music-utils/hansogj-collection-20261123-0623.csv`.
+
+music-audit uses the newest `*-collection-*.csv` in that folder, so when your collection grows, download a new export into the same folder; older ones may stay or go. Nothing is sent anywhere: the file is only read.
+
+Only to keep the export somewhere else, name it in `~/.config/music-utils/.env`:
+
+```
+DISCOGS_COLLECTION_CSV=/path/to/my-collection.csv
+```
+
+Without an export, suggestions work as before.
+
 ## Flags
 
 | Flag              | Description                                                                                    |
@@ -92,6 +109,8 @@ Without `--repair`/`--retag` the audit only reads: nothing in the library is wri
 ```
 
 The suggestion is the search hit whose track titles best match the files. A digital release (CD, CDr, SACD, DVD-Audio or a download, `File`) comes before vinyl or cassette when its match is at most 5 points lower: the library holds digital versions, and an LP's sides, track splits or missing bonus tracks fit them less well. When none of the first three hits is digital, the first one among the top five is compared too. The album table and the release list show each hit's format, and mark the suggested hit with ★.
+
+**Your Discogs collection.** Export it from Discogs (Collection → Export) and put the CSV in `~/.config/music-utils/` with its own name, no setting needed (see [Your Discogs collection](#your-discogs-collection-optional) above): music-audit reads the newest `*-collection-*.csv` there once per run, without any Discogs request. Only its digital releases count (CD, HDCD, CDr, SACD, DVD-Audio, File), from every folder. A search hit you own is marked `· in collection`; an owned release the search didn't find is added, found by artist and title (Discogs' `(3)` and the folder's brackets left out), up to three owned releases per album. An owned release goes first when its match is at most 15 points below the best one you don't own, and is suggested. Export the collection again when it grows; without the file nothing changes.
 
 When the Discogs search finds nothing, `[1]` (Enter) still takes a release ID, one you look up yourself, and `[2]` pastes the tracklist. After tagging the album is scanned again and the issues still left are shown one by one; `[f]` goes straight to them (with today's fixes, such as renaming a file to match its tag), and `[s]` skips the album (with the bracket question below). An album tagged from a release already isn't fetched again: its tags and `info.txt` are trusted. With `--retag` every album gets this step, the album's own release ID suggested.
 

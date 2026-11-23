@@ -41,6 +41,11 @@ describe('printAlbumTable — Discogs hits', () => {
     ]);
   });
 
+  it('marks a release in the collection', () => {
+    const lines = shownWith([{ ...result(1, 'CD', 0.9), owned: true }]);
+    expect(lines.join('\n')).toMatch(/★ \[1\] Sacred Baboon 1 · CD · in collection .*90%/);
+  });
+
   it('stars nothing when the first hit has no score', () => {
     const lines = shownWith([result(1, 'CD'), result(2, 'Vinyl')]);
     expect(lines.join('\n')).not.toMatch(/★/);

@@ -126,6 +126,10 @@ scripts/audit/src/
                     see Suites below) and joinArtistCredit() come from discogs-item-lookup/format; fetchReleaseCover() / downloadImage() / discogsCoverSource()
                     (cover hashes cached in ~/.cache/music-audit/cover-hashes.json); all HTTP through discogsGet(), which waits on
                     the shared rate limiter and retries 429/500; releases cached per session
+  collection.ts   — the user's Discogs collection from its CSV export (newest *-collection-*.csv in
+                    ~/.config/music-utils/, or DISCOGS_COLLECTION_CSV): getCollection() (once per run;
+                    tests: setCollection(), off in test-setup.ts), digital rows only (DIGITAL_FORMATS,
+                    shared with isDigital()), ownedReleasesOf() (artist + title, no master ID in the CSV)
   similarity.ts   — scoreTracklist(): fuzzy match local track names vs Discogs
   progress.ts     — progressBar() ("▕███░░▏ n/m  p%"), LiveProgress (one redrawn stderr line)
   rate-limit.ts   — RateLimiter: moving 60s window sized from X-Discogs-Ratelimit headers
@@ -220,7 +224,7 @@ scripts/audit/src/
 
 ### Key behaviours
 
-- **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel (plus the first CD/File hit when none of them is one: `candidatesToScore()`), ranks by fuzzy title similarity (`scoreTracklist`); `rankResults()` puts a digital release (`isDigital()`: CD, CDr, SACD, DVD-Audio, File in the search result's `format`) before vinyl within 5 points (rounded %). The format is shown in the album table, the release picker and the suggestion line (`formatLabel()`)
+- **Discogs scoring**: fetches tracklists for up to 3 candidates in parallel (plus the first CD/File hit when none of them is one: `candidatesToScore()`), ranks by fuzzy title similarity (`scoreTracklist`); `rankResults()` puts a digital release (`isDigital()`: CD, CDr, SACD, DVD-Audio, File in the search result's `format`) before vinyl within 5 points (rounded %); owned releases (`withOwnedReleases()`: search hits in the collection CSV marked, owned ones the search missed added, `MAX_OWNED` 3) go before everything not owned within 15 points. The format (and "in collection") is shown in the album table, the release picker and the suggestion line (`formatLabel()`)
 - **Discogs rate limit**: every request waits for a slot in `discogsLimiter` (rate-limit.ts), so the background scan stays under the limit instead of retrying 429s; a 429 that still happens (same token used elsewhere) pauses all requests 5→10→20→40→60s, up to 8 attempts. The Discogs action in repair runs inside `interactive()`
 - **Streaming repair**: `AuditStream` producer/consumer queue — scan runs in background while user handles already-found albums interactively
 - **Scan progress** (`progress.ts`): report mode redraws a `▕███░░▏ n/m  p%` line on stderr (`LiveProgress`, TTY only); repair mode shows it in each album header with the album's number (`scanLine()`: "Album 3 of 17 so far" from `AuditStream.progress` `taken`/`found`) and live only while waiting for the scan (`stream.waiting`), since a prompt can't share a redrawn line. Messages written during a live line start with `CLEAR_LINE`
