@@ -157,9 +157,13 @@ scripts/audit/src/
     issue-actions.ts  — repairActions(): the actions offered per issue code, from a table of
                         handlers (one ActionsFor function per code; none → no automated repair)
     covers.ts         — coverActions(), downloadCover()
-    album-table.ts    — printAlbumTable() (opening table; Format row from formatSummary(): only
-                        mp3/flac are read, others "(not checked)"), folderFiles()
+    album-table.ts    — printAlbumTable() (opening table; Format row: mp3/flac with their quality
+                        from qualitySummary(), others "(not checked)" from formatSummary()), folderFiles()
     stream.ts         — AuditStream (background scan queue), RepairEvent, ScanProgress
+  audio-quality.ts — albumQuality(): each track's quality from the file's own headers (FLAC
+                    STREAMINFO "16/44.1"; MP3 frame + Xing/VBRI "320 kbps", "VBR ~245 kbps"; no
+                    external tool), qualitySummary() ("FLAC 16/44.1 [1–11] · 24/96 [12]": track
+                    numbers only when the tracks differ). Display only, no issue
   rename-plan.ts  — sanitizeFilename() ("/" and ":" → " - "), pairWithRelease() (by disc/no,
                     else by order: one folder of a 2-CD release), pairingProblem() (asks
                     before tagging when titles repeat), checkRenames() (no renames that clash),
