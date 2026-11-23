@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import chalk from 'chalk';
 
+import { qualitySummary, type TrackQuality } from '../audio-quality.js';
 import { termLink } from '../term-link.js';
 import { type AlbumAudit } from '../types.js';
 import { albumMetaFromLayout } from './folder.js';
@@ -52,7 +53,9 @@ export async function folderFiles(dir: string): Promise<string[]> {
   }
 }
 
-export function printAlbumTable(audit: AlbumAudit, fileNames: string[]): void {
+// `quality`: each track's quality (albumQuality()), shown in the Format row instead of the
+// plain format counts.
+export function printAlbumTable(audit: AlbumAudit, fileNames: string[], quality: TrackQuality[] = []): void {
   const { layout, tracks, discogsResults } = audit;
   const meta = albumMetaFromLayout(layout);
 
@@ -65,10 +68,10 @@ export function printAlbumTable(audit: AlbumAudit, fileNames: string[]): void {
 
   // Formats the audit doesn't read in yellow: those files aren't checked or tagged.
   const formats = formatSummary(fileNames);
+  const checked = quality.length > 0 ? qualitySummary(quality) : formats.checked;
   const formatCell =
-    [formats.checked && chalk.white(formats.checked), formats.other && chalk.yellow(formats.other)]
-      .filter(Boolean)
-      .join(' · ') || chalk.dim('(no audio files)');
+    [checked && chalk.white(checked), formats.other && chalk.yellow(formats.other)].filter(Boolean).join(' · ') ||
+    chalk.dim('(no audio files)');
   const rows: [string, string][] = [
     ['Artist', chalk.white(meta.artist)],
     ['Album', chalk.white(meta.album || chalk.dim('(unknown)'))],

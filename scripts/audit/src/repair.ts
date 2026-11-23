@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import chalk from 'chalk';
 
+import { albumQuality } from './audio-quality.js';
 import { withoutSolvedCoverIssues } from './cover.js';
 import { LiveProgress, progressBar } from './progress.js';
 import { folderFiles, printAlbumTable } from './repair/album-table.js';
@@ -222,7 +223,7 @@ async function printAlbumHeader(audit: AlbumAudit, ctx: RepairAlbumContext): Pro
   );
   if (ctx.scanProgress) console.log(chalk.dim(scanLine(ctx.scanProgress)));
   console.log(chalk.bold('─'.repeat(60)));
-  printAlbumTable(audit, await folderFiles(layout.albumPath));
+  printAlbumTable(audit, await folderFiles(layout.albumPath), await albumQuality(audit.tracks));
   console.log(chalk.dim('  Answer o at any prompt to start this album over.'));
 }
 

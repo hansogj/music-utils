@@ -244,7 +244,8 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     const audit = await scan();
     answer([[/^ {2}Choice \[1\]/, 'q']]);
     await repairAlbum(audit, ctx());
-    expect(output.join('\n')).toMatch(/Format +│ MP3 \d+ · WAV 1 \(not checked\)/);
+    // Fake files (JSON) have no readable quality: the format alone.
+    expect(output.join('\n')).toMatch(/Format +│ MP3 · WAV 1 \(not checked\)/);
   });
 
   it('without a re-scan, a fixed issue still drops out', async () => {
