@@ -52,6 +52,13 @@ describe('checkArtistFolder', () => {
     ]);
   });
 
+  it('takes a "/" in the tag for the " - " a folder name has instead', () => {
+    expect(codes('The Don Rendell - Ian Carr Quintet', { albumArtist: 'The Don Rendell / Ian Carr Quintet' })).toEqual(
+      [],
+    );
+    expect(codes('AC - DC', { artist: 'AC/DC' })).toEqual([]);
+  });
+
   it('keeps diacritics apart, after NFC', () => {
     expect(codes('Ytre Suløens Jass-Ensemble', { artist: 'Ytre Suloens Jass-Ensemble' })).toHaveLength(1);
     expect(codes('Goran Kajfeš', { artist: 'Goran Kajfeš' })).toEqual([]); // š decomposed

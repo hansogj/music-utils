@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { NumberedTrack } from './discogs.js';
 import {
   checkRenames,
+  discNumbers,
   pairingProblem,
   pairWithRelease,
   planPairing,
@@ -23,6 +24,21 @@ describe('sanitizeFilename', () => {
 
   it("keeps an artist name's trailing dots", () => {
     expect(sanitizeFilename('I.P.A.')).toBe('I.P.A.');
+  });
+});
+
+describe('discNumbers', () => {
+  it('gives a disc folder its own n/m', () => {
+    expect(discNumbers([1, 1], { disc: 2, of: 3 })).toEqual(['2/3', '2/3']);
+  });
+
+  it('gives any other folder 1/1, whatever its old file names say', () => {
+    expect(discNumbers([2, 2, 2], { disc: 1, of: 1 })).toEqual(['1/1', '1/1', '1/1']);
+  });
+
+  it('numbers the discs of a set kept in one folder', () => {
+    expect(discNumbers([1, 1, 2], { disc: 1, of: 1 })).toEqual(['1/2', '1/2', '2/2']);
+    expect(discNumbers([2, 3], { disc: 1, of: 1 })).toEqual(['1/2', '2/2']);
   });
 });
 

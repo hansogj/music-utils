@@ -10,7 +10,7 @@ import { expectedLetter } from '../checks/folder.js';
 import { localNumbering } from '../checks/names.js';
 import { folderYear, withFolderYear } from '../checks/year.js';
 import { artistCoverCandidates, artistDirOf, asJpeg, writeCover } from '../cover.js';
-import { sanitizeFilename, sanitizeTitle } from '../rename-plan.js';
+import { discNumbers, sanitizeFilename, sanitizeTitle } from '../rename-plan.js';
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit, type Issue } from '../types.js';
 import { applyOldYear } from '../year-bracket.js';
@@ -119,14 +119,18 @@ const missingTags: ActionsFor = async (_issue, audit, token) => {
         files.map((f) => f.name),
         parseInt(meta.discNumber, 10),
       );
+      const discs = discNumbers(
+        local.map((l) => l.disc),
+        { disc: parseInt(meta.discNumber, 10), of: parseInt(meta.noOfDiscs, 10) },
+      );
       for (const [i, { name, ext }] of files.entries()) {
-        const { no, disc } = local[i];
+        const { no } = local[i];
         const tags: Record<string, string> = {
           ARTIST: sortArtist(meta.artist),
           ALBUMARTIST: sortArtist(meta.artist),
           ALBUM: meta.album,
           TRACKNUMBER: `${no}/${total}`,
-          DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
+          DISCNUMBER: discs[i],
           ...(meta.year ? { DATE: meta.year } : {}),
         };
         await writeTags(path.join(layout.albumPath, name), ext, tags);
@@ -264,9 +268,10 @@ const artistMismatch: ActionsFor = async (issue, audit) => {
     },
   ];
   if (issue.code === 'ARTIST_FOLDER_MISMATCH' && tagged) {
-    // "/" can't be in a folder name: "A / B" → "A, B", as a joined Discogs credit.
-    // Folders keep the article first ("Beatles, The" tags → "The Beatles").
-    const target = sanitizeFilename(unsortArtist(tagged).replace(/\s*\/\s*/g, ', '));
+    // "/" can't be in a folder name: "A / B" → "A - B", as the Discogs rename makes it (the
+    // check takes that folder for the tag). Folders keep the article first ("Beatles, The"
+    // tags → "The Beatles").
+    const target = sanitizeFilename(unsortArtist(tagged));
     const letterDir = layout.letterDir ?? '';
     const letter = /^[A-Z0-9]$/i.test(letterDir) ? expectedLetter(target) : undefined;
     const otherLetter = letter && letter !== letterDir.toUpperCase() ? letter : undefined;

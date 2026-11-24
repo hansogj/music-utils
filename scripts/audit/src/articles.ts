@@ -88,3 +88,13 @@ export function unsortArtist(name: string, sort: ArticleSort = articleSort()): s
   }
   return name;
 }
+
+/** "The Doors", "Doors, The" → "Doors": the name without a leading or trailing configured article. */
+export function withoutArticle(name: string, sort: ArticleSort = articleSort()): string {
+  const [plain, brackets] = splitBrackets(unsortArtist(name, sort));
+  for (const article of sort.articles) {
+    const m = plain.match(new RegExp(`^${escape(article)} (.+)$`, 'i'));
+    if (m) return `${m[1]}${brackets}`;
+  }
+  return name;
+}

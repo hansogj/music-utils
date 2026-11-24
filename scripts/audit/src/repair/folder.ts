@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import chalk from 'chalk';
 
-import { unsortArtist } from '../articles.js';
+import { unsortArtist, withoutArticle } from '../articles.js';
 import { commonAlbumArtist, sameName } from '../checks/artist.js';
 import { folderYear, withFolderYear } from '../checks/year.js';
 import { type SiblingDisc, siblingDiscs } from '../disc-siblings.js';
@@ -159,11 +159,19 @@ export function resetRepairSession(): void {
   artistAnswers.clear();
 }
 
+// "[a] all credits" only while it makes a usable folder name: not "The Don Rendell / Ian Carr
+// Quintet With Michael Garrick • Dave Green • … & Don Rendell Quartet, …" (150 characters).
+const MAX_CREDIT_LENGTH = 60;
+const MAX_CREDIT_NAMES = 3;
+
 // One artist name for the album's folder, its ARTIST/ALBUMARTIST tags and info.txt's
 // header. Asked when the folder, Discogs' first credited artist and the tags don't all
 // agree: Enter takes Discogs' (as Discogs is the source of the tags), k the folder's, a every
-// credited artist (only when there are several). Returns the name without the folder's own
-// brackets ("Dionysos" for "Dionysos [Canada]"); the folder and the tags add them back.
+// credited artist (only when there are several, and the result is short), t a name typed in.
+// Names that differ only in punctuation or a leading article ("Don Rendell - Ian Carr Quintet"
+// for Discogs' "The Don Rendell / Ian Carr Quintet") agree: the folder's name is kept.
+// Returns the name without the folder's own brackets ("Dionysos" for "Dionysos [Canada]");
+// the folder and the tags add them back.
 export async function chooseArtist(
   layout: AlbumLayout,
   tracks: AlbumAudit['tracks'],
@@ -178,7 +186,7 @@ export async function chooseArtist(
   const tagged = bare && unsortArtist(bare);
   if (!discogs) return folder;
   const names = [folder, discogs, ...(tagged ? [tagged] : [])];
-  if (new Set(names.map(normName)).size === 1) return folder;
+  if (new Set(names.map((n) => normName(withoutArticle(n)))).size === 1) return folder;
 
   const key = albumSetKey(layout.artistName, layout.albumFolder);
   const kept = artistAnswers.get(key);
@@ -187,9 +195,13 @@ export async function chooseArtist(
     return kept;
   }
 
-  const credit = release.artistCredit;
+  const fullCredit = release.artistCredit;
+  const credit =
+    fullCredit && fullCredit.length <= MAX_CREDIT_LENGTH && (release.artists?.length ?? 0) <= MAX_CREDIT_NAMES
+      ? fullCredit
+      : undefined;
   console.log(chalk.yellow('\n  Artist names differ:'));
-  console.log(`    Discogs : "${discogs}"${credit ? chalk.dim(`  (credits: "${credit}")`) : ''}`);
+  console.log(`    Discogs : "${discogs}"${fullCredit ? chalk.dim(`  (credits: "${fullCredit}")`) : ''}`);
   console.log(`    folder  : "${layout.artistName}"`);
   if (tagged && normName(tagged) !== normName(folder) && normName(tagged) !== normName(discogs))
     console.log(`    tags    : "${fullTag}"`);
@@ -197,13 +209,16 @@ export async function chooseArtist(
   console.log(`    [Enter] Discogs: "${discogs}${brackets}"`);
   console.log(`    [k]     keep the folder's: "${layout.artistName}"`);
   if (credit) console.log(`    [a]     all credits: "${credit}${brackets}"`);
+  else if (fullCredit) console.log(chalk.dim(`    (all credits: too long for a folder name)`));
+  console.log(`    [t]     type a name`);
   console.log(`    [o]     start album over`);
   let chosen: string | undefined;
   while (chosen === undefined) {
-    const answer = (await ask(`  Artist [Enter/k${credit ? '/a' : ''}/o]: `)).toLowerCase();
+    const answer = (await ask(`  Artist [Enter/k${credit ? '/a' : ''}/t/o]: `)).toLowerCase();
     if (answer === '') chosen = discogs;
     else if (answer === 'k') chosen = folder;
     else if (answer === 'a' && credit) chosen = credit;
+    else if (answer === 't') chosen = (await ask('    Artist: ', discogs)).trim() || undefined;
     else console.log(chalk.dim('  Invalid choice.'));
   }
   artistAnswers.set(key, chosen);
@@ -276,7 +291,7 @@ export async function askFolderRename(
 ): Promise<FolderRenamePlan | undefined> {
   // The artist folder's own brackets ("Dionysos [Canada]") tell same-named artists apart:
   // they are kept, and not compared (Discogs' "Dionysos (3)" comes without its number).
-  const { name: localArtist, brackets: artistBrackets } = splitArtistBrackets(layout.artistName);
+  const { brackets: artistBrackets } = splitArtistBrackets(layout.artistName);
   const newArtist = `${sanitizeFilename(artist)}${artistBrackets}`;
   // The folder gets the title as a folder name holds it ("Pirates Of The Caribbean - The Curse
   // Of The Black Pearl"); the ALBUM tag keeps Discogs' spelling.
@@ -284,8 +299,9 @@ export async function askFolderRename(
   const localYear = folderYear(layout.albumFolder);
 
   // As ARTIST_FOLDER_MISMATCH compares (checks/artist.ts): punctuation counts, so "Kaada, Mike
-  // Patton" chosen for folder "Kaada & Mike Patton" renames it, and folder and tags agree.
-  const artistMismatch = !sameName(artist, localArtist);
+  // Patton" chosen for folder "Kaada & Mike Patton" renames it, and folder and tags agree; the
+  // folder-safe name is compared ("A / B" is folder "A - B" already: no rename).
+  const artistMismatch = !sameName(newArtist, layout.artistName);
   // The folder's title with its parentheses ("Transformation (The Speed of Love)"): only
   // the year, the disc part and the brackets are left out. Case and punctuation don't count.
   const localTitle = folderTitle(layout.albumFolder);

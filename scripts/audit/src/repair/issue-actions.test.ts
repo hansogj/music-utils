@@ -304,11 +304,11 @@ describe('artist folder vs tags', () => {
     const tracks = [track('01 - One.mp3', { albumArtist: 'Banana / Urfa' })];
     const actions = await repairActions(issue('ARTIST_FOLDER_MISMATCH'), auditOf(tracks));
     expect(labels(actions)).toEqual([
-      'Move the album to artist folder "B/Banana, Urfa" (the tags\' name)',
+      'Move the album to artist folder "B/Banana - Urfa" (the tags\' name)',
       'Write "Yezda Urfa" to the artist tags (ALBUMARTIST; ARTIST where it is empty or the same)',
     ]);
     await actions[0].run();
-    expect(layout.albumPath).toBe(path.join(root, 'B', 'Banana, Urfa', '1976 Sacred Baboon'));
+    expect(layout.albumPath).toBe(path.join(root, 'B', 'Banana - Urfa', '1976 Sacred Baboon'));
   });
 });
 

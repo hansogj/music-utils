@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { DEFAULT_ARTICLE_SORT, loadArticleSort, sortArtist, unsortArtist } from './articles.js';
+import { DEFAULT_ARTICLE_SORT, loadArticleSort, sortArtist, unsortArtist, withoutArticle } from './articles.js';
 
 const on = { sortArticles: true, articles: ['the', 'los', 'le'] };
 
@@ -28,6 +28,15 @@ describe('unsortArtist', () => {
     expect(unsortArtist('Beatles, The [UK]', on)).toBe('The Beatles [UK]');
     expect(unsortArtist('Cow, Henry', on)).toBe('Cow, Henry');
     expect(unsortArtist('Crosby, Stills, Nash & Young', on)).toBe('Crosby, Stills, Nash & Young');
+  });
+});
+
+describe('withoutArticle', () => {
+  it('drops a leading or trailing configured article, whether sortArticles is on or not', () => {
+    expect(withoutArticle('The Don Rendell / Ian Carr Quintet', on)).toBe('Don Rendell / Ian Carr Quintet');
+    expect(withoutArticle('Doors, The', DEFAULT_ARTICLE_SORT)).toBe('Doors');
+    expect(withoutArticle('The Dionysos [Canada]', on)).toBe('Dionysos [Canada]');
+    expect(withoutArticle('Theatre of Hate', on)).toBe('Theatre of Hate');
   });
 });
 

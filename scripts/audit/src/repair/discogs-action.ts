@@ -282,13 +282,13 @@ function buildDiscogsAction(
               ? `${what} ${extra} more track(s) — may be a bonus edition`
               : `${what} ${-extra} fewer track(s) — may be a different pressing`;
           },
-          tags: ({ no, disc, total, title }) => ({
+          tags: ({ no, discNumber, total, title }) => ({
             // As music-utils tags it: "Beatles, The" with artist.sortArticles on.
             ARTIST: sortArtist(fullArtist),
             ALBUMARTIST: sortArtist(fullArtist),
             ALBUM: album,
             TRACKNUMBER: `${no}/${total}`,
-            DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
+            DISCNUMBER: discNumber,
             ...(year ? { DATE: year, ORIGINALDATE: year } : {}),
             ...(title ? { TITLE: title } : {}),
             ...(genreValue ? { GENRE: genreValue } : {}),

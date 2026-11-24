@@ -63,3 +63,23 @@ describe.skipIf(!hasId3v2)('writeTags (mp3, with id3v2)', () => {
     expect(tags).toMatchObject({ title: 'b', discogsReleaseId: '3', discogsMasterId: '4', comment: URL });
   });
 });
+
+const hasMetaflac = (() => {
+  try {
+    execFileSync('metaflac', ['--version']);
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+describe.skipIf(!hasMetaflac)('writeTags — a failing metaflac', () => {
+  it('says why in one line, without repeating every argument', async () => {
+    const flac = path.join(dir, 'not-really.flac');
+    await fs.writeFile(flac, 'not a FLAC file');
+    const err = await writeTags(flac, 'flac', { ARTIST: 'Dexter Gordon', TITLE: 'Soul Sister' }).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toMatch(new RegExp(`^metaflac failed on .*not-really\\.flac: \\S`));
+    expect(err.message).not.toMatch(/--set-tag|--remove-tag/);
+  });
+});
