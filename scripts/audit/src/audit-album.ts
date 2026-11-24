@@ -3,12 +3,16 @@ import path from 'node:path';
 
 import { checkArtistFolder } from './checks/artist.js';
 import { checkDiscogsIds, knownReleaseId } from './checks/discogs-ids.js';
+import { checkDiscNumbers, checkSetReleases } from './checks/discs.js';
 import { checkDuplicates } from './checks/duplicates.js';
 import { checkFolderFormat } from './checks/folder.js';
 import { checkNameTagMatch, matchNames, parseNameFromFilename } from './checks/names.js';
 import { checkTags } from './checks/tags.js';
+import { checkUnsafeNames } from './checks/unsafe-names.js';
 import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
 import { checkCovers } from './cover.js';
+import { siblingDiscs } from './disc-siblings.js';
+import { discOfFolder } from './disc-split.js';
 import { discogsCoverSource, fetchOriginalYear, searchDiscogs } from './discogs.js';
 import { writeInfoTxtFromTags } from './info-txt.js';
 import { readTags } from './tags.js';
@@ -71,6 +75,7 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   const issues: Issue[] = [];
 
   issues.push(...checkFolderFormat(layout));
+  issues.push(...checkUnsafeNames(layout, tracks));
 
   // Consolidate tag issues to album level so repair only prompts once per album.
   const perTrackTagIssues = tracks.flatMap((t) => checkTags(t));
@@ -90,11 +95,15 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   issues.push(...checkDuplicates(tracks));
   issues.push(...checkDiscogsIds(tracks));
   issues.push(...checkArtistFolder(layout, tracks));
+  issues.push(...checkDiscNumbers(tracks));
   if (covers)
     issues.push(...(await checkCovers(layout, tracks, !skipDiscogs && token ? discogsCoverSource(token) : undefined)));
 
   const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
   const releaseId = knownReleaseId(tracks, infoTxt);
+  // A "(Disc n∕m)" folder: the other discs of the set should be tagged from the same release.
+  const ownDisc = discOfFolder(layout.albumFolder);
+  if (ownDisc.noOfDiscs > 1) issues.push(...checkSetReleases(ownDisc.disc, releaseId, await siblingDiscs(layout)));
 
   let discogsResults = undefined;
   if (search && !skipDiscogs && token && (issues.length > 0 || searchAlways || (searchUntagged && !releaseId))) {

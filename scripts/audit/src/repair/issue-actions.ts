@@ -6,10 +6,13 @@ import chalk from 'chalk';
 import { sortArtist, unsortArtist } from '../articles.js';
 import { albumArtistOf, commonAlbumArtist, expectedArtistTag } from '../checks/artist.js';
 import { releaseIdFrom, tracksMissingReleaseId } from '../checks/discogs-ids.js';
+import { discOfTags } from '../checks/discs.js';
 import { expectedLetter } from '../checks/folder.js';
 import { localNumbering } from '../checks/names.js';
+import { safeAlbumFolder, safeArtistFolder, safeFileName } from '../checks/unsafe-names.js';
 import { folderYear, withFolderYear } from '../checks/year.js';
 import { artistCoverCandidates, artistDirOf, asJpeg, writeCover } from '../cover.js';
+import { guardedRename } from '../folder-move.js';
 import { discNumbers, sanitizeFilename, sanitizeTitle } from '../rename-plan.js';
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit, type Issue } from '../types.js';
@@ -312,7 +315,89 @@ const artistCoverMissing: ActionsFor = async (_issue, { layout }) => {
   });
 };
 
+// ── HIGH: names an SMB share can't hold ──────────────────────────────────
+
+// Only this album moves to the new artist folder (moveAlbumToArtist()); the artist's other
+// albums follow as they are repaired, and the old folder goes when it is empty.
+const unsafeArtistName: ActionsFor = async (_issue, { layout }) => {
+  const safe = safeArtistFolder(layout.artistName);
+  return safe && safe !== layout.artistName
+    ? [
+        {
+          label: `Move the album to artist folder "${safe}" (the tags keep their name)`,
+          run: () => moveToArtist(layout, safe),
+        },
+      ]
+    : [];
+};
+
+const unsafeFolderName: ActionsFor = async (_issue, audit) => {
+  const safe = safeAlbumFolder(audit.layout.albumFolder);
+  return safe && safe !== audit.layout.albumFolder ? [renameTo(audit, safe)] : [];
+};
+
+const unsafeFileNames: ActionsFor = async (_issue, { layout, tracks }) => {
+  const renames = tracks.flatMap((t) => {
+    const safe = safeFileName(t.fileName);
+    return safe !== t.fileName && path.parse(safe).name ? [{ from: t.fileName, to: safe }] : [];
+  });
+  if (renames.length === 0) return [];
+  return [
+    {
+      label: `Rename ${renames.length} file(s) ("${renames[0].from}" → "${renames[0].to}"${renames.length > 1 ? ', …' : ''})`,
+      run: async () => {
+        for (const { from, to } of renames) {
+          await guardedRename(path.join(layout.albumPath, from), path.join(layout.albumPath, to));
+          console.log(chalk.green(`  ✓ ${to}`));
+        }
+      },
+    },
+  ];
+};
+
+// ── MODERATE: disc numbers ────────────────────────────────────────────────
+
+// DISC_ABOVE_TOTAL: DISCNUMBER as Discogs tagging writes it (discNumbers()), where it differs.
+const discAboveTotal: ActionsFor = async (_issue, { layout, tracks }) => {
+  const meta = albumMetaFromLayout(layout);
+  const folderDisc = parseInt(meta.discNumber, 10);
+  const local = localNumbering(
+    tracks.map((t) => t.fileName),
+    folderDisc,
+  );
+  const discs = discNumbers(
+    local.map((l) => l.disc),
+    { disc: folderDisc, of: parseInt(meta.noOfDiscs, 10) },
+  );
+  const changes = tracks.flatMap((t, i) => {
+    const now = discOfTags(t);
+    return now && `${now.disc}/${now.of}` === discs[i] ? [] : [{ t, discNumber: discs[i] }];
+  });
+  if (changes.length === 0) return [];
+  return [
+    {
+      label: `Write DISCNUMBER ${[...new Set(changes.map((c) => c.discNumber))].join(', ')} to ${changes.length} track(s)`,
+      run: async () => {
+        for (const { t, discNumber } of changes) {
+          await writeTags(t.filePath, t.ext, { DISCNUMBER: discNumber });
+          console.log(chalk.green(`  ✓ ${t.fileName} → ${discNumber}`));
+        }
+      },
+    },
+  ];
+};
+
+// MIXED_SET_RELEASE: Discogs tagging, which offers the other discs' release first ("Use the
+// same release ID [rN] as Disc k?").
+const mixedSetRelease: ActionsFor = async (_issue, audit, token) =>
+  token ? [await discogsActionFor(audit, token)] : [];
+
 const handlers: Record<string, ActionsFor> = {
+  UNSAFE_ARTIST_NAME: unsafeArtistName,
+  UNSAFE_FOLDER_NAME: unsafeFolderName,
+  UNSAFE_FILE_NAME: unsafeFileNames,
+  DISC_ABOVE_TOTAL: discAboveTotal,
+  MIXED_SET_RELEASE: mixedSetRelease,
   MISSING_YEAR_PREFIX: missingYearPrefix,
   WRONG_DISC_SEPARATOR: wrongDiscSeparator,
   WRONG_AUX_BRACKETS: wrongAuxBrackets,

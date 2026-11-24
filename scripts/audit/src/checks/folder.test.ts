@@ -131,6 +131,18 @@ describe('checkFolderFormat', () => {
       expect(issues.find((i) => i.code === 'WRONG_DISC_SEPARATOR')).toBeUndefined();
     });
 
+    it('flags a lower-case (disc 1∕2) and renames it to (Disc 1∕2)', () => {
+      const issue = checkFolderFormat(layout({ albumFolder: '1999 Album (disc 1∕2) [FLAC]' })).find(
+        (i) => i.code === 'WRONG_DISC_SEPARATOR',
+      );
+      expect(issue?.message).toBe('Disc notation in "1999 Album (disc 1∕2) [FLAC]" must read "(Disc n∕m)"');
+      expect(issue?.suggestion).toBe('Rename to: "1999 Album (Disc 1∕2) [FLAC]"');
+      const ofForm = checkFolderFormat(layout({ albumFolder: '1999 Album (disc 1 of 2)' })).find(
+        (i) => i.code === 'WRONG_DISC_SEPARATOR',
+      );
+      expect(ofForm?.suggestion).toBe('Rename to: "1999 Album (Disc 1∕2)"');
+    });
+
     it('includes corrected folder name in suggestion', () => {
       const issues = checkFolderFormat(layout({ albumFolder: '1969 Abbey Road (Disc 1/2)' }));
       const issue = issues.find((i) => i.code === 'WRONG_DISC_SEPARATOR');

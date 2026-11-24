@@ -200,8 +200,16 @@ scripts/audit/src/
                     ID from info.txt/tags; brackets ignored unless two folders claim one
                     disc) → expected start, suggested release; siblingWithRelease()
   checks/
-    folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR,
-                    WRONG_AUX_BRACKETS
+    folder.ts     — WRONG_LETTER_DIR, MISSING_YEAR_PREFIX, WRONG_DISC_SEPARATOR (also a
+                    lower-case "(disc n∕m)"), WRONG_AUX_BRACKETS
+    unsafe-names.ts — UNSAFE_ARTIST_NAME / UNSAFE_FOLDER_NAME / UNSAFE_FILE_NAME (HIGH): " * : < > ? \ |,
+                    a trailing space, and (not artists: "I.P.A.") a trailing "."; also the
+                    private-use characters a Synology share stores them as (fromSfm()).
+                    safeArtistFolder() / safeAlbumFolder() / safeFileName() for the repair
+    discs.ts      — DISC_ABOVE_TOTAL (DISCNUMBER n/m with n > m; repair writes discNumbers()),
+                    MIXED_SET_RELEASE (a disc folder whose release isn't the set's: the most
+                    common among the disc folders, on a tie the lowest disc's; repair: the
+                    Discogs action), discOfTags()
     tags.ts       — NO_TAGS, MISSING_TAGS, TAG_READ_ERROR
     names.ts      — NAME_TAG_MISMATCH; parseTrackNames() (per album: "_" → space, drops
                     leading " - " parts only when every track has them, then the track

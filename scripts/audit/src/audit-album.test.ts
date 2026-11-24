@@ -134,6 +134,26 @@ describe('auditAlbum', () => {
     expect(audit.issues).toEqual([]);
   });
 
+  it('runs the name and disc checks: unsafe names, a disc above its total, a set from mixed releases', async () => {
+    // Disc 1 of the set was tagged from r1370987, this disc from r999.
+    const parent = path.join(root, 'D', 'The Doors');
+    const disc1 = path.join(parent, '1970 Live In Detroit: Cobo Hall (Disc 1∕2)');
+    await fs.mkdir(disc1, { recursive: true });
+    await fs.writeFile(path.join(disc1, 'info.txt'), 'The Doors\n\nDiscogs-Release: 1370987\n');
+    await fs.writeFile(path.join(disc1, '01 - Roadhouse Blues.mp3'), '{}');
+    const albumPath = path.join(parent, '1970 Live In Detroit: Cobo Hall (Disc 2∕2)');
+    await fs.mkdir(albumPath);
+    layout = { letterDir: 'D', artistName: 'The Doors', albumFolder: path.basename(albumPath), albumPath };
+    await track('01 - Love Me Two Times.mp3', { ...TAGGED, discNumber: '3/2', discogsReleaseId: '999' });
+    const audit = await auditAlbum(layout, { skipDiscogs: true });
+    const codes = audit.issues.map((i) => i.code);
+    expect(codes.filter((c) => /UNSAFE|DISC_ABOVE|MIXED_SET/.test(c))).toEqual([
+      'UNSAFE_FOLDER_NAME',
+      'DISC_ABOVE_TOTAL',
+      'MIXED_SET_RELEASE',
+    ]);
+  });
+
   it('writes info.txt only with writeInfo, and never over an existing one', async () => {
     await track('01 - Song.mp3', TAGGED);
     const info = path.join(layout.albumPath, 'info.txt');

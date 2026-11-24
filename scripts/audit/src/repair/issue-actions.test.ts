@@ -312,6 +312,85 @@ describe('artist folder vs tags', () => {
   });
 });
 
+describe('names an SMB share cannot hold', () => {
+  it('UNSAFE_FOLDER_NAME renames the album folder to the safe name', async () => {
+    await album('1961 Dexter Calling...', [], { letter: 'D', artist: 'Dexter Gordon' });
+    const [action] = await repairActions(issue('UNSAFE_FOLDER_NAME'), auditOf());
+    expect(action.label).toBe('Rename folder → "1961 Dexter Calling"');
+    await action.run();
+    expect(layout.albumFolder).toBe('1961 Dexter Calling');
+  });
+
+  it('UNSAFE_ARTIST_NAME moves the album to the safe artist folder; the tags keep their name', async () => {
+    await album('1966 Soul Message', ['01 - Grooving.flac'], { letter: 'H', artist: 'Richard "Groove" Holmes' });
+    const [action] = await repairActions(issue('UNSAFE_ARTIST_NAME'), auditOf([track('01 - Grooving.flac')]));
+    expect(action.label).toBe('Move the album to artist folder "Richard Groove Holmes" (the tags keep their name)');
+    await action.run();
+    expect(layout.albumPath).toBe(path.join(root, 'H', 'Richard Groove Holmes', '1966 Soul Message'));
+    expect(written.size).toBe(0);
+  });
+
+  it('UNSAFE_FILE_NAME renames every unsafe file', async () => {
+    await album('1972 Close To The Edge', ['01 - Close To The Edge: I.flac', '02 - What?.flac', '03 - Siberian.flac']);
+    const tracks = ['01 - Close To The Edge: I.flac', '02 - What?.flac', '03 - Siberian.flac'].map((f) => track(f));
+    const [action] = await repairActions(issue('UNSAFE_FILE_NAME'), auditOf(tracks));
+    expect(action.label).toBe(
+      'Rename 2 file(s) ("01 - Close To The Edge: I.flac" → "01 - Close To The Edge - I.flac", …)',
+    );
+    await action.run();
+    expect((await fs.readdir(layout.albumPath)).sort()).toEqual([
+      '01 - Close To The Edge - I.flac',
+      '02 - What.flac',
+      '03 - Siberian.flac',
+    ]);
+  });
+
+  it('offers nothing when the name is safe already', async () => {
+    await album('1976 Sacred Baboon', []);
+    expect(await repairActions(issue('UNSAFE_FOLDER_NAME'), auditOf())).toEqual([]);
+    expect(await repairActions(issue('UNSAFE_ARTIST_NAME'), auditOf())).toEqual([]);
+    expect(await repairActions(issue('UNSAFE_FILE_NAME'), auditOf([track('01 - One.flac')]))).toEqual([]);
+  });
+});
+
+describe('disc numbers and sets', () => {
+  it('DISC_ABOVE_TOTAL writes 1/1 in a one-disc folder whose old names say disc 2', async () => {
+    await album('1961 Dexter Calling', [], { letter: 'D', artist: 'Dexter Gordon' });
+    const tracks = [
+      track('d2t01. Dexter Gordon - Soul Sister.flac', { discNumber: '2/1' }),
+      track('d2t02. Dexter Gordon - Modal Mood.flac', { discNumber: '2/1' }),
+    ];
+    const [action] = await repairActions(issue('DISC_ABOVE_TOTAL'), auditOf(tracks));
+    expect(action.label).toBe('Write DISCNUMBER 1/1 to 2 track(s)');
+    await action.run();
+    expect(written.get('d2t01. Dexter Gordon - Soul Sister.flac')).toEqual({ DISCNUMBER: '1/1' });
+  });
+
+  it('DISC_ABOVE_TOTAL writes the folder’s n/m in a disc folder, only where it differs', async () => {
+    await album('1971 Live (Disc 2∕2)', []);
+    const tracks = [track('01 - A.flac', { discNumber: '3/2' }), track('02 - B.flac', { discNumber: '2/2' })];
+    const [action] = await repairActions(issue('DISC_ABOVE_TOTAL'), auditOf(tracks));
+    expect(action.label).toBe('Write DISCNUMBER 2/2 to 1 track(s)');
+  });
+
+  it('MIXED_SET_RELEASE offers Discogs tagging, with a token', async () => {
+    await album('1970 Live In Detroit (Disc 2∕2)', ['01 - Roadhouse Blues.flac'], { letter: 'D', artist: 'The Doors' });
+    const audit = auditOf([track('01 - Roadhouse Blues.flac')]);
+    expect(await repairActions(issue('MIXED_SET_RELEASE'), audit)).toEqual([]);
+    expect((await repairActions(issue('MIXED_SET_RELEASE'), audit, 'token')).map((a) => a.discogs)).toEqual([true]);
+  });
+
+  it('WRONG_DISC_SEPARATOR fixes a lower-case "disc" by a case-only rename', async () => {
+    await album('1999 Debile Menthol (disc 1∕2)', []);
+    const [action] = await repairActions(
+      issue('WRONG_DISC_SEPARATOR', { suggestion: 'Rename to: "1999 Debile Menthol (Disc 1∕2)"' }),
+      auditOf(),
+    );
+    await action.run();
+    expect(await fs.readdir(path.dirname(layout.albumPath))).toEqual(['1999 Debile Menthol (Disc 1∕2)']);
+  });
+});
+
 describe('other issues', () => {
   it('DUPLICATE_TRACKS lists the files for a manual look', async () => {
     await album('1976 Sacred Baboon', []);
