@@ -10,7 +10,7 @@ import { expectedLetter } from '../checks/folder.js';
 import { localNumbering } from '../checks/names.js';
 import { folderYear, withFolderYear } from '../checks/year.js';
 import { artistCoverCandidates, artistDirOf, asJpeg, writeCover } from '../cover.js';
-import { sanitizeFilename } from '../rename-plan.js';
+import { sanitizeFilename, sanitizeTitle } from '../rename-plan.js';
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit, type Issue } from '../types.js';
 import { applyOldYear } from '../year-bracket.js';
@@ -182,8 +182,8 @@ const nameTagMismatch: ActionsFor = async (issue, audit) => {
     const { no, disc } = localNumbering(audit.tracks.map((t) => t.fileName))[audit.tracks.indexOf(track)];
     const isMultiDisc = /^d\d+t\d+/i.test(track.fileName);
     const ext = path.extname(track.fileName);
-    const artistPrefix = track.tags.artist ? ` ${track.tags.artist} - ` : ' ';
-    const safeTitle = sanitizeFilename(track.tags.title);
+    const artistPrefix = track.tags.artist ? ` ${sanitizeFilename(track.tags.artist)} - ` : ' ';
+    const safeTitle = sanitizeTitle(track.tags.title);
     const newName = isMultiDisc
       ? `d${disc}t${String(no).padStart(2, '0')}.${artistPrefix}${safeTitle}${ext}`
       : `${String(no).padStart(2, '0')} -${artistPrefix}${safeTitle}${ext}`;

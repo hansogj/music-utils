@@ -9,7 +9,7 @@ import { folderYear, withFolderYear } from '../checks/year.js';
 import { type SiblingDisc, siblingDiscs } from '../disc-siblings.js';
 import { guardedRename as renameSafely, moveAlbumToArtist } from '../folder-move.js';
 import { appendChangeset } from '../info-txt.js';
-import { sanitizeFilename } from '../rename-plan.js';
+import { sanitizeFilename, sanitizeTitle } from '../rename-plan.js';
 import { type AlbumAudit, type AlbumLayout } from '../types.js';
 import {
   albumSetKey,
@@ -278,7 +278,9 @@ export async function askFolderRename(
   // they are kept, and not compared (Discogs' "Dionysos (3)" comes without its number).
   const { name: localArtist, brackets: artistBrackets } = splitArtistBrackets(layout.artistName);
   const newArtist = `${sanitizeFilename(artist)}${artistBrackets}`;
-  const discogsAlbum = release.title;
+  // The folder gets the title as a folder name holds it ("Pirates Of The Caribbean - The Curse
+  // Of The Black Pearl"); the ALBUM tag keeps Discogs' spelling.
+  const discogsAlbum = release.title && sanitizeTitle(release.title);
   const localYear = folderYear(layout.albumFolder);
 
   // As ARTIST_FOLDER_MISMATCH compares (checks/artist.ts): punctuation counts, so "Kaada, Mike

@@ -1,7 +1,14 @@
 import { DISC_LABEL, DISC_NO_SPLIT } from '../constants';
 import type { Release, Track } from '../types';
 import { DEFAULT_CONFIG } from './defaults';
-import { folderSafe, renderAlbumFolder, renderArtistFolder, renderTemplate, renderTrackName } from './render';
+import {
+  folderSafe,
+  renderAlbumFolder,
+  renderArtistFolder,
+  renderTemplate,
+  renderTrackName,
+  titleSafe,
+} from './render';
 import type { Config } from './schema';
 
 describe('renderTemplate', () => {
@@ -25,6 +32,39 @@ describe('folderSafe', () => {
     expect(folderSafe('Title: Part 2')).toBe('Title - Part 2');
     expect(folderSafe('What? "Me"*')).toBe('What Me');
     expect(folderSafe(undefined)).toBeUndefined();
+  });
+
+  it("keeps an artist name's trailing dots", () => {
+    expect(folderSafe('I.P.A.')).toBe('I.P.A.');
+  });
+});
+
+describe('titleSafe', () => {
+  it('is folderSafe() without trailing dots, which SMB cannot carry', () => {
+    expect(titleSafe('Pirates Of The Caribbean: The Curse Of The Black Pearl')).toBe(
+      'Pirates Of The Caribbean - The Curse Of The Black Pearl',
+    );
+    expect(titleSafe('Dexter Calling . . .')).toBe('Dexter Calling');
+    expect(titleSafe('Dexter Calling...')).toBe('Dexter Calling');
+    expect(titleSafe('How Long This Time? Live 1970')).toBe('How Long This Time Live 1970');
+    expect(titleSafe('...And Justice For All')).toBe('...And Justice For All');
+    expect(titleSafe(undefined)).toBeUndefined();
+  });
+
+  it('makes the album folder and track file names safe', () => {
+    expect(renderAlbumFolder({ album: 'Dexter Calling . . .', year: '1961' }, DEFAULT_CONFIG)).toBe(
+      '1961 Dexter Calling',
+    );
+    expect(renderTrackName({ trackNo: '01', trackName: 'Opening/Siberian Khatru...' }, {}, DEFAULT_CONFIG)).toBe(
+      '01 Opening - Siberian Khatru',
+    );
+    const withArtist = {
+      ...DEFAULT_CONFIG,
+      patterns: { ...DEFAULT_CONFIG.patterns, track: '{trackNo} {artist} - {title}' },
+    };
+    expect(renderTrackName({ trackNo: '01', trackName: 'Title: Part 2' }, { artist: 'AC/DC' }, withArtist)).toBe(
+      '01 AC - DC - Title - Part 2',
+    );
   });
 });
 

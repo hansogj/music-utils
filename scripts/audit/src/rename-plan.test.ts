@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import type { NumberedTrack } from './discogs.js';
-import { checkRenames, pairingProblem, pairWithRelease, planPairing, sanitizeFilename } from './rename-plan.js';
+import {
+  checkRenames,
+  pairingProblem,
+  pairWithRelease,
+  planPairing,
+  sanitizeFilename,
+  sanitizeTitle,
+} from './rename-plan.js';
 
 describe('sanitizeFilename', () => {
   it('turns a slash or colon inside a title into " - "', () => {
@@ -12,6 +19,22 @@ describe('sanitizeFilename', () => {
 
   it('drops the other characters a file name cannot hold', () => {
     expect(sanitizeFilename('What? "Now" <x>|')).toBe('What Now x');
+  });
+
+  it("keeps an artist name's trailing dots", () => {
+    expect(sanitizeFilename('I.P.A.')).toBe('I.P.A.');
+  });
+});
+
+describe('sanitizeTitle', () => {
+  it('is sanitizeFilename() without trailing dots, which SMB cannot carry', () => {
+    expect(sanitizeTitle('Pirates Of The Caribbean: The Curse Of The Black Pearl')).toBe(
+      'Pirates Of The Caribbean - The Curse Of The Black Pearl',
+    );
+    expect(sanitizeTitle('Dexter Calling . . .')).toBe('Dexter Calling');
+    expect(sanitizeTitle('Dexter Calling...')).toBe('Dexter Calling');
+    expect(sanitizeTitle('How Long This Time? Live 1970')).toBe('How Long This Time Live 1970');
+    expect(sanitizeTitle('...And Justice For All')).toBe('...And Justice For All');
   });
 });
 

@@ -18,6 +18,14 @@ export const folderSafe = (name?: string): string | undefined =>
     .replace(/^[\s-]+|[\s-]+$/g, '')
     .trim();
 
+/**
+ * An album or track title as a folder or file name holds it: folderSafe(), and no trailing
+ * dots ("Dexter Calling . . ." → "Dexter Calling"), which SMB can't carry (a Synology share
+ * stores them as private-use characters, so the name has two spellings). Artist names keep
+ * theirs ("I.P.A."): there the dots are the name.
+ */
+export const titleSafe = (name?: string): string | undefined => folderSafe(name)?.replace(/[\s.-]+$/, '');
+
 const isMultiDisc = (release: Partial<Release>): boolean => {
   const n = parseInt(release.noOfDiscs ?? '', 10);
   return Number.isFinite(n) && n > 1;
@@ -36,7 +44,7 @@ export const renderAlbumFolder = (release: Partial<Release>, config: Config): st
   const auxSuffix = release.aux ? renderTemplate(patterns.auxSuffix, { aux: folderSafe(release.aux) }) : '';
   return renderTemplate(patterns.albumFolder, {
     year: release.year,
-    album: folderSafe(release.album),
+    album: titleSafe(release.album),
     discSuffix,
     auxSuffix,
   })
@@ -57,12 +65,13 @@ export const renderArtistFolder = (release: Partial<Release>, config: Config): s
 export const renderTrackName = (track: Partial<Track>, release: Partial<Release>, config: Config): string => {
   const useMultiDisc = isMultiDisc(release) || track.discNumber !== undefined;
   const template = useMultiDisc ? config.patterns.trackMultiDisc : config.patterns.track;
-  const artistPrefix = release.artist ? renderTemplate(config.patterns.artistPrefix, { artist: release.artist }) : ' ';
+  const artist = folderSafe(release.artist);
+  const artistPrefix = artist ? renderTemplate(config.patterns.artistPrefix, { artist }) : ' ';
   return renderTemplate(template, {
     disc: track.discNumber ?? release.discNumber,
     trackNo: track.trackNo,
-    title: track.trackName,
-    artist: release.artist,
+    title: titleSafe(track.trackName),
+    artist,
     artistPrefix,
   });
 };
