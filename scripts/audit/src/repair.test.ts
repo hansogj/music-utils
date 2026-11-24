@@ -839,7 +839,9 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     await fs.mkdir(both);
     for (const [i, [, title]] of YESSONGS.entries()) {
       const [disc, no] = i < 8 ? [1, i + 1] : [2, i - 7];
-      await fs.writeFile(path.join(both, `d${disc}t${String(no).padStart(2, '0')}. ${title}.mp3`), '{}');
+      // As a ripper names them: no quotes (UNSAFE_FILE_NAME would come first).
+      const name = `d${disc}t${String(no).padStart(2, '0')}. ${title.replace(/"/g, '')}.mp3`;
+      await fs.writeFile(path.join(both, name), '{}');
     }
     const { fetchRelease } = await import('./discogs.js');
     vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);

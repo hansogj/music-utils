@@ -225,6 +225,20 @@ describe('checkCovers', () => {
   });
 });
 
+describe.skipIf(!hasMagick)('checkCovers — after a retag', () => {
+  // Live In Detroit disc 1 after --retag: cover.jpg is the new release's, folder.jpg still
+  // the old one. Each cover file is compared, so folder.jpg is reported on its own.
+  it("reports a folder.jpg that isn't the release's cover next to a cover.jpg that is", async () => {
+    await make('D/Yes/cover.jpg', 'D/Yes/1971 Fragile/info.txt');
+    const album = layoutOf('Yes', '1971 Fragile');
+    draw(path.join(album.albumPath, 'cover.jpg'), 'a');
+    draw(path.join(album.albumPath, 'folder.jpg'), 'b');
+    const s = source({ release: await imageHash(path.join(album.albumPath, 'cover.jpg')) });
+    const issues = await checkCovers(album, [track({ discogsReleaseId: '1' })], s);
+    expect(issues.map((i) => [i.code, i.file])).toEqual([['COVER_MISMATCH', 'folder.jpg']]);
+  });
+});
+
 describe.skipIf(!hasMagick)('checkCovers — files that are not images', () => {
   it('reports a cover.jpg that is a saved web page, and does not offer one as a candidate', async () => {
     await make('D/Yes/1971 Fragile/01.flac');

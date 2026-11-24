@@ -4,10 +4,10 @@ import type { AlbumLayout, Issue } from '../types.js';
 const DISC_NO_SPLIT = '∕';
 
 const ALBUM_STARTS_WITH_YEAR = /^\d{4}\s+\S/;
-// Detects any (Disc X<sep>Y) where <sep> is NOT the required ∕ (U+2215).
-// Catches: "Disc 1/2", "Disc 1-2", "Disc 1 of 2", "Disc 1.2", etc.
-const DISC_ANY = /\(\s*[Dd]isc\s+(\d+)(.*?)(\d+)\s*\)/;
-const DISC_CORRECT_SEP = /\(\s*[Dd]isc\s+\d+∕\d+\s*\)/;
+// Detects any (Disc X<sep>Y) not written "(Disc X∕Y)": a separator other than ∕ (U+2215)
+// ("Disc 1/2", "Disc 1-2", "Disc 1 of 2", "Disc 1.2") or a lower-case "disc".
+const DISC_ANY = /\(\s*disc\s+(\d+)(.*?)(\d+)\s*\)/i;
+const DISC_CORRECT = /\(Disc \d+∕\d+\)/;
 const AUX_WRONG_BRACKETS = /\{[^}]+\}/;
 
 // Articles stripped when determining expected initial letter for the [A-Z] dir
@@ -50,13 +50,16 @@ export function checkFolderFormat(layout: AlbumLayout): Issue[] {
     });
   }
 
-  // Disc separator must be ∕ (U+2215); flag if a disc notation exists but uses wrong separator
-  if (DISC_ANY.test(albumFolder) && !DISC_CORRECT_SEP.test(albumFolder)) {
-    const fixed = albumFolder.replace(/(\(\s*[Dd]isc\s+\d+)[^∕\d]*(\d+\s*\))/g, `$1${DISC_NO_SPLIT}$2`);
+  // A disc part must read "(Disc n∕m)": the separator ∕ (U+2215), "Disc" capitalised.
+  if (DISC_ANY.test(albumFolder) && !DISC_CORRECT.test(albumFolder)) {
+    const fixed = albumFolder.replace(/\(\s*disc\s+(\d+)\D*?(\d+)\s*\)/gi, `(Disc $1${DISC_NO_SPLIT}$2)`);
+    const wrongSep = !/\(\s*disc\s+\d+∕\d+\s*\)/i.test(albumFolder);
     issues.push({
       severity: 'SEVERE',
       code: 'WRONG_DISC_SEPARATOR',
-      message: `Disc notation in "${albumFolder}" uses wrong separator; required: "∕" (U+2215 DIVISION SLASH)`,
+      message: wrongSep
+        ? `Disc notation in "${albumFolder}" uses wrong separator; required: "∕" (U+2215 DIVISION SLASH)`
+        : `Disc notation in "${albumFolder}" must read "(Disc n∕m)"`,
       suggestion: `Rename to: "${fixed}"`,
     });
   }
