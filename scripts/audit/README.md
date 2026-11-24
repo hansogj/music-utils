@@ -149,19 +149,20 @@ After each fix the album is scanned again, so the next issue shown matches the f
 
 ### Prompt keys
 
-| Key       | Where                   | Does                                                                                                         |
-| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Enter     | issue menu              | the first action, `[1]`                                                                                      |
-| `1`–`9`   | issue menu              | that action                                                                                                  |
-| `d`       | issue menu              | tag the whole album from a Discogs release you choose                                                        |
-| `f`       | Discogs first           | go on to the album's issues one by one, without tagging                                                      |
-| `s`       | Discogs first           | skip the album (offers a bracket, below)                                                                     |
-| `l`       | issue menu              | list the album's files                                                                                       |
-| `s` / `q` | issue menu              | skip this issue / quit repair; the first skip in an album offers to add a bracket to its folder name (below) |
-| `o`       | any prompt              | start this album over (below)                                                                                |
-| `b`       | release ID prompt       | browse the search results; Esc goes back to the issue menu                                                   |
-| `n`       | disc pairing            | start the disc at another release track                                                                      |
-| `r`       | after an album's issues | go through the ones not fixed again (Enter goes on to the next album)                                        |
+| Key     | Where                   | Does                                                                                                     |
+| ------- | ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Enter   | issue menu              | the first action, `[1]`                                                                                  |
+| `1`–`9` | issue menu              | that action                                                                                              |
+| `d`     | issue menu              | tag the whole album from a Discogs release you choose                                                    |
+| `f`     | Discogs first           | go on to the album's issues one by one, without tagging                                                  |
+| `s`     | Discogs first           | skip the album (offers a bracket, below)                                                                 |
+| `l`     | issue menu              | list the album's files                                                                                   |
+| `s`     | issue menu              | skip this issue; the first skip in an album offers to add a bracket to its folder name (below)           |
+| `o`     | any prompt              | start this album over (below)                                                                            |
+| `q`     | any prompt              | quit repair, after `Quit repair? [Y/n]` (`n` goes back to the prompt); also Ctrl+C (twice quits at once) |
+| `b`     | release ID prompt       | browse the search results; Esc goes back to the issue menu                                               |
+| `n`     | disc pairing            | start the disc at another release track                                                                  |
+| `r`     | after an album's issues | go through the ones not fixed again (Enter goes on to the next album)                                    |
 
 **A bracket after a skip.** Skipping often means Discogs doesn't know the album, for instance a bootleg. The first time you skip an issue in an album (also the album, at the Discogs first step), you can note that in the folder name:
 
@@ -173,7 +174,9 @@ After each fix the album is scanned again, so the next issue shown matches the f
 
 The input starts with the brackets the folder has (`[FLAC]`), to edit or add to: plain text becomes a bracket (`[FLAC] bootleg` → `[FLAC] [bootleg]`), and an empty line removes them all. Enter leaves the name as it is. The rename runs last, with a Discogs rename if there is one, and is noted in `info.txt`.
 
-Regret a choice? Answer `o` at any prompt (or pick `[o] Start album over` in the issue menu) to go back to the album's opening table: the album is scanned again and its issues shown from the top. A folder rename you agreed to but that hasn't run yet is dropped; tags and file renames already written stay (tag again from Discogs to overwrite them).
+Regret a choice? Answer `o` at any prompt (the menus list it as `[o] Start album over`; yes/no and typed-in prompts take it too) to go back to the album's opening table: the album is scanned again and its issues shown from the top. A folder rename you agreed to but that hasn't run yet is dropped; tags and file renames already written stay (tag again from Discogs to overwrite them).
+
+Done with an album? When every issue is fixed, the next album follows without a prompt; with issues left, `[Enter] Next album   [r] Retry` asks once. To stop, answer `q` (or press Ctrl+C) at any prompt and confirm: a folder rename you agreed to for the album runs first, and the session summary follows. Ctrl+C while no prompt waits (a Discogs fetch, the scan) ends the run at once.
 
 ### Choosing the Discogs release
 

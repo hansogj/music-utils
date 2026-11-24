@@ -18,7 +18,7 @@ import {
   resetRepairSession,
 } from './repair/folder.js';
 import { repairActions } from './repair/issue-actions.js';
-import { ask, BackSignal, closeRl, RestartSignal, setRestartable } from './repair/prompt.js';
+import { ask, BackSignal, closeRl, PromptSignal, QuitSignal, RestartSignal, setRestartable } from './repair/prompt.js';
 import { AuditStream, type RepairEvent, type ScanProgress } from './repair/stream.js';
 import { tagFromPaste } from './repair/tagging.js';
 import { type AlbumAudit, type AlbumLayout, type Issue } from './types.js';
@@ -77,7 +77,8 @@ async function rescanAlbum(audit: AlbumAudit, reaudit: RepairAlbumContext['reaud
 
 // Steps through one album's issues. Answering "o" at any prompt starts the album over:
 // decisions not yet carried out (a folder rename) are dropped, the album is re-scanned
-// and shown from the top. Changes already written to the files stay.
+// and shown from the top. Changes already written to the files stay. "q" or Ctrl+C at any
+// prompt (confirmed) quits, after the folder rename the user agreed to.
 export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): Promise<'next' | 'quit'> {
   const initialIssues = [...audit.issues];
   setRestartable(true);
@@ -86,6 +87,18 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
       try {
         return await repairAlbumPass(audit, ctx);
       } catch (err) {
+        if (err instanceof QuitSignal) {
+          await applyPendingFolderRename(audit.layout, ctx);
+          await ctx.logEvent({
+            album: albumLocation(audit.layout),
+            issue: 'QUIT',
+            severity: 'MODERATE',
+            action: 'quit',
+            result: 'skipped',
+          });
+          console.log(chalk.dim('\n  Repair aborted.'));
+          return 'quit';
+        }
         if (!(err instanceof RestartSignal)) throw err;
         pendingFolderRenames.delete(audit.layout);
         const loc = albumLocation(audit.layout);
@@ -125,7 +138,7 @@ async function discogsFirstStep(
   audit: AlbumAudit,
   token: string,
   ctx: RepairAlbumContext,
-): Promise<'tagged' | 'issues' | 'skip' | 'quit'> {
+): Promise<'tagged' | 'issues' | 'skip'> {
   const loc = albumLocation(audit.layout);
   const log = (action: string, result: RepairEvent['result'], error?: string) =>
     ctx.logEvent({ album: loc, issue: 'DISCOGS', severity: 'MODERATE', action, result, error });
@@ -156,11 +169,6 @@ async function discogsFirstStep(
       `  ${fixOne ? `[f] Fix the ${audit.issues.length} issue(s) one by one   ` : ''}[s] Skip album   [o] Start album over   [q] Quit repair`,
     );
     const choice = (await ask('  Choice [1]: ')).toLowerCase() || '1';
-    if (choice === 'q') {
-      console.log(chalk.dim('\n  Repair aborted.'));
-      await log('quit', 'skipped');
-      return 'quit';
-    }
     if (choice === 's') {
       await log('skipped album', 'skipped');
       return 'skip';
@@ -183,7 +191,7 @@ async function discogsFirstStep(
       await log(done, 'fixed');
     } catch (err) {
       if (err instanceof BackSignal) continue; // picker Esc → this menu again
-      if (err instanceof RestartSignal) throw err;
+      if (err instanceof PromptSignal) throw err;
       handleRepairError(err);
       await log(picked === 'discogs' ? discogs.label : paste, 'failed', errorText(err));
     }
@@ -224,7 +232,7 @@ async function printAlbumHeader(audit: AlbumAudit, ctx: RepairAlbumContext): Pro
   if (ctx.scanProgress) console.log(chalk.dim(scanLine(ctx.scanProgress)));
   console.log(chalk.bold('─'.repeat(60)));
   printAlbumTable(audit, await folderFiles(layout.albumPath), await albumQuality(audit.tracks));
-  console.log(chalk.dim('  Answer o at any prompt to start this album over.'));
+  console.log(chalk.dim('  At any prompt: o starts this album over, q quits.'));
 }
 
 function printIssue(issue: Issue): void {
@@ -243,13 +251,13 @@ async function refreshAfterFix(audit: AlbumAudit, fixed: Issue, ok: boolean, ctx
   await rescanAlbum(audit, ctx.reaudit);
 }
 
-// The issue menu: the index of the action picked, skip or quit; undefined for an invalid
+// The issue menu: the index of the action picked, or skip; undefined for an invalid
 // choice. [d] adds a Discogs retag to `actions`, [l] lists the files and asks again.
 async function chooseAction(
   audit: AlbumAudit,
   actions: RepairAction[],
   token?: string,
-): Promise<number | 'skip' | 'quit' | undefined> {
+): Promise<number | 'skip' | undefined> {
   // [d] retags the album from a Discogs release whatever the issue (e.g. pick the
   // exact edition with bonus tracks), unless the menu already offers it.
   const offerDiscogs = !!token && !actions.some((a) => a.discogs);
@@ -268,7 +276,6 @@ async function chooseAction(
     console.log();
   }
 
-  if (choice === 'q') return 'quit';
   if (choice === 's') return 'skip';
   if (choice === 'd' && offerDiscogs && token) {
     actions.push(await discogsActionFor(audit, token));
@@ -315,19 +322,14 @@ async function runAction(action: RepairAction): Promise<ActionOutcome | 'back'> 
     return { result: 'fixed', done: await action.run() };
   } catch (err) {
     if (err instanceof BackSignal) return 'back';
-    if (err instanceof RestartSignal) throw err;
+    if (err instanceof PromptSignal) throw err;
     handleRepairError(err);
     return { result: 'failed', error: errorText(err) };
   }
 }
 
 // One issue: its menu until an action ran or the issue was skipped.
-async function repairIssue(
-  issue: Issue,
-  audit: AlbumAudit,
-  ctx: RepairAlbumContext,
-  state: PassState,
-): Promise<'done' | 'quit'> {
+async function repairIssue(issue: Issue, audit: AlbumAudit, ctx: RepairAlbumContext, state: PassState): Promise<void> {
   const log = (action: string, result: RepairEvent['result'], error?: string) =>
     ctx.logEvent({
       album: albumLocation(audit.layout),
@@ -343,7 +345,7 @@ async function repairIssue(
   if (actions.length === 0) {
     console.log(chalk.dim('  No automated repair available — fix manually.'));
     await log('none', 'no-action');
-    return 'done';
+    return;
   }
 
   let idx: number | undefined;
@@ -355,15 +357,10 @@ async function repairIssue(
   while (true) {
     if (idx === undefined) {
       const choice = await chooseAction(audit, actions, ctx.token);
-      if (choice === 'quit') {
-        console.log(chalk.dim('\n  Repair aborted.'));
-        await log('quit', 'skipped');
-        return 'quit';
-      }
       if (choice === 'skip') {
         await log('skipped', 'skipped');
         await offerSkipAux(audit.layout, state);
-        return 'done';
+        return;
       }
       if (choice === undefined) continue;
       idx = choice;
@@ -377,44 +374,34 @@ async function repairIssue(
     }
     await log(outcome.done || actions[idx].label, outcome.result, outcome.error);
     await refreshAfterFix(audit, issue, outcome.result === 'fixed', ctx); // also after a failure: a partial fix may have changed files
-    return 'done';
+    return;
   }
 }
 
 // Every issue still present has been shown this pass: skipped, failed or not solved.
-// One prompt for both "go on" and "next album". 'done' when none are left.
-async function askAfterPass(audit: AlbumAudit): Promise<'done' | 'retry' | 'next' | 'quit'> {
+// One prompt for both "go on" and "next album"; none when every issue is fixed.
+async function askAfterPass(audit: AlbumAudit): Promise<'retry' | 'next'> {
   const left = audit.issues;
   if (left.length === 0) {
     console.log(chalk.green(`\n  ✓ All issues addressed.`));
-    return 'done';
+    return 'next';
   }
   const sevCount = left.filter((i) => i.severity !== 'MODERATE').length;
   console.log(chalk.yellow(`\n  ${left.length} issue(s) not fixed${sevCount ? ` (${sevCount} high/severe)` : ''}.`));
-  const go = await ask('  [Enter] Next album   [r] Retry   [q] Quit: ');
-  if (go === 'q') {
-    console.log(chalk.dim('\n  Repair aborted.'));
-    return 'quit';
-  }
+  const go = await ask('  [Enter] Next album   [r] Retry   [o] Start album over   [q] Quit: ');
   if (go.toLowerCase() === 'r') return 'retry';
   return 'next';
 }
 
 // The Discogs-first step, then the issues until none are left or the user moves on.
-// 'next': the user already chose the next album; 'done': all issues addressed.
-async function repairIssues(
-  audit: AlbumAudit,
-  ctx: RepairAlbumContext,
-  state: PassState,
-): Promise<'done' | 'next' | 'quit'> {
+async function repairIssues(audit: AlbumAudit, ctx: RepairAlbumContext, state: PassState): Promise<void> {
   const { token, retag = false } = ctx;
   // An album without a release ID (with --retag, every album) opens with Discogs.
   if (token && ctx.discogsFirst && (retag || !audit.releaseId)) {
     const step = await discogsFirstStep(audit, token, ctx);
-    if (step === 'quit') return 'quit';
     if (step === 'skip') {
       await offerSkipAux(audit.layout, state);
-      return 'next';
+      return;
     }
   }
 
@@ -422,10 +409,9 @@ async function repairIssues(
     let issue: Issue | undefined;
     while ((issue = audit.issues.find((i) => !state.handled.has(issueKey(i))))) {
       state.handled.add(issueKey(issue));
-      if ((await repairIssue(issue, audit, ctx, state)) === 'quit') return 'quit';
+      await repairIssue(issue, audit, ctx, state);
     }
-    const next = await askAfterPass(audit);
-    if (next !== 'retry') return next;
+    if ((await askAfterPass(audit)) === 'next') return;
     state.handled.clear();
   }
 }
@@ -452,19 +438,12 @@ async function applyPendingFolderRename(layout: AlbumLayout, ctx: RepairAlbumCon
 }
 
 // One pass over the album from its opening table: its issues, then any folder rename
-// the user agreed to, last.
-async function repairAlbumPass(audit: AlbumAudit, ctx: RepairAlbumContext): Promise<'next' | 'quit'> {
+// the user agreed to, last. With every issue fixed it goes straight on to the next album.
+async function repairAlbumPass(audit: AlbumAudit, ctx: RepairAlbumContext): Promise<'next'> {
   await printAlbumHeader(audit, ctx);
   const state: PassState = { handled: new Set(), mismatchBulkIdx: -1, auxOffered: false };
-  const outcome = await repairIssues(audit, ctx, state);
-  // Runs on quit too: the user already said yes to it.
+  await repairIssues(audit, ctx, state);
   await applyPendingFolderRename(audit.layout, ctx);
-  if (outcome !== 'done') return outcome; // 'next' was answered at the "issue(s) not fixed" prompt
-  const go = await ask('  [Enter] Next album   [q] Quit: ');
-  if (go === 'q') {
-    console.log(chalk.dim('\n  Repair aborted.'));
-    return 'quit';
-  }
   return 'next';
 }
 

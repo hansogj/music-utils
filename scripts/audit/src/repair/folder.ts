@@ -138,7 +138,8 @@ export async function askSetAux(layout: AlbumLayout, other: SiblingDisc): Promis
   console.log(`    [Enter] keep         → ${show(current)}`);
   console.log(`    d  as ${disc.padEnd(15)}→ ${show(theirs)}`);
   console.log(`    c  type new`);
-  const choice = (await ask('  Brackets [Enter/d/c]: ')).trim().toLowerCase();
+  console.log(`    o  start album over`);
+  const choice = (await ask('  Brackets [Enter/d/c/o]: ')).trim().toLowerCase();
   const aux = choice === 'd' ? theirs : choice === 'c' ? customAux(await ask('    Brackets: ', current)) : current;
   if (aux === current) return undefined;
   console.log(chalk.dim(`  → folder becomes "${show(aux)}" after this album's other fixes`));
@@ -196,9 +197,10 @@ export async function chooseArtist(
   console.log(`    [Enter] Discogs: "${discogs}${brackets}"`);
   console.log(`    [k]     keep the folder's: "${layout.artistName}"`);
   if (credit) console.log(`    [a]     all credits: "${credit}${brackets}"`);
+  console.log(`    [o]     start album over`);
   let chosen: string | undefined;
   while (chosen === undefined) {
-    const answer = (await ask(`  Artist [Enter/k${credit ? '/a' : ''}]: `)).toLowerCase();
+    const answer = (await ask(`  Artist [Enter/k${credit ? '/a' : ''}/o]: `)).toLowerCase();
     if (answer === '') chosen = discogs;
     else if (answer === 'k') chosen = folder;
     else if (answer === 'a' && credit) chosen = credit;
@@ -228,7 +230,8 @@ export async function askOldYearBracket(
   console.log(`    l  live               → ${preview('l')}`);
   console.log(`    r  recorded           → ${preview('r')}`);
   console.log(`    c  custom text        → edit ${current ? `"${current}"` : 'a new bracket'}`);
-  const choice = (await ask('  Old year [Enter/l/r/c]: ')).trim().toLowerCase();
+  console.log(`    o  start album over`);
+  const choice = (await ask('  Old year [Enter/l/r/c/o]: ')).trim().toLowerCase();
   // c: the folder's brackets as they are (or the old year), to edit; the result replaces them.
   const answer: OldYearAnswer | undefined =
     choice === 'c'
