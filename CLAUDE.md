@@ -62,13 +62,13 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 - Definite articles ("the", "los", "il", etc.) can be moved to suffix position for artist sorting ("The Beatles" -> "Beatles, The"); off by default, enabled with `artist.sortArticles: true` in config. Only the artist tags (and track file names' artist) change, in `tag album` and rip; the artist folder keeps "The Beatles". music-audit reads the same setting (`scripts/audit/src/articles.ts`)
 - `@hansogj/array.utils` provides `.defined()` (filter nullish) and `.onEmpty()` chainable array methods used extensively throughout
 - `@hansogj/maybe` provides Maybe/Optional monad used for null-safe value access
-- **rip tags like music-audit** (`src/run/rip.ts`): `artistChoicePrompt()` (prompt.ts: first credited artist / all credits / typed, only when Discogs credits several), `Release.discogs` (`DiscogsTags`: release/master ID, genre, URL) → FLAC ORIGINALDATE, GENRE, COMMENT, DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID; DISCTOTAL instead of the old DISCID; MP3 TPE2; info.txt from discogs-item-lookup's `formatInfoTxt()`. The confirm prompt prints `releaseTable()` (utils/release-table.ts). Tags keep names as they are; `folderSafe()` (config/render.ts, as audit's `sanitizeFilename()`) makes artist/album folder names safe
+- **rip tags like music-audit** (`src/run/rip.ts`): `artistChoicePrompt()` (prompt.ts: first credited artist / all credits / typed, only when Discogs credits several), `Release.discogs` (`DiscogsTags`: release/master ID, genre, URL) → FLAC ORIGINALDATE, GENRE, COMMENT, DISCOGS_RELEASE_ID, DISCOGS_MASTER_ID; DISCTOTAL instead of the old DISCID; MP3 TPE2; info.txt from discogs-item-lookup's `formatInfoTxt()`. The confirm prompt prints `releaseTable()` (utils/release-table.ts). Tags keep names as they are; `folderSafe()` (config/render.ts, as audit's `sanitizeFilename()`) makes artist folder names safe, `titleSafe()` (as audit's `sanitizeTitle()`: also no trailing dots, which a Synology SMB share stores as private-use characters) album folders and track file names (the artist in a track name: `folderSafe()`)
 - Shell commands are executed via `src/utils/execute.ts`: `executeFile` (using `child_process.execFile`, preferred for safety) and `execute` (using `child_process.exec`, for shell-dependent commands)
 
 ### Module layout
 
 - `src/run/` - Entry point scripts (`cli.ts` is the bin; built, but excluded from test coverage). These orchestrate the CLI workflows (rip, tag album/tracks, covers, similarities, sync track names, completion).
-- `src/config/` - `loadConfig()` (`./music-utils.config.json`, `~/.music-utilsrc.json`), `getConfig()` (cached), `validateConfig()`, defaults, and `render.ts` (folder/track name templates, `folderSafe()`)
+- `src/config/` - `loadConfig()` (`./music-utils.config.json`, `~/.music-utilsrc.json`), `getConfig()` (cached), `validateConfig()`, defaults, and `render.ts` (folder/track name templates, `folderSafe()`, `titleSafe()`)
 - `src/utils/` - Cross-cutting: shell execution, path ops, CLI arg parsing (`cmd.options.ts`), shared `.env` (`env.ts`, kept in sync with audit's), colored logging, prompts, `releaseTable()`, tag ↔ path sync
 - `src/artist/` - Artist folder name prompt
 - `src/similarities/` - Fuzzy artist name matching
@@ -165,7 +165,8 @@ scripts/audit/src/
                     STREAMINFO "16/44.1"; MP3 frame + Xing/VBRI "320 kbps", "VBR ~245 kbps"; no
                     external tool), qualitySummary() ("FLAC 16/44.1 [1–11] · 24/96 [12]": track
                     numbers only when the tracks differ). Display only, no issue
-  rename-plan.ts  — sanitizeFilename() ("/" and ":" → " - "), pairWithRelease() (by disc/no,
+  rename-plan.ts  — sanitizeFilename() ("/" and ":" → " - "; artist folders), sanitizeTitle()
+                    (also no trailing dots; album folders and file names, the ALBUM tag keeps Discogs'), pairWithRelease() (by disc/no,
                     else by order: one folder of a 2-CD release), pairingProblem() (asks
                     before tagging when titles repeat), checkRenames() (no renames that clash),
                     planPairing() (an unnumbered file is placed by title, or is an extra copy)

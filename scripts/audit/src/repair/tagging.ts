@@ -8,7 +8,7 @@ import { matchNames } from '../checks/names.js';
 import { type NumberedTrack } from '../discogs.js';
 import { appendChangeset, writeInfoTxtFromPaste } from '../info-txt.js';
 import { parsePastedTracklist } from '../paste.js';
-import { checkRenames, pairingProblem, planPairing, sanitizeFilename } from '../rename-plan.js';
+import { checkRenames, pairingProblem, planPairing, sanitizeTitle } from '../rename-plan.js';
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit } from '../types.js';
 import { albumMetaFromLayout, musicFilesIn } from './folder.js';
@@ -120,7 +120,7 @@ export async function offerFileRenames(
     const { no, disc } = local[i];
     const title = titles[i];
     if (!title) return [];
-    const safe = sanitizeFilename(title);
+    const safe = sanitizeTitle(title);
     const newName = isMultiDisc
       ? `d${disc}t${String(no).padStart(2, '0')} - ${safe}.${ext}`
       : `${String(no).padStart(2, '0')} - ${safe}.${ext}`;

@@ -13,6 +13,14 @@ export function sanitizeFilename(s: string): string {
     .trim();
 }
 
+// An album or track title as a folder or file name holds it: sanitizeFilename(), and no
+// trailing dots ("Dexter Calling . . ." → "Dexter Calling"), which SMB can't carry (a Synology
+// share stores them as private-use characters, so the name has two spellings). Artist names
+// keep theirs ("I.P.A."): there the dots are the name. As music-utils' titleSafe().
+export function sanitizeTitle(s: string): string {
+  return sanitizeFilename(s).replace(/[\s.-]+$/, '');
+}
+
 // The release track for each local file. By disc and track number when every file finds
 // one; else by order (a single folder holding a 2-CD release: local track 12 is CD 2 track 1).
 export function pairWithRelease(

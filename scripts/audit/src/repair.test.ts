@@ -224,6 +224,34 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     expect(asked.at(-1)).toBe('  [Enter] Next album   [r] Retry   [o] Start album over   [q] Quit: ');
   });
 
+  it('names the folder without ":" or trailing dots; the ALBUM tag keeps Discogs’ title', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    const title = 'Sacred Baboon: Live At The Fillmore . . .';
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, title });
+    const audit = await scan();
+    audit.discogsResults = [
+      {
+        id: 4376665,
+        title: `Yezda Urfa - ${title}`,
+        year: '1989',
+        releaseUrl: 'https://www.discogs.com/release/4376665',
+      },
+    ];
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, ''],
+      [/Rename folder\(s\) to match Discogs\?/, 'y'],
+      [/Old year \[Enter\/l\/r\/c\/o\]/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/album {2}: "Sacred Baboon" {2}→ {2}"Sacred Baboon - Live At The Fillmore"/);
+    expect(layout.albumFolder).toBe('1989 Sacred Baboon - Live At The Fillmore');
+    const track1 = await readFake(path.join(layout.albumPath, "01 - Give 'Em Some Rawhide Chewies.mp3"));
+    expect(track1).toMatchObject({ ALBUM: title });
+  });
+
   it('[r] at the "not fixed" prompt shows the issues again', async () => {
     const audit = await scan();
     const done = answer([
