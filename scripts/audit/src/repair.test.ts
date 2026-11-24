@@ -82,6 +82,7 @@ afterAll(() => fs.rm(TINY_JPEG, { force: true }));
 
 const { auditAlbum } = await import('./audit-album.js');
 const { formatSummary, repairAlbum, resetRepairSession, setPrompt, splitArtistBrackets } = await import('./repair.js');
+const { CTRL_C } = await import('./repair/prompt.js');
 type RepairEvent = import('./repair.js').RepairEvent;
 
 let root: string;
@@ -164,8 +165,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       [/Release ID \[4376665\]/, ''], // use the suggested release
       [/Apply renames\?/, ''], // Enter applies them: 01 - Give'em → 01 - Give 'Em
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, deferred
-      [/Old year \[Enter\/l\/r\/c\]/, 'r'], // recorded 1976, released 1989
-      [/Next album/, ''],
+      [/Old year \[Enter\/l\/r\/c\/o\]/, 'r'], // recorded 1976, released 1989
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -221,7 +221,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     expect(output.join('\n')).toMatch(/2 issue\(s\) not fixed/);
     expect(events.map((e) => e.result)).toEqual(['skipped', 'skipped']);
     // One prompt to go on: no "[Enter] Next album   [q] Quit" after it.
-    expect(asked.at(-1)).toBe('  [Enter] Next album   [r] Retry   [q] Quit: ');
+    expect(asked.at(-1)).toBe('  [Enter] Next album   [r] Retry   [o] Start album over   [q] Quit: ');
   });
 
   it('[r] at the "not fixed" prompt shows the issues again', async () => {
@@ -234,6 +234,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       [/^ {2}Choice \[1\]/, 's'], // the same two issues, from the top
       [/^ {2}Choice \[1\]/, 's'],
       [/\[r\] Retry/, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('quit');
     done();
@@ -242,7 +243,10 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
   it('shows the formats in the album table, with the ones the audit does not read', async () => {
     await fs.writeFile(path.join(layout.albumPath, 'bonus.wav'), '');
     const audit = await scan();
-    answer([[/^ {2}Choice \[1\]/, 'q']]);
+    answer([
+      [/^ {2}Choice \[1\]/, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
+    ]);
     await repairAlbum(audit, ctx());
     // Fake files (JSON) have no readable quality: the format alone.
     expect(output.join('\n')).toMatch(/Format +│ MP3 · WAV 1 \(not checked\)/);
@@ -253,7 +257,6 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     audit.issues = audit.issues.filter((i) => i.code === 'NAME_TAG_MISMATCH');
     const done = answer([
       [/^ {2}Choice \[1\]/, '2'], // Update TITLE tag to match the file name
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx(false))).toBe('next');
@@ -292,7 +295,6 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
     vi.mocked(fetchRelease).mockClear();
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Write release ID 4376665 (from info.txt)
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -322,7 +324,6 @@ describe('repairAlbum — the issue menu', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, '2'], // Update TITLE tag to match the file name
       [/Apply this to all remaining/, 'y'], // the second mismatch is fixed without a menu
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx(false))).toBe('next');
@@ -396,7 +397,7 @@ describe('repairAlbum — start the album over', () => {
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'x'], // a typo declines: track 1's file name disagrees with its new title
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
-      [/Old year \[Enter\/l\/r\/c\]/, ''], // no bracket
+      [/Old year \[Enter\/l\/r\/c\/o\]/, ''], // no bracket
       [/^ {2}Choice \[1\]/, 'o'], // at the track 1 mismatch: regret
       [/^ {2}Choice \[1\]/, 's'], // the mismatch, shown from the top again
       [/Brackets:/, ''], // first skip in the album: no bracket added
@@ -419,10 +420,83 @@ describe('repairAlbum — start the album over', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, 'o'], // restarts
       [/^ {2}Choice \[1\]/, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     expect(await repairAlbum(audit, ctx(false))).toBe('quit');
     done();
     expect(audit.issues.map((i) => i.code)).toEqual(['NAME_TAG_MISMATCH']);
+  });
+});
+
+describe('repairAlbum — quit at any prompt', () => {
+  const withSearchHit = (audit: AlbumAudit) => {
+    audit.discogsResults = [
+      {
+        id: 4376665,
+        title: 'Yezda Urfa - Sacred Baboon',
+        year: '1989',
+        releaseUrl: 'https://www.discogs.com/release/4376665',
+      },
+    ];
+    return audit;
+  };
+
+  it('q asks first; n goes back to the prompt it was at', async () => {
+    const audit = withSearchHit(await scan());
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
+      [/Release ID \[4376665\]/, 'q'], // a stray q
+      [/Quit repair\? \[Y\/n\]/, 'n'],
+      [/Release ID \[4376665\]/, ''], // asked again
+      [/Apply renames\?/, ''],
+      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(events.map((e) => e.issue)).toEqual(['MISSING_TAGS']);
+  });
+
+  it('Ctrl+C asks too; Ctrl+C at the question quits at once', async () => {
+    const audit = withSearchHit(await scan());
+    const done = answer([
+      [/^ {2}Choice \[1\]/, CTRL_C],
+      [/Quit repair\? \[Y\/n\]/, CTRL_C],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('quit');
+    done();
+    expect(output.join('\n')).toMatch(/Repair aborted\./);
+    expect(events.map((e) => [e.issue, e.action])).toEqual([['QUIT', 'quit']]);
+  });
+
+  it('runs the folder rename already agreed to, then quits', async () => {
+    const audit = withSearchHit(await scan());
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, 'n'], // leaves a name/tag mismatch
+      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
+      [/Old year \[Enter\/l\/r\/c\/o\]/, ''],
+      [/^ {2}Choice \[1\]/, 'q'], // at the mismatch
+      [/Quit repair\? \[Y\/n\]/, ''],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('quit');
+    done();
+    expect(layout.albumFolder).toBe('1989 Sacred Baboon');
+    expect(events.map((e) => e.issue)).toEqual(['MISSING_TAGS', 'FOLDER_RENAME', 'QUIT']);
+  });
+
+  it('goes on to the next album without a prompt when every issue is fixed', async () => {
+    const audit = withSearchHit(await scan());
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, ''],
+      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+    ]);
+    expect(await repairAlbum(audit, ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/All issues addressed/);
+    expect(asked.some((q) => /Next album/.test(q))).toBe(false);
   });
 });
 
@@ -458,7 +532,6 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
       [/Release ID \[enter ID\]/, '[r1886376]'],
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
       [/Rename folder\(s\) to match Discogs\?/, 'n'],
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -485,7 +558,6 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
       [/Release ID \[enter ID\]/, '1886376'],
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
       [/Rename folder\(s\) to match Discogs\?/, 'n'],
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -514,7 +586,6 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
       [/Release ID \[1886376\]/, ''], // Enter keeps the tagged release, not the search hit
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
       [/Rename folder\(s\) to match Discogs\?/, 'n'],
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -588,7 +659,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
       [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
       // Already "01 - Your Move.mp3": no renames in a disc folder.
-      [/Next album/, ''],
     ]);
 
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
@@ -609,6 +679,24 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     expect(await fs.readFile(path.join(disc2.albumPath, 'info.txt'), 'utf8')).toMatch(/Disc: 2\/2/);
   });
 
+  it('[o] at the disc split starts the album over, nothing written', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE).mockResolvedValueOnce(YESSONGS_RELEASE);
+    const audit = await auditAlbum(disc2, { skipDiscogs: true });
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Use the same release ID \[r8270054\] as Disc 1\?/, ''],
+      [/\[n\] Start at another track {3}\[o\] Start album over: $/, 'o'], // regret
+      [/^ {2}Choice \[1\]/, ''], // the album from the top
+      [/Use the same release ID \[r8270054\] as Disc 1\?/, ''],
+      [/\[n\] Start at another track/, ''],
+    ]);
+    expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+    done();
+    expect(output.join('\n')).toMatch(/Starting this album over/);
+    expect(events.map((e) => e.issue)[0]).toBe('RESTART');
+  });
+
   it('[n] to the same release asks for another, not suggesting disc 1’s', async () => {
     const { fetchRelease } = await import('./discogs.js');
     vi.mocked(fetchRelease).mockResolvedValueOnce(YESSONGS_RELEASE);
@@ -618,7 +706,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/Use the same release ID \[r8270054\] as Disc 1\?/, 'n'],
       [/Release ID \[enter ID\]/, '8270054'],
       [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
     done();
@@ -649,10 +736,9 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       const done = answer([
         [/^ {2}Choice \[1\]/, ''],
         [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
-        [/Brackets \[Enter\/d\/c\]/, choice],
+        [/Brackets \[Enter\/d\/c\/o\]/, choice],
         ...(choice === 'c' ? [[/ {4}Brackets: /, '[FLAC] bootleg'] as [RegExp, string]] : []),
         [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
-        [/Next album/, ''],
       ]);
       expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
       done();
@@ -669,7 +755,7 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       const audit = await auditAlbum(disc2, { skipDiscogs: true });
       const done = answer([
         [/^ {2}Choice \[1\]/, 's'], // MISSING_TAGS
-        [/Brackets \[Enter\/d\/c\]/, 'd'],
+        [/Brackets \[Enter\/d\/c\/o\]/, 'd'],
         [/\[r\] Retry/, ''],
       ]);
       expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
@@ -689,7 +775,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
         [/^ {2}Choice \[1\]/, ''],
         [/Use the same release ID/, 'y'],
         [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
-        [/Next album/, ''],
       ]);
       expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
       done();
@@ -709,7 +794,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/Use the same release ID \[r8270054\] as Disc 1\? \[Y\/n\]/, ''],
       [/\[Enter\] OK {3}\[n\] Start at another track/, ''],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
     done();
@@ -736,7 +820,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID/, '8270054'],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
     done();
@@ -757,7 +840,6 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
       [/\[n\] Start at another track/, 'n'],
       [/Disc 2∕2 starts at release track/, '9'],
       [/\[n\] Start at another track/, ''],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
     done();
@@ -863,7 +945,6 @@ describe('repairAlbum — file names with artist and album, a 2-CD release in on
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID \[enter ID\]/, '11198316'],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
@@ -1011,10 +1092,8 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     const disc2 = await discLayout(2);
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Set DATE/ORIGINALDATE to 1992 and rename folder
-      [/Old year \[Enter\/l\/r\/c\]/, 'l'],
-      [/Next album/, ''],
+      [/Old year \[Enter\/l\/r\/c\/o\]/, 'l'],
       [/^ {2}Choice \[1\]/, ''], // disc 2: no Old year question
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(await yearAudit(disc1), ctx(false))).toBe('next');
     expect(await repairAlbum(await yearAudit(disc2), ctx(false))).toBe('next');
@@ -1049,9 +1128,7 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
       [/^ {2}Choice \[1\]/, ''],
       [/Old year/, 'c'],
       [/ {4}Brackets: /, '[FLAC] [Philadelphia 1979]'], // "[FLAC]" was in the line; the user added to it
-      [/Next album/, ''],
       [/^ {2}Choice \[1\]/, ''], // disc 2: same answer, no questions
-      [/Next album/, ''],
     ]);
     await repairAlbum(await yearAudit(disc1), ctx(false));
     await repairAlbum(await yearAudit(disc2), ctx(false));
@@ -1068,7 +1145,6 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
       [/^ {2}Choice \[1\]/, ''],
       [/Old year/, 'c'],
       [/Brackets: /, 'live 1979'], // "[FLAC]" deleted, plain text typed
-      [/Next album/, ''],
     ]);
     await repairAlbum(await yearAudit(disc1), ctx(false));
     done();
@@ -1131,7 +1207,7 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'n'], // leaves a name/tag mismatch to skip
       [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989
-      [/Old year \[Enter\/l\/r\/c\]/, 'r'],
+      [/Old year \[Enter\/l\/r\/c\/o\]/, 'r'],
       [/^ {2}Choice \[1\]/, 's'], // the mismatch
       [/Brackets:/, 'bootleg'],
       [/\[r\] Retry/, ''],
@@ -1179,10 +1255,9 @@ describe('repairAlbum — a Discogs artist credit that differs from the artist f
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID/, '4376665'],
-      [/^ {2}Artist \[Enter\/k\]: $/, ''], // Discogs' name, for folder and tags
+      [/^ {2}Artist \[Enter\/k\/o\]: $/, ''], // Discogs' name, for folder and tags
       [/Apply renames\?/, 'y'],
       // The artist folder follows the choice: no second question.
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();
@@ -1214,10 +1289,7 @@ describe('repairAlbum — an artist under the wrong letter folder', () => {
 
     const audit = await scan();
     audit.issues = audit.issues.filter((i) => i.code === 'WRONG_LETTER_DIR');
-    const done = answer([
-      [/^ {2}Choice \[1\]/, ''],
-      [/Next album/, ''],
-    ]);
+    const done = answer([[/^ {2}Choice \[1\]/, '']]);
     await repairAlbum(audit, ctx(false));
     done();
 
@@ -1255,7 +1327,6 @@ describe("repairAlbum — the artist folder's own brackets", () => {
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID/, '4376665'],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();
@@ -1273,9 +1344,8 @@ describe("repairAlbum — the artist folder's own brackets", () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID/, '4376665'],
-      [/^ {2}Artist \[Enter\/k\]: $/, ''],
+      [/^ {2}Artist \[Enter\/k\/o\]: $/, ''],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();
@@ -1327,7 +1397,6 @@ describe('repairAlbum — covers', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_COVER → [1] Download the cover of Discogs release r4376665
       [/^ {2}Choice \[1\]/, ''], // ARTIST_COVER_MISSING → [1] Copy cover.jpg from "1976 Sacred Baboon"
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, { ...ctx(), reaudit: covers });
     done();
@@ -1360,7 +1429,6 @@ describe('repairAlbum — covers', () => {
     audit.issues = audit.issues.filter((i) => i.code === 'MISSING_COVER');
     const done = answer([
       [/^ {2}Choice \[1\]/, '1'], // [1] Use front.jpg as cover.jpg (no release ID in the tags)
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, { ...ctx(), reaudit: undefined });
     done();
@@ -1388,7 +1456,6 @@ describe('repairAlbum — covers', () => {
     };
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Replace folder.jpg with a copy of cover.jpg
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, { ...ctx(), reaudit: undefined });
     done();
@@ -1416,7 +1483,6 @@ describe('repairAlbum — Discogs first', () => {
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'y'],
       [/Rename folder\(s\) to match Discogs\?/, 'n'],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, first())).toBe('next');
     done();
@@ -1439,6 +1505,7 @@ describe('repairAlbum — Discogs first', () => {
       [/Apply renames\?/, 'n'],
       [/Rename folder\(s\) to match Discogs\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, first());
     done();
@@ -1457,7 +1524,6 @@ describe('repairAlbum — Discogs first', () => {
       [/^$/, ''],
       [/Tag 7 file\(s\) like this\? \[Y\/n\]/, ''],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     expect(await repairAlbum(audit, first())).toBe('next');
     done();
@@ -1493,6 +1559,7 @@ describe('repairAlbum — Discogs first', () => {
       [/Tag 7 file\(s\)/, ''],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, first());
     expect(await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8')).toBe('Ripped from my own LP, 1998\n');
@@ -1509,6 +1576,7 @@ describe('repairAlbum — Discogs first', () => {
       [/^$/, ''],
       [/Tag 7 file\(s\)/, 'n'],
       [/^ {2}Choice \[1\]/, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     expect(await repairAlbum(audit, first())).toBe('quit');
     done();
@@ -1523,10 +1591,11 @@ describe('repairAlbum — Discogs first', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, 'f'],
       [/^ {2}Choice \[1\]/, 'q'], // MISSING_TAGS menu
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     expect(await repairAlbum(audit, first())).toBe('quit');
     done();
-    expect(events.map((e) => [e.issue, e.action])).toEqual([['MISSING_TAGS', 'quit']]);
+    expect(events.map((e) => [e.issue, e.action])).toEqual([['QUIT', 'quit']]);
   });
 
   it('[s] skips the album, with the bracket question, and goes on without another prompt', async () => {
@@ -1544,7 +1613,10 @@ describe('repairAlbum — Discogs first', () => {
     await tagAll({ DISCOGS_RELEASE_ID: '4376665' });
     const audit = await scan();
     expect(audit.releaseId).toBe('4376665');
-    const done = answer([[/^ {2}Choice \[1\]/, 'q']]); // the NAME_TAG_MISMATCH menu
+    const done = answer([
+      [/^ {2}Choice \[1\]/, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
+    ]); // the NAME_TAG_MISMATCH menu
     await repairAlbum(audit, first());
     done();
     expect(output.join('\n')).not.toMatch(/Discogs release ID yet|\[retag\]/);
@@ -1559,6 +1631,7 @@ describe('repairAlbum — Discogs first', () => {
       [/Apply renames\?/, 'n'],
       [/Rename folder\(s\) to match Discogs\?/, 'n'],
       [/./, 'q'], // whatever is left
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, first({ retag: true }));
     done();
@@ -1593,9 +1666,10 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     const done = answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '8614313'],
-      [/^ {2}Artist \[Enter\/k\/a\]: $/, choice],
+      [/^ {2}Artist \[Enter\/k\/a\/o\]: $/, choice],
       [/Apply renames\?/, 'n'],
       [/./, 'q'], // whatever issue is left
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();
@@ -1637,9 +1711,10 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '4508999'],
-      [/^ {2}Artist \[Enter\/k\/a\]: $/, 'a'],
+      [/^ {2}Artist \[Enter\/k\/a\/o\]: $/, 'a'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     expect(layout.artistName).toBe('Patrick Woodroffe, Dave Greenslade');
@@ -1660,9 +1735,10 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '4508999'],
-      [/^ {2}Artist \[Enter\/k\/a\]: $/, 'a'],
+      [/^ {2}Artist \[Enter\/k\/a\/o\]: $/, 'a'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     const out = output.join('\n');
@@ -1682,6 +1758,7 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
       [/Release ID/, '1'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).not.toMatch(/Artist names differ/);
@@ -1767,6 +1844,7 @@ describe('repairAlbum — music-utils artist.sortArticles on', () => {
       [/Brackets:/, ''],
       [/^ {2}Choice \[1\]/, ''],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).toMatch(/Write "Yezdas, The" to the artist tags/);
@@ -1786,6 +1864,7 @@ describe('repairAlbum — music-utils artist.sortArticles on', () => {
       [/Release ID/, '1'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     // Folder, Discogs and tags agree once the tags' article is put back first.
@@ -1810,6 +1889,7 @@ describe('repairAlbum — the artist folder’s brackets in the tags', () => {
       [/Release ID/, '1'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
     ]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).not.toMatch(/Artist names differ/);
@@ -1884,9 +1964,8 @@ describe('repairAlbum — artist folder vs the artist tags', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '1'],
-      [/^ {2}Artist \[Enter\/k\]: $/, ''],
+      [/^ {2}Artist \[Enter\/k\/o\]: $/, ''],
       [/Apply renames\?/, 'y'],
-      [/Next album/, ''],
     ]);
     await repairAlbum(audit, ctx());
     done();

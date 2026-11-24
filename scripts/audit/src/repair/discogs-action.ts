@@ -107,7 +107,7 @@ async function chooseDiscSlice(
     const again =
       slice.method === 'unknown'
         ? 'n'
-        : (await ask('  [Enter] OK   [n] Start at another track: ')).trim().toLowerCase();
+        : (await ask('  [Enter] OK   [n] Start at another track   [o] Start album over: ')).trim().toLowerCase();
     if (again !== 'n') return slice;
     const n = parseInt(await ask(`  ${disc} starts at release track (1–${slice.total}): `), 10);
     if (!(n >= 1 && n <= slice.total)) {
