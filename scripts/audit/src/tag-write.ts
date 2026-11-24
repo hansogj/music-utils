@@ -3,7 +3,22 @@ import { promisify } from 'node:util';
 
 import { readComm, readFrames, readTxxx, writeUserFrames } from './id3-frames.js';
 
-const execFileAsync = promisify(execFile);
+const execFile_ = promisify(execFile);
+
+// Runs metaflac / id3v2. A failure says why in one line: the tool's own message, else its
+// exit code or signal. Node's "Command failed: metaflac --set-tag=… <file>" repeats every
+// argument and buries the reason, or has none when the tool printed nothing.
+async function execFileAsync(cmd: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
+  try {
+    return await execFile_(cmd, args);
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string; signal?: string | null; code?: number | string };
+    const why =
+      e.stderr?.trim() ||
+      (e.signal ? `killed by ${e.signal}` : typeof e.code === 'number' ? `exit code ${e.code}` : e.code || e.message);
+    throw new Error(`${cmd} failed on ${args.at(-1)}: ${why}`, { cause: err });
+  }
+}
 
 // Prefer verifying a tag that was likely absent before (TRACKNUMBER, DATE) over
 // TITLE which may already be present — catches partial NFS write failures.

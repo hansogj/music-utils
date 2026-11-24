@@ -1,4 +1,5 @@
 import { type ArticleSort, articleSort, sortArtist, unsortArtist } from '../articles.js';
+import { sanitizeFilename } from '../rename-plan.js';
 import type { AlbumLayout, Issue, TrackInfo } from '../types.js';
 
 // Names compared as written (NFC, case aside): "Ytre Suløens" and "Ytre Suloens" differ.
@@ -54,7 +55,10 @@ export function checkArtistFolder(layout: AlbumLayout, tracks: TrackInfo[], sort
   if (/^various( artists)?$/i.test(withoutBrackets(folder))) return [];
   const expected = expectedArtistTag(folder, sort);
   const names = [...new Set(tracks.map(albumArtistOf).filter((n): n is string => !!n))];
-  if (names.length === 0 || names.some((n) => sameName(n, expected))) return [];
+  // A tag with characters a folder can't hold ("The Don Rendell / Ian Carr Quintet") matches
+  // the folder music-audit makes of it ("The Don Rendell - Ian Carr Quintet").
+  const matches = (n: string) => sameName(n, expected) || sameName(sanitizeFilename(n), expected);
+  if (names.length === 0 || names.some(matches)) return [];
 
   const inverted = names.find((n) => reordered(n, folder) || reordered(n, expected));
   if (inverted)

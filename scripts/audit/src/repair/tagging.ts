@@ -8,7 +8,7 @@ import { matchNames } from '../checks/names.js';
 import { type NumberedTrack } from '../discogs.js';
 import { appendChangeset, writeInfoTxtFromPaste } from '../info-txt.js';
 import { parsePastedTracklist } from '../paste.js';
-import { checkRenames, pairingProblem, planPairing, sanitizeTitle } from '../rename-plan.js';
+import { checkRenames, discNumbers, pairingProblem, planPairing, sanitizeTitle } from '../rename-plan.js';
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit } from '../types.js';
 import { albumMetaFromLayout, musicFilesIn } from './folder.js';
@@ -32,7 +32,8 @@ export async function tagFromTracklist(
   opts: {
     folderDisc: number;
     countWarning: (extra: number) => string;
-    tags: (t: { no: number; disc: number; total: number; title?: string }) => Record<string, string>;
+    // discNumber: the DISCNUMBER tag (discNumbers()).
+    tags: (t: { no: number; discNumber: string; total: number; title?: string }) => Record<string, string>;
     // Show every file's new title and ask before tagging (a pasted list).
     confirm?: boolean;
   },
@@ -97,11 +98,20 @@ export async function tagFromTracklist(
 
   // The release's own count when stray copies are left out (15, not 17).
   const total = localCount;
+  const meta = albumMetaFromLayout(audit.layout);
+  const discs = discNumbers(
+    local.map((l) => l.disc),
+    { disc: parseInt(meta.discNumber, 10), of: parseInt(meta.noOfDiscs, 10) },
+  );
   for (const [i, { name, ext }] of files.entries()) {
     if (isExtra(i)) continue;
-    const { no, disc } = local[i];
+    const { no } = local[i];
     const title = titles[i];
-    await writeTags(path.join(audit.layout.albumPath, name), ext, opts.tags({ no, disc, total, title }));
+    await writeTags(
+      path.join(audit.layout.albumPath, name),
+      ext,
+      opts.tags({ no, discNumber: discs[i], total, title }),
+    );
     console.log(chalk.green(`  ✓ Tagged ${name}${title ? ` → "${title}"` : ' (no title match)'}`));
   }
   return { local, titles };
@@ -177,12 +187,12 @@ export async function tagFromPaste(audit: AlbumAudit): Promise<boolean> {
     confirm: true,
     countWarning: (extra) =>
       extra > 0 ? `The list has ${extra} more line(s) than there are files` : `The list has ${-extra} line(s) too few`,
-    tags: ({ no, disc, total, title }) => ({
+    tags: ({ no, discNumber, total, title }) => ({
       ARTIST: sortArtist(meta.artist),
       ALBUMARTIST: sortArtist(meta.artist),
       ALBUM: meta.album,
       TRACKNUMBER: `${no}/${total}`,
-      DISCNUMBER: `${disc}/${meta.noOfDiscs}`,
+      DISCNUMBER: discNumber,
       ...(meta.year ? { DATE: meta.year } : {}),
       ...(title ? { TITLE: title } : {}),
     }),

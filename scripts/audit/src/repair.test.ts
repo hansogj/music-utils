@@ -854,6 +854,38 @@ describe('repairAlbum — one disc of an album split into disc folders', () => {
     const names = (await fs.readdir(both)).filter((n) => n.endsWith('.mp3')).sort();
     expect(names[0]).toBe('d1t01 - Opening (Excerpt From Firebird Suite).mp3');
     expect(names[8]).toBe('d2t01 - Your Move.mp3');
+    // The set's discs, not "2/1": the folder name has no disc part.
+    expect(await readFake(path.join(both, names[0]))).toMatchObject({ DISCNUMBER: '1/2' });
+    expect(await readFake(path.join(both, names[8]))).toMatchObject({ DISCNUMBER: '2/2' });
+  });
+
+  it('writes 1/1 in a one-disc folder whose old names say disc 2', async () => {
+    // Dexter Gordon's "Dexter Calling": ripped as disc 2 of a 2-in-1 CD, "d2t01. …".
+    const one = path.join(root, 'Y', 'Yes', '1973 Yessongs Disc Two');
+    await fs.mkdir(one);
+    for (const [i, [, title]] of YESSONGS.slice(8).entries()) {
+      await fs.writeFile(path.join(one, `d2t${String(i + 1).padStart(2, '0')}. ${title}.mp3`), '{}');
+    }
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({
+      ...YESSONGS_RELEASE,
+      title: 'Yessongs Disc Two',
+      tracklist: YESSONGS_RELEASE.tracklist.slice(8),
+    });
+    const audit = await auditAlbum(
+      { ...disc2, albumFolder: '1973 Yessongs Disc Two', albumPath: one },
+      { skipDiscogs: true },
+    );
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID/, '8270054'],
+      [/Apply renames\?/, 'y'],
+    ]);
+    expect(await repairAlbum(audit, disc2Ctx())).toBe('next');
+    done();
+    const names = (await fs.readdir(one)).filter((n) => n.endsWith('.mp3')).sort();
+    expect(names[0]).toBe('01 - Your Move.mp3');
+    for (const name of names) expect(await readFake(path.join(one, name))).toMatchObject({ DISCNUMBER: '1/1' });
   });
 
   it('[n] moves the disc to another start track', async () => {
@@ -1283,7 +1315,7 @@ describe('repairAlbum — a Discogs artist credit that differs from the artist f
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID/, '4376665'],
-      [/^ {2}Artist \[Enter\/k\/o\]: $/, ''], // Discogs' name, for folder and tags
+      [/^ {2}Artist \[Enter\/k\/t\/o\]: $/, ''], // Discogs' name, for folder and tags
       [/Apply renames\?/, 'y'],
       // The artist folder follows the choice: no second question.
     ]);
@@ -1372,7 +1404,7 @@ describe("repairAlbum — the artist folder's own brackets", () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID/, '4376665'],
-      [/^ {2}Artist \[Enter\/k\/o\]: $/, ''],
+      [/^ {2}Artist \[Enter\/k\/t\/o\]: $/, ''],
       [/Apply renames\?/, 'y'],
     ]);
     await repairAlbum(audit, ctx());
@@ -1694,7 +1726,7 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     const done = answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '8614313'],
-      [/^ {2}Artist \[Enter\/k\/a\/o\]: $/, choice],
+      [/^ {2}Artist \[Enter\/k\/a\/t\/o\]: $/, choice],
       [/Apply renames\?/, 'n'],
       [/./, 'q'], // whatever issue is left
       [/Quit repair\? \[Y\/n\]/, ''],
@@ -1739,7 +1771,7 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '4508999'],
-      [/^ {2}Artist \[Enter\/k\/a\/o\]: $/, 'a'],
+      [/^ {2}Artist \[Enter\/k\/a\/t\/o\]: $/, 'a'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
       [/Quit repair\? \[Y\/n\]/, ''],
@@ -1763,7 +1795,7 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '4508999'],
-      [/^ {2}Artist \[Enter\/k\/a\/o\]: $/, 'a'],
+      [/^ {2}Artist \[Enter\/k\/a\/t\/o\]: $/, 'a'],
       [/Apply renames\?/, 'n'],
       [/./, 'q'],
       [/Quit repair\? \[Y\/n\]/, ''],
@@ -1790,6 +1822,60 @@ describe('repairAlbum — one artist name for folder, tags and info.txt', () => 
     ]);
     await repairAlbum(audit, ctx());
     expect(output.join('\n')).not.toMatch(/Artist names differ/);
+  });
+
+  // Discogs "The Don Rendell / Ian Carr Quintet" for folder "Don Rendell - Ian Carr Quintet":
+  // the album used to move to a new "The Don Rendell - Ian Carr Quintet" folder, its tags
+  // getting the "/" and the check flagging what the repair had just written.
+  it('keeps the folder’s name when Discogs’ differs only in punctuation and a leading article', async () => {
+    const dir = path.join(root, 'D', 'Don Rendell - Ian Carr Quintet', '1976 Sacred Baboon');
+    await fs.mkdir(path.dirname(dir), { recursive: true });
+    await fs.rename(layout.albumPath, dir);
+    Object.assign(layout, { artistName: 'Don Rendell - Ian Carr Quintet', albumPath: dir });
+    await tagAll({ ARTIST: 'Don Rendell - Ian Carr Quintet', ALBUMARTIST: 'Don Rendell - Ian Carr Quintet' });
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({
+      ...RELEASE,
+      year: '1976',
+      artists: ['The Don Rendell / Ian Carr Quintet'],
+    });
+    const audit = await scan();
+    answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID/, '1'],
+      [/Apply renames\?/, 'n'],
+      [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    const out = output.join('\n');
+    expect(out).not.toMatch(/Artist names differ|Artist folder:|differs from the album artist/);
+    expect(layout.artistName).toBe('Don Rendell - Ian Carr Quintet');
+    expect(await tagsOf()).toMatchObject({ ALBUMARTIST: 'Don Rendell - Ian Carr Quintet' });
+  });
+
+  it('offers no [a] when all credits make too long a name; t types one', async () => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({
+      ...holland,
+      artists: ['The Don Rendell / Ian Carr Quintet', 'Michael Garrick', 'Dave Green', 'Trevor Tomkins'],
+      artistCredit: 'The Don Rendell / Ian Carr Quintet With Michael Garrick • Dave Green • Trevor Tomkins',
+    });
+    const audit = await scan();
+    answer([
+      [/^ {2}Choice \[1\]/, 'd'],
+      [/Release ID/, '1'],
+      [/^ {2}Artist \[Enter\/k\/t\/o\]: $/, 't'],
+      [/^ {4}Artist: $/, 'Don Rendell - Ian Carr Quintet'],
+      [/Apply renames\?/, 'n'],
+      [/./, 'q'],
+      [/Quit repair\? \[Y\/n\]/, ''],
+    ]);
+    await repairAlbum(audit, ctx());
+    expect(output.join('\n')).toMatch(/\(all credits: too long for a folder name\)/);
+    expect(prefills[asked.findIndex((q) => /^ {4}Artist: $/.test(q))]).toBe('The Don Rendell / Ian Carr Quintet');
+    expect(layout.artistName).toBe('Don Rendell - Ian Carr Quintet');
+    expect(await tagsOf()).toMatchObject({ ALBUMARTIST: 'Don Rendell - Ian Carr Quintet' });
   });
 });
 
@@ -1992,7 +2078,7 @@ describe('repairAlbum — artist folder vs the artist tags', () => {
     const done = answer([
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID/, '1'],
-      [/^ {2}Artist \[Enter\/k\/o\]: $/, ''],
+      [/^ {2}Artist \[Enter\/k\/t\/o\]: $/, ''],
       [/Apply renames\?/, 'y'],
     ]);
     await repairAlbum(audit, ctx());

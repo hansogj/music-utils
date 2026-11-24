@@ -21,6 +21,16 @@ export function sanitizeTitle(s: string): string {
   return sanitizeFilename(s).replace(/[\s.-]+$/, '');
 }
 
+// DISCNUMBER for each file. A "(Disc n∕m)" folder: n/m. Any other folder is one disc, 1/1,
+// whatever its old file names say ("d2t01" from a 2-in-1 CD in a 1-disc album) — unless its
+// files carry several discs (d1t01…, d2t01…: a set kept in one folder), then each file's
+// disc among them: 1/2, 2/2.
+export function discNumbers(fileDiscs: number[], folder: { disc: number; of: number }): string[] {
+  if (folder.of > 1) return fileDiscs.map(() => `${folder.disc}/${folder.of}`);
+  const discs = [...new Set(fileDiscs)].sort((a, b) => a - b);
+  return fileDiscs.map((d) => (discs.length > 1 ? `${discs.indexOf(d) + 1}/${discs.length}` : '1/1'));
+}
+
 // The release track for each local file. By disc and track number when every file finds
 // one; else by order (a single folder holding a 2-CD release: local track 12 is CD 2 track 1).
 export function pairWithRelease(
