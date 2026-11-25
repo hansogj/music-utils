@@ -13,7 +13,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm install --lockfile-only",
     "release": "npm whoami --registry https://registry.npmjs.org >/dev/null || (echo 'Not logged in to npm. Run: npm login' && exit 1) && pnpm -r build && changeset publish",
-    "update-host": "npm install -g @hansogj/music-utils@latest",
+    "update-host": "npm install -g @hansogj/music-utils@latest --prefer-online",
     "update": "npx npm-check-updates -i -t minor --deep && pnpm run post:update",
     "update:majors": "npx npm-check-updates -i -t latest --deep && pnpm run post:update",
     "post:update": "rm -rfv node_modules && pnpm prune && pnpm i"
