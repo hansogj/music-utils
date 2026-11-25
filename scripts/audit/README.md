@@ -95,6 +95,7 @@ Without an export, suggestions work as before.
 | `--ui`            | Serve HTML report at `http://localhost:7171`                                                   |
 | `--json`          | Raw JSON output (incompatible with `--repair`/`--ui`)                                          |
 | `--log[=<path>]`  | Append JSON Lines audit log (default: `~/.local/share/music-audit/YYYY.MM.dd.HH.mm-audit.log`) |
+| `--version`, `-v` | The commit this checkout runs, its branch and date: `a94e58a (main, 2026-11-25)`               |
 
 Without `--repair`/`--retag` the audit only reads: nothing in the library is written.
 

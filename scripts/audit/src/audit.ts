@@ -13,6 +13,7 @@ import { AuditStream, runRepair } from './repair.js';
 import { printReport } from './report.js';
 import { serveReport } from './server.js';
 import type { AlbumAudit, AlbumLayout, AuditReport, Severity } from './types.js';
+import { auditVersion } from './version.js';
 import { walkLibrary } from './walk.js';
 
 // ---------------------------------------------------------------------------
@@ -91,9 +92,16 @@ async function main() {
   // pnpm run audit -- --root ... injects a bare '--' into argv; strip it
   const args = process.argv.slice(2).filter((a) => a !== '--');
 
+  if (hasFlag(args, 'version') || args.includes('-v')) {
+    console.log(`music-audit ${auditVersion()}`);
+    return;
+  }
+
   if (hasFlag(args, 'help') || args.includes('-h')) {
-    console.log(`
-Usage: pnpm audit -- [options]
+    console.log(`music-audit ${auditVersion()}
+
+Usage: music-audit [options]
+       pnpm --filter @hansogj/music-audit run audit -- [options]
 
 Options:
   --root=<path>       Root of music library (default: cwd)
@@ -118,6 +126,7 @@ Options:
 
 Report mode (no --repair/--retag) only reads; it never writes to the library.
   --help, -h          Show this help
+  --version, -v       Show the version: the commit this checkout runs, its branch and date
 
 Examples:
   # Audit only (no Discogs):

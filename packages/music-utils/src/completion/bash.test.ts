@@ -20,7 +20,7 @@ describe('generateBash', () => {
   });
 
   it('completes top-level commands at COMP_CWORD=1', () => {
-    expect(script).toContain('compgen -W "rip tag cover sync similarities audit completion help"');
+    expect(script).toContain('compgen -W "rip tag cover sync similarities audit completion help version"');
   });
 
   it('completes tag subcommands', () => {

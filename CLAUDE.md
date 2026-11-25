@@ -69,7 +69,7 @@ Test data is synced from `test-data/raw/` to `test-data/copy/` before tests (via
 
 - `src/run/` - Entry point scripts (`cli.ts` is the bin; built, but excluded from test coverage). These orchestrate the CLI workflows (rip, tag album/tracks, covers, similarities, sync track names, completion).
 - `src/config/` - `loadConfig()` (`./music-utils.config.json`, `~/.music-utilsrc.json`), `getConfig()` (cached), `validateConfig()`, defaults, and `render.ts` (folder/track name templates, `folderSafe()`, `titleSafe()`)
-- `src/utils/` - Cross-cutting: shell execution, path ops, CLI arg parsing (`cmd.options.ts`), shared `.env` (`env.ts`, kept in sync with audit's), colored logging, prompts, `releaseTable()`, tag ↔ path sync
+- `src/utils/` - Cross-cutting: shell execution, path ops, CLI arg parsing (`cmd.options.ts`), shared `.env` (`env.ts`, kept in sync with audit's), colored logging, prompts, `releaseTable()`, tag ↔ path sync, `packageVersion()` (`version.ts`: `mu --version` / `-v` / `version`, and the top of `help`)
 - `src/artist/` - Artist folder name prompt
 - `src/similarities/` - Fuzzy artist name matching
 - `src/covers/` - Cover art from Discogs (`photo.ts`, via discogs-cover)
@@ -109,6 +109,8 @@ scripts/audit/src/
   env.ts          — shared ~/.config/music-utils/.env (as music-utils' utils/env.ts; sudo-safe home)
   completion.ts   — bash completion script (`pnpm --dir scripts/audit run --silent completion`)
   term-link.ts    — OSC 8 terminal hyperlinks (plain "text <url>" without a TTY)
+  version.ts      — auditVersion(): the commit the checkout runs ("a94e58a (main, 2026-11-25)";
+                    package.json's version without git); --version / -v and the top of --help
   audit-album.ts  — auditAlbum(): read one album's tracks and run all checks; also the
                     re-scan repair runs after each fix (search: false)
   tag-write.ts    — writeTags(): metaflac / id3v2 writes with post-write verification

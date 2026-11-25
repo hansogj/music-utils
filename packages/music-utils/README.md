@@ -27,7 +27,7 @@ sudo apt install \
 npm install -g @hansogj/music-utils
 ```
 
-This installs the `music-utils` command (also available as the short alias `mu`). Every feature is a subcommand: run `music-utils help` for the list.
+This installs the `music-utils` command (also available as the short alias `mu`). Every feature is a subcommand: run `music-utils help` for the list. `music-utils --version` (or `-v`, `version`) prints the installed version, which `help` also shows.
 
 > Before 2.0 each feature was its own `music-utils-*` command (`music-utils-rip`, `music-utils-album-tag`, …). Those are gone; see [Features](#features) for the `music-utils` equivalents.
 
@@ -126,19 +126,19 @@ Passed to the `flac` CLI as `-<level>` during `music-utils rip`'s WAV→FLAC ste
 
 # Features
 
-| Command | What it does |
-| --- | --- |
-| `music-utils rip` | Rip a CD and tag it from Discogs |
-| `music-utils tag album` | Tag an album from its folder structure and existing tags |
-| `music-utils tag tracks` | Tag an album from a tracklist file |
-| `music-utils tag bulk` | Tag every album folder under a directory |
-| `music-utils cover` | Fetch the album cover from Discogs |
-| `music-utils cover album` | Fetch the cover, then tag the album |
-| `music-utils cover bulk` | Fetch covers for every album folder that has none |
-| `music-utils sync` | Rename track files to match their tags |
-| `music-utils similarities` | Find near-duplicate artist names across two libraries |
-| `music-utils audit` | Audit the library (forwards to `music-audit`, if installed) |
-| `music-utils completion bash` | Print the bash completion script |
+| Command                       | What it does                                                |
+| ----------------------------- | ----------------------------------------------------------- |
+| `music-utils rip`             | Rip a CD and tag it from Discogs                            |
+| `music-utils tag album`       | Tag an album from its folder structure and existing tags    |
+| `music-utils tag tracks`      | Tag an album from a tracklist file                          |
+| `music-utils tag bulk`        | Tag every album folder under a directory                    |
+| `music-utils cover`           | Fetch the album cover from Discogs                          |
+| `music-utils cover album`     | Fetch the cover, then tag the album                         |
+| `music-utils cover bulk`      | Fetch covers for every album folder that has none           |
+| `music-utils sync`            | Rename track files to match their tags                      |
+| `music-utils similarities`    | Find near-duplicate artist names across two libraries       |
+| `music-utils audit`           | Audit the library (forwards to `music-audit`, if installed) |
+| `music-utils completion bash` | Print the bash completion script                            |
 
 `-a DIR` / `--album DIR` runs a command on another album folder instead of the current directory.
 
@@ -155,7 +155,7 @@ It tags and files the album the way `music-audit` does after Discogs tagging, so
 - **Artist**: when Discogs credits several artists, a list asks for the name: the first credited artist (Enter), all credits joined as Discogs shows them (`/` as `, `), or one you type. That one name goes in the artist folder, `ARTIST`, `ALBUMARTIST` and `info.txt`.
 - **Confirm**: the release is shown as a table (artist, album, year, disc, folder, Discogs IDs) before the `Y/N` question.
 - **Tags** (FLAC): `ARTIST`, `ALBUMARTIST`, `ALBUM`, `DATE` and `ORIGINALDATE` (the master's year), `TITLE`, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL`, `GENRE` (genres then styles, at most 4), `COMMENT` (the release URL), `DISCOGS_RELEASE_ID`, `DISCOGS_MASTER_ID`. The old `DISCID=1/2` tag is no longer written.
-- **Folder names**: tags keep the title as it is; in folder names `/`, `\` and `:` become ` - ` and `*?"<>|` are dropped.
+- **Folder names**: tags keep the title as it is; in folder names `/`, `\` and `:` become `-` and `*?"<>|` are dropped.
 - **Suites**: a Discogs suite whose parts are tracks of their own is tagged `Suite; part` (`War; a) Ouverture`); when the disc holds another number of tracks than Discogs lists, the suites are read the way that fits (parts split or joined).
 - **info.txt**: the Discogs tracklist with durations and composers, personnel and `Discogs-Release:` / `Discogs-Master:` / `Disc:` lines. An `info.txt` already in the folder is kept.
 

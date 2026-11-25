@@ -7,7 +7,7 @@ const generateUnifiedBash = (): string => `_mu() {
   sub="\${COMP_WORDS[2]}"
 
   if [[ $COMP_CWORD -eq 1 ]]; then
-    COMPREPLY=($(compgen -W "rip tag cover sync similarities audit completion help" -- "$cur"))
+    COMPREPLY=($(compgen -W "rip tag cover sync similarities audit completion help version" -- "$cur"))
     return
   fi
 
@@ -69,7 +69,7 @@ const generateUnifiedBash = (): string => `_mu() {
       case "$prev" in
         --root) mapfile -t COMPREPLY < <(compgen -d -- "$cur"); compopt -o filenames; return ;;
       esac
-      COMPREPLY=($(compgen -W "--root --token --repair --retag --ui --json --log --check-years --no-check-years --help" -- "$cur")) ;;
+      COMPREPLY=($(compgen -W "--root --token --repair --retag --ui --json --log --check-years --no-check-years --help --version" -- "$cur")) ;;
     completion)
       COMPREPLY=($(compgen -W "bash" -- "$cur")) ;;
   esac

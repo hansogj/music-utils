@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import '../utils/polyfills';
 
+import { packageVersion } from '../utils/version';
+
 const isFlag = (s?: string) => !s || s.startsWith('-');
 const [, , ...rawArgs] = process.argv;
 
 // Parse cmd and optional sub, consuming only recognised 2-token pairs
 let idx = 0;
-const cmd = !isFlag(rawArgs[idx]) ? rawArgs[idx++] : undefined;
+const VERSION_FLAGS = new Set(['--version', '-v']);
+const cmd = VERSION_FLAGS.has(rawArgs[idx]) ? (idx++, 'version') : !isFlag(rawArgs[idx]) ? rawArgs[idx++] : undefined;
 const potentialSub = !isFlag(rawArgs[idx]) ? rawArgs[idx] : undefined;
 
 const TWO_TOKEN_COMMANDS = new Set([
@@ -29,6 +32,8 @@ process.argv.splice(2, idx);
 function printHelp(context?: string) {
   const hint = context ? `\nUnknown subcommand for '${context}'. ` : '';
   process.stdout.write(`${hint}
+music-utils ${packageVersion()}
+
 Usage: mu          <command> [subcommand] [options]
        music-utils <command> [subcommand] [options]
 
@@ -47,6 +52,7 @@ Commands:
   audit retag  [--root DIR] [--token T]  Repair + retag all albums via Discogs
   completion   [bash]              Print shell completion script
   help                             Show this help
+  version      (--version, -v)     Show the installed version
 `);
 }
 
@@ -114,6 +120,10 @@ async function main() {
 
     case 'completion':
       await import('./completion.js');
+      break;
+
+    case 'version':
+      process.stdout.write(`music-utils ${packageVersion()}\n`);
       break;
 
     case 'help':
