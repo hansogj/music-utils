@@ -1,5 +1,11 @@
 # @hansogj/music-utils
 
+## 2.3.3
+
+### Patch Changes
+
+- d688aa1: `music-utils --version` (also `-v` and `version`) prints the installed version, and `help` shows it at the top.
+
 ## 2.3.2
 
 ### Patch Changes
