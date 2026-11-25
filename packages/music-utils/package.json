@@ -1,6 +1,6 @@
 {
   "name": "@hansogj/music-utils",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "music tools for my flac & mp3 collection",
   "main": "",
   "bin": {
