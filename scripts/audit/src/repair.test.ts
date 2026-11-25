@@ -1214,6 +1214,90 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
   });
 });
 
+describe('repairAlbum — a Discogs rename onto a folder that is there already', () => {
+  // The Doors: "… Demos And Live" was to become "1999 Essential Rarities", which held the
+  // same audio from another release of the master.
+  const target = () => path.join(root, 'Y', 'Yezda Urfa', '1989 Sacred Baboon [rec. 1976]');
+  const existing = async (tracks: number, info: string) => {
+    await fs.mkdir(target(), { recursive: true });
+    await fs.writeFile(path.join(target(), 'info.txt'), info);
+    for (let i = 1; i <= tracks; i++)
+      await fs.writeFile(path.join(target(), `${String(i).padStart(2, '0')} - x.mp3`), '{}');
+  };
+  const tagAndRename = (clash: Array<[RegExp, string]>) => {
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, ''],
+      [/Rename folder\(s\) to match Discogs\?/, 'y'],
+      [/Old year \[Enter\/l\/r\/c\/o\]/, 'r'],
+      ...clash,
+    ]);
+    return done;
+  };
+  const withHit = async () => {
+    const audit = await scan();
+    audit.discogsResults = [
+      {
+        id: 4376665,
+        title: 'Yezda Urfa - Sacred Baboon',
+        year: '1989',
+        releaseUrl: 'https://www.discogs.com/release/4376665',
+      },
+    ];
+    return audit;
+  };
+  const held = (...parts: string[]) => path.join(root, '_duplicates', 'Y', 'Yezda Urfa', ...parts);
+
+  it('the same album: Enter keeps the existing folder and sets this one aside', async () => {
+    await existing(7, 'Yezda Urfa\n\nDiscogs-Release: 1111\nDiscogs-Master: 123456\n');
+    const done = tagAndRename([[/^ {2}Choice \[1\]: $/, '']]);
+    expect(await repairAlbum(await withHit(), ctx())).toBe('next');
+    done();
+    const out = output.join('\n');
+    expect(out).toMatch(/"1989 Sacred Baboon \[rec\. 1976\]" is there already/);
+    expect(out).toMatch(/Master +m123456 +m123456/);
+    expect(out).toMatch(/The same album, it seems\./);
+    expect(await fs.readdir(held())).toContain('1976 Sacred Baboon');
+    expect(await fs.readFile(path.join(held('1976 Sacred Baboon'), 'info.txt'), 'utf8')).toMatch(
+      /set aside: ".*1989 Sacred Baboon \[rec\. 1976\]" was there already/,
+    );
+    expect(await fs.readdir(target())).toContain('07 - x.mp3'); // untouched
+    expect(events.map((e) => e.issue)).toEqual(['MISSING_TAGS', 'FOLDER_CLASH']);
+  });
+
+  it('[2] sets the existing folder aside and takes its name', async () => {
+    await existing(7, 'Yezda Urfa\n\nDiscogs-Master: 123456\n');
+    const done = tagAndRename([[/^ {2}Choice \[1\]: $/, '2']]);
+    expect(await repairAlbum(await withHit(), ctx())).toBe('next');
+    done();
+    expect(layout.albumFolder).toBe('1989 Sacred Baboon [rec. 1976]');
+    expect(await fs.readdir(target())).toContain("01 - Give 'Em Some Rawhide Chewies.mp3");
+    expect(await fs.readdir(held('1989 Sacred Baboon [rec. 1976]'))).toContain('07 - x.mp3');
+  });
+
+  it('another album: Enter adds a bracket to this one', async () => {
+    await existing(2, 'Something else\n');
+    const done = tagAndRename([
+      [/^ {2}Choice \[3\]: $/, ''],
+      [/^ {4}Bracket: $/, 'LP: rip'],
+    ]);
+    expect(await repairAlbum(await withHit(), ctx())).toBe('next');
+    done();
+    expect(layout.albumFolder).toBe('1989 Sacred Baboon [rec. 1976] [LP rip]');
+    await expect(fs.access(path.join(root, '_duplicates'))).rejects.toThrow();
+  });
+
+  it('[s] leaves both: the rename fails as before', async () => {
+    await existing(2, 'Something else\n');
+    const done = tagAndRename([[/^ {2}Choice \[3\]: $/, 's']]);
+    expect(await repairAlbum(await withHit(), ctx())).toBe('next');
+    done();
+    expect(layout.albumFolder).toBe('1976 Sacred Baboon');
+    expect(events.find((e) => e.issue === 'FOLDER_RENAME')).toMatchObject({ result: 'failed' });
+  });
+});
+
 describe('repairAlbum — a bracket for the folder after a skip', () => {
   it('adds [bootleg] to the folder name after the album, asking only at the first skip', async () => {
     const audit = await scan();

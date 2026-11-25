@@ -391,6 +391,34 @@ describe('disc numbers and sets', () => {
   });
 });
 
+describe('a move onto an album that is there already', () => {
+  it('asks: a bracket renames this album first, then it moves', async () => {
+    await album('1976 Sacred Baboon', ['01 - One.mp3']);
+    const other = path.join(root, 'B', 'Banana - Urfa', '1976 Sacred Baboon');
+    await fs.mkdir(other, { recursive: true });
+    await fs.writeFile(path.join(other, '01 - Else.mp3'), '');
+    const tracks = [track('01 - One.mp3', { albumArtist: 'Banana / Urfa' })];
+    const [move] = await repairActions(issue('ARTIST_FOLDER_MISMATCH'), auditOf(tracks));
+    answers('', 'LP'); // Enter: not the same album (nothing to compare) → [3] a bracket
+    await move.run();
+    expect(layout.albumPath).toBe(path.join(root, 'B', 'Banana - Urfa', '1976 Sacred Baboon [LP]'));
+    expect(await fs.readdir(other)).toEqual(['01 - Else.mp3']);
+    expect(output.join('\n')).toMatch(/"1976 Sacred Baboon" is there already/);
+  });
+
+  it('[2] sets the album there aside, then moves this one in', async () => {
+    await album('1976 Sacred Baboon', ['01 - One.mp3']);
+    const other = path.join(root, 'B', 'Banana - Urfa', '1976 Sacred Baboon');
+    await fs.mkdir(other, { recursive: true });
+    const tracks = [track('01 - One.mp3', { albumArtist: 'Banana / Urfa' })];
+    const [move] = await repairActions(issue('ARTIST_FOLDER_MISMATCH'), auditOf(tracks));
+    answers('2');
+    await move.run();
+    expect(layout.albumPath).toBe(other);
+    expect(await fs.readdir(path.join(root, '_duplicates', 'B', 'Banana - Urfa'))).toEqual(['1976 Sacred Baboon']);
+  });
+});
+
 describe('other issues', () => {
   it('DUPLICATE_TRACKS lists the files for a manual look', async () => {
     await album('1976 Sacred Baboon', []);

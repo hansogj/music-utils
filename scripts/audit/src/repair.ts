@@ -18,7 +18,16 @@ import {
   resetRepairSession,
 } from './repair/folder.js';
 import { repairActions } from './repair/issue-actions.js';
-import { ask, BackSignal, closeRl, PromptSignal, QuitSignal, RestartSignal, setRestartable } from './repair/prompt.js';
+import {
+  ask,
+  BackSignal,
+  closeRl,
+  PromptSignal,
+  QuitSignal,
+  RestartSignal,
+  SetAsideSignal,
+  setRestartable,
+} from './repair/prompt.js';
 import { AuditStream, type RepairEvent, type ScanProgress } from './repair/stream.js';
 import { tagFromPaste } from './repair/tagging.js';
 import { type AlbumAudit, type AlbumLayout, type Issue } from './types.js';
@@ -87,6 +96,17 @@ export async function repairAlbum(audit: AlbumAudit, ctx: RepairAlbumContext): P
       try {
         return await repairAlbumPass(audit, ctx);
       } catch (err) {
+        if (err instanceof SetAsideSignal) {
+          pendingFolderRenames.delete(audit.layout);
+          await ctx.logEvent({
+            album: albumLocation(audit.layout),
+            issue: 'FOLDER_CLASH',
+            severity: 'MODERATE',
+            action: `Set aside in ${err.heldAt}: "${path.basename(err.existing)}" was there already`,
+            result: 'fixed',
+          });
+          return 'next';
+        }
         if (err instanceof QuitSignal) {
           await applyPendingFolderRename(audit.layout, ctx);
           await ctx.logEvent({
@@ -428,6 +448,7 @@ async function applyPendingFolderRename(layout: AlbumLayout, ctx: RepairAlbumCon
   try {
     renamedTo = await applyFolderRename(layout, plan);
   } catch (err) {
+    if (err instanceof PromptSignal) throw err; // o / q / set aside at the clash question
     handleRepairError(err);
     result = 'failed';
     error = errorText(err);

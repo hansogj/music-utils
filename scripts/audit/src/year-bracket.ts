@@ -10,7 +10,7 @@ import { albumBaseOfFolder } from './disc-split.js';
 export type OldYearAnswer = { mode: 'append'; text: string } | { mode: 'replace'; aux: string };
 
 // Nothing a folder name on SMB can't hold, and no brackets inside a bracket.
-function cleanBracketText(s: string): string {
+export function cleanBracketText(s: string): string {
   return s
     .replace(/[[\]{}:/\\*?"<>|]/g, ' ')
     .replace(/\s+/g, ' ')

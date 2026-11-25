@@ -183,6 +183,24 @@ Regret a choice? Answer `o` at any prompt (the menus list it as `[o] Start album
 
 Done with an album? When every issue is fixed, the next album follows without a prompt; with issues left, `[Enter] Next album   [r] Retry` asks once. To stop, answer `q` (or press Ctrl+C) at any prompt and confirm: a folder rename you agreed to for the album runs first, and the session summary follows. Ctrl+C while no prompt waits (a Discogs fetch, the scan) ends the run at once.
 
+**A rename onto a folder that is there already.** An album rename (Discogs, year, disc separator, brackets, unsafe name) or a move into another artist folder can meet a folder of that name. music-audit compares the two (Discogs release and master, from `info.txt` or the tags, track count, size) and asks:
+
+```
+  ⚠ "1999 Essential Rarities" is there already:
+             this album                  the existing one
+    Release  r6285267                    r18180730
+    Master   m128480                     m128480
+    Tracks   15                          15
+    Size     612 MB                      610 MB
+  The same album, it seems.
+  [1] Keep "1999 Essential Rarities"; set this album aside in _duplicates/D/The Doors/1999 The Complete …
+  [2] Replace it: "1999 Essential Rarities" is set aside, this album takes its name
+  [3] Add a bracket to this album's name, to tell them apart
+  [s] Leave both as they are   [o] Start album over
+```
+
+Enter takes `[1]` when the two are the same album (one master, or one release, and as many tracks), else `[3]`. Nothing is deleted: a folder set aside goes to `_duplicates/` at the library root (next to the letter folders), under its own path, with a note in its `info.txt`; the scan skips `_duplicates`, and you empty it when sure. An album set aside ends its repair; `[s]` leaves the rename undone, as before.
+
 ### Choosing the Discogs release
 
 Albums without a release ID are tagged from Discogs first (above). In an issue menu, Discogs tagging is offered for missing tags and for a missing release ID; on any other issue, press `d` to tag the whole album from a release of your choice.

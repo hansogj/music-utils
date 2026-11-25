@@ -3,6 +3,9 @@ import path from 'node:path';
 
 import type { AlbumLayout } from './types.js';
 
+// Albums set aside after a rename clash (clash.ts) at the library root; not part of the library.
+export const HOLDING_DIR = '_duplicates';
+
 // Matches single-character letter/digit/symbol directories used in the [A-Z] layer
 const LETTER_DIR_RE = /^[A-Z0-9#!@]$/i;
 const MUSIC_EXTENSIONS = new Set(['.flac', '.mp3']);
@@ -23,7 +26,7 @@ async function crawl(dir: string, depth: number): Promise<Crawl> {
   const subDirs =
     depth < MAX_DEPTH
       ? entries
-          .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+          .filter((e) => e.isDirectory() && !e.name.startsWith('.') && e.name !== HOLDING_DIR)
           .map((e) => e.name)
           .sort()
       : [];
