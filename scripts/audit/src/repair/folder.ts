@@ -7,7 +7,7 @@ import { unsortArtist, withoutArticle } from '../articles.js';
 import { commonAlbumArtist, sameName } from '../checks/artist.js';
 import { folderYear, withFolderYear } from '../checks/year.js';
 import { type SiblingDisc, siblingDiscs } from '../disc-siblings.js';
-import { guardedRename as renameSafely, moveAlbumToArtist } from '../folder-move.js';
+import { moveAlbumToArtist } from '../folder-move.js';
 import { appendChangeset } from '../info-txt.js';
 import { sanitizeFilename, sanitizeTitle } from '../rename-plan.js';
 import { type AlbumAudit, type AlbumLayout } from '../types.js';
@@ -21,6 +21,7 @@ import {
   oldYearBracket,
   withAuxPart,
 } from '../year-bracket.js';
+import { moveResolvingClash, renameResolvingClash } from './clash.js';
 import { ask } from './prompt.js';
 
 // Album and artist folder renames: brackets, old-year bracket, the artist name to use,
@@ -256,15 +257,20 @@ export async function askOldYearBracket(
   return answer;
 }
 
-// Renames the album folder and notes it in info.txt's changeset.
+// Renames the album folder and notes it in info.txt's changeset. A folder of that name
+// there already: asks (renameResolvingClash()), which may add a bracket or set one aside.
 export async function renameAlbumFolder(layout: AlbumLayout, newName: string): Promise<void> {
   if (newName === layout.albumFolder) return;
   const oldName = layout.albumFolder;
-  const newPath = path.join(path.dirname(layout.albumPath), newName);
-  await guardedRename(layout.albumPath, newPath);
+  const newPath = await renameResolvingClash(
+    layout,
+    layout.albumPath,
+    path.join(path.dirname(layout.albumPath), newName),
+  );
   layout.albumPath = newPath;
-  layout.albumFolder = newName;
-  await noteChange(layout, `folder name was changed from "${oldName}" to "${newName}"`);
+  layout.albumFolder = path.basename(newPath);
+  console.log(chalk.green(`  ✓ Renamed to ${layout.albumFolder}`));
+  await noteChange(layout, `folder name was changed from "${oldName}" to "${layout.albumFolder}"`);
 }
 
 export async function noteChange(layout: AlbumLayout, change: string): Promise<void> {
@@ -362,7 +368,12 @@ export async function moveToArtist(layout: AlbumLayout, newArtist: string, lette
   const artistsDir = letter ? path.join(path.dirname(path.dirname(path.dirname(layout.albumPath))), letter) : undefined;
   const oldArtist = letter ? `${layout.letterDir}/${layout.artistName}` : layout.artistName;
   if (artistsDir) await fs.mkdir(artistsDir, { recursive: true });
-  const move = await moveAlbumToArtist(layout.albumPath, newArtist, artistsDir);
+  // An album of this name in the artist folder already: asked (moveResolvingClash()).
+  const move = await moveResolvingClash(
+    layout,
+    () => moveAlbumToArtist(layout.albumPath, newArtist, artistsDir),
+    (name) => renameAlbumFolder(layout, name),
+  );
   layout.artistName = path.basename(move.artistDir);
   layout.albumPath = move.albumPath;
   if (letter) layout.letterDir = letter;
@@ -383,11 +394,4 @@ export async function moveToArtist(layout: AlbumLayout, newArtist: string, lette
   }
   if (move.oldArtistDir === 'removed') console.log(chalk.dim(`  Removed the empty folder ${oldArtist}/`));
   await noteChange(layout, `album was moved from artist folder "${oldArtist}" to "${newArtist}"`);
-}
-
-// ── safe rename ───────────────────────────────────────────────────────────────
-
-async function guardedRename(from: string, to: string): Promise<void> {
-  await renameSafely(from, to); // refuses to overwrite; handles case-only renames
-  console.log(chalk.green(`  ✓ Renamed to ${path.basename(to)}`));
 }

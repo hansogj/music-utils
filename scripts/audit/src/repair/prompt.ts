@@ -100,6 +100,16 @@ export class QuitSignal extends PromptSignal {
   }
 }
 
+// The album was set aside after a rename clash (repair/clash.ts): nothing more to repair in it.
+export class SetAsideSignal extends PromptSignal {
+  constructor(
+    readonly heldAt: string,
+    readonly existing: string,
+  ) {
+    super('album set aside');
+  }
+}
+
 let restartable = false;
 
 // On while an album is being repaired: then "o" restarts it and "q" / Ctrl+C quit.

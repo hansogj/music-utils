@@ -21,7 +21,17 @@ async function sameEntry(a: string, b: string): Promise<boolean> {
   return path.dirname(a) === path.dirname(b) && path.basename(a).toLowerCase() === path.basename(b).toLowerCase();
 }
 
-async function exists(p: string): Promise<boolean> {
+/** A rename whose target is another folder or file that is there already. */
+export class TargetExistsError extends Error {
+  constructor(
+    readonly from: string,
+    readonly to: string,
+  ) {
+    super(`Target already exists: ${to}`);
+  }
+}
+
+export async function exists(p: string): Promise<boolean> {
   try {
     await fs.access(p);
     return true;
@@ -40,7 +50,7 @@ async function exists(p: string): Promise<boolean> {
 export async function guardedRename(from: string, to: string): Promise<void> {
   if (from === to) return;
   if (await exists(to)) {
-    if (!(await sameEntry(from, to))) throw new Error(`Target already exists: ${to}`);
+    if (!(await sameEntry(from, to))) throw new TargetExistsError(from, to);
     const tmp = `${from}.music-audit-${process.pid}`;
     await fs.rename(from, tmp);
     await fs.rename(tmp, to);

@@ -117,7 +117,8 @@ scripts/audit/src/
                     is copied byte for byte
   walk.ts         — walkLibrary(): crawls up to 10 levels below --root; a folder with
                     tracks is an album, its parent the artist, the one above a letter
-                    or group dir (e.g. country). --root may be an album, artist or above
+                    or group dir (e.g. country). --root may be an album, artist or above.
+                    Skips HOLDING_DIR (_duplicates)
   tags.ts         — readFlacTags() / readMp3Tags() via metaflac / id3v2 -l
   discogs.ts      — searchDiscogs() (+ matchScore(), per disc for a disc folder),
                     fetchRelease(), fetchMaster(), fetchOriginalYear(), parseDiscogsRef(),
@@ -155,6 +156,10 @@ scripts/audit/src/
                         prompt, chooseDiscSlice(), tag write, info.txt, file renames, folder
                         rename plan); taggedReleaseId()
     tagging.ts        — tagFromTracklist() (pair + write), offerFileRenames(), tagFromPaste()
+    clash.ts          — askClash() ([1] keep the existing, this album set aside → SetAsideSignal,
+                        ends the album; [2] replace: the existing set aside; [3] a bracket; [s]
+                        leave: the TargetExistsError stands; Enter [1] when sameAlbum(), else [3]),
+                        renameResolvingClash() (renameAlbumFolder()), moveResolvingClash() (moveToArtist())
     issue-actions.ts  — repairActions(): the actions offered per issue code, from a table of
                         handlers (one ActionsFor function per code; none → no automated repair)
     covers.ts         — coverActions(), downloadCover()
@@ -175,7 +180,10 @@ scripts/audit/src/
                     (perceptual hash via `magick`, pHash of a 32×32 thumbnail, ≤16 bits = same
                     cover; release's cover, then the master's), ARTIST_COVER_MISSING (no readable one); writeCover(), artistCoverCandidates(),
                     withoutSolvedCoverIssues() (runRepair drops an artist cover issue solved since)
-  folder-move.ts  — guardedRename() (no overwrite; case-only renames via a temp name),
+  clash.ts        — a rename onto a folder that is there already: libraryRootOf(), holdingPath() /
+                    setAside() (<library>/_duplicates/<same path>, " (2)" …), folderSummary()
+                    (release/master from info.txt, else tags; tracks; bytes), sameAlbum()
+  folder-move.ts  — guardedRename() (no overwrite, TargetExistsError; case-only renames via a temp name),
                     moveAlbumToArtist() (one album to another artist folder, also under another
                     letter folder (WRONG_LETTER_DIR), joining one there of any case; old one
                     removed when empty)
@@ -260,7 +268,7 @@ scripts/audit/src/
 - **Release ID parsing**: accepts `4565937`, `r4565937`, `[r4565937]`, full Discogs release URLs, and master IDs (`m1439`, `[m1439]`, master URLs), which resolve to the master's main release (for a disc folder: `pickMasterVersion()`)
 - **Disc set release**: in a disc folder whose sibling was tagged already, the Discogs action first asks "Use the same release ID [rN] as Disc k? [Y/n]" (`siblingWithRelease()`); a no drops that ID from the suggestion. After a yes, `askSetAux()` offers keep / Disc k's brackets / type new when they differ (minus the set's old-year bracket); the first skip in such a folder asks the same instead of the plain bracket editor
 - **Suggested release ID**: the album's own (tags, else the comment URL / `info.txt` via `releaseIdFrom()`), then the other disc folders' (`siblingReleaseId()`), then the top search hit
-- **Folder rename safety**: all renames go through `guardedRename()` (folder-move.ts), which refuses to overwrite and does a case-only rename ("Speed of Love" → "Speed Of Love") via a temporary name: on an SMB share the target "exists" already, being the folder itself. Albums are compared by `folderTitle()` (parentheses kept), so a case difference isn't offered as a rename
+- **Folder rename safety**: all renames go through `guardedRename()` (folder-move.ts), which refuses to overwrite and does a case-only rename ("Speed of Love" → "Speed Of Love") via a temporary name: on an SMB share the target "exists" already, being the folder itself. Albums are compared by `folderTitle()` (parentheses kept), so a case difference isn't offered as a rename. A target that is another folder (`TargetExistsError`) asks what to do (repair/clash.ts): every album rename (`renameAlbumFolder()`) and move (`moveToArtist()`) goes through it; nothing is deleted, a folder set aside goes to `<library>/_duplicates/`. `applyPendingFolderRename()` passes `PromptSignal`s on (o / q / set aside at that question)
 - **One artist name** (`chooseArtist()` in repair/folder.ts): Discogs tagging picks one name for the artist folder, ARTIST/ALBUMARTIST and the info.txt header before writing (it used to tag the folder's name while the folder rename and header took Discogs': they drifted apart). Asked only when folder, Discogs' first artist and the tags' most common album artist differ: Enter Discogs', `k` the folder's, `a` `ReleaseInfo.artistCredit` (`joinArtistCredit()`, every credit with Discogs' `join`s, `/` as `, `, only when several, ≤ 3 names and ≤ 60 characters), `t` a typed name. Folder, Discogs and tags that differ only in punctuation or a leading article (`withoutArticle()`) agree: the folder's name is kept, unasked. A `/` inside a name stays in the tags; the folder gets `sanitizeFilename()`'s ` - ` (Discogs rename and the ARTIST_FOLDER_MISMATCH move alike), and the check accepts the folder-safe form of a tag. The folder's brackets are added to the tags and header too ("Dionysos [Canada]": same-named artists stay apart in players); tags are compared without them. `askFolderRename()` then renames the artist folder to it unasked (compared as ARTIST_FOLDER_MISMATCH does: punctuation counts, so "Kaada, Mike Patton" renames "Kaada & Mike Patton"; album titles ignore it, any script's letters count); answer kept per album set (`artistAnswers`)
 - **Artist change** (`moveAlbumToArtist()`): only the album moves, into the new artist folder (created, or joined when it exists); the old artist folder is kept while it has other albums, else its files (cover.jpg) follow and it is removed, `@eaDir`/`.DS_Store`/`Thumbs.db` and all. A change of case only renames the whole artist folder. The artist folder's trailing `[...]` ("Dionysos [Canada]") is ignored when comparing with the Discogs artist and kept on a rename (`splitArtistBrackets()`)
 - **Covers** (`cover.ts`, on unless `--no-covers`; `auditAlbum({ checkCovers })` defaults off, so tests opt in): `cover.jpg` or `folder.jpg` (equals) in every album and artist folder; with Discogs, each cover file is compared with the release's front image (150px thumbnail), then the master's. Repair writes under the issue's file name (`issue.file`; cover.jpg when none): the release/master/entered cover (600px `uri`), the folder's other good cover file, or another image (one matching Discogs first); or copies an album cover to the artist folder; cover changes are noted in info.txt's Changeset. Images from `i.discogs.com` don't go through the rate limiter
