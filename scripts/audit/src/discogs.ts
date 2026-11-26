@@ -711,6 +711,33 @@ export function resetDiscogsCaches(): void {
   coverCache = undefined;
 }
 
+// The format of an artist's discography entry ("2xCD, Comp", "RE + Cass", "DVD-V, PAL") as
+// the names the search uses: counts dropped, Discogs' short forms spelt out.
+const SHORT_FORMATS: Record<string, string> = {
+  Cass: 'Cassette',
+  Mcass: 'Microcassette',
+  '8-Trk': '8-Track Cartridge',
+  '4-Trk': '4-Track Cartridge',
+  Reel: 'Reel-To-Reel',
+  MD: 'Minidisc',
+  'DVD-V': 'DVD',
+  'DVD-A': 'DVD-Audio',
+  Flexi: 'Flexi-disc',
+  Lathe: 'Lathe Cut',
+  'Betacam SP': 'VHS',
+  Umatic: 'VHS',
+  LP: 'Vinyl',
+  '7"': 'Vinyl',
+  '10"': 'Vinyl',
+  '12"': 'Vinyl',
+};
+export const artistFormats = (format: string): string[] =>
+  format
+    .split(/\s*,\s*|\s+\+\s+/)
+    .map((p) => p.trim().replace(/^\d+x/, ''))
+    .filter(Boolean)
+    .map((p) => SHORT_FORMATS[p] ?? p);
+
 // ── an artist's discography (the deeper search, deep-search.ts) ──────────────
 
 /** One entry of an artist's Discogs page: a master (with its main release) or a release. */

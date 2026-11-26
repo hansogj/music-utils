@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { deepCandidates, deepSearch, rankDeep, tracksFound } from './deep-search.js';
-import { type ArtistRelease, resetDiscogsCaches, searchArtistId } from './discogs.js';
+import { artistFormats, type ArtistRelease, resetDiscogsCaches, searchArtistId } from './discogs.js';
 import type { DiscogsSearchResult } from './types.js';
 
 const tracks = (...titles: string[]) => titles.map((title, i) => ({ position: String(i + 1), title, type_: 'track' }));
@@ -77,9 +77,27 @@ describe('deepCandidates', () => {
     ...(year ? { year } : {}),
   });
   it("keeps the artist's own entries, nearest the folder's year first, up to max", () => {
-    const list = [e(1, '1950'), e(2, '2003', 'Appearance'), e(3, '2001'), e(4, undefined), e(5, '2003')];
-    expect(deepCandidates(list, 2003, 3).map((x) => x.id)).toEqual([5, 3, 1]);
-    expect(deepCandidates(list, undefined, 9).map((x) => x.id)).toEqual([1, 3, 4, 5]);
+    const list = [
+      e(1, '1950'),
+      e(2, '2003', 'Appearance'),
+      e(3, '2001'),
+      e(4, undefined),
+      e(5, '2003'),
+      { ...e(6, '2003'), format: 'Cass, Album' },
+      { ...e(7, '2003'), format: 'DVD-V, PAL' },
+      { ...e(8, '2003'), format: 'RE + Cass + 2xCD' },
+    ];
+    expect(deepCandidates(list, 2003, 3).map((x) => x.id)).toEqual([5, 8, 3]);
+    expect(deepCandidates(list, undefined, 9).map((x) => x.id)).toEqual([1, 3, 4, 5, 8]);
+  });
+});
+
+describe('artistFormats', () => {
+  it("spells out the discography's short formats and drops counts", () => {
+    expect(artistFormats('2xCD, Comp')).toEqual(['CD', 'Comp']);
+    expect(artistFormats('RE + Cass')).toEqual(['RE', 'Cassette']);
+    expect(artistFormats('12", LP, Album')).toEqual(['Vinyl', 'Vinyl', 'Album']);
+    expect(artistFormats('DVD-A, Multichannel')).toEqual(['DVD-Audio', 'Multichannel']);
   });
 });
 
