@@ -84,19 +84,20 @@ afterEach(async () => {
 });
 
 describe('coverActions', () => {
-  it("downloads the release's or the master's cover, noted in info.txt", async () => {
+  it("downloads the master's (first) or the release's cover, noted in info.txt", async () => {
     const actions = await coverActions(issue('MISSING_COVER'), auditOf(tagged('4376665', '9')), 'token');
     expect(labels(actions)).toEqual([
-      'Download the cover of Discogs release r4376665 as cover.jpg',
       'Download the cover of Discogs master m9 as cover.jpg',
+      'Download the cover of Discogs release r4376665 as cover.jpg',
       'Download the cover of a Discogs release or master you enter',
     ]);
-    expect(await actions[0].run()).toBe('cover.jpg from Discogs release r4376665');
-    expect(await read('cover.jpg')).toBe('image from release-4376665');
-    expect(await read('info.txt')).toContain('cover.jpg was set to the cover of Discogs release r4376665');
+    expect(await actions[0].run()).toBe('cover.jpg from Discogs master m9');
+    expect(await read('cover.jpg')).toBe('image from master-9');
+    expect(await read('info.txt')).toContain('cover.jpg was set to the cover of Discogs master m9');
 
     await actions[1].run();
-    expect(await read('cover.jpg')).toBe('image from master-9');
+    expect(await read('cover.jpg')).toBe('image from release-4376665');
+    expect(await read('info.txt')).toContain('cover.jpg was set to the cover of Discogs release r4376665');
   });
 
   it('replaces the file the issue is about, under its own name', async () => {

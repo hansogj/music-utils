@@ -43,18 +43,19 @@ export async function coverActions(issue: Issue, audit: AlbumAudit, token?: stri
   const target = issue.file; // the cover.jpg / folder.jpg the issue is about; none when missing
   const name = target ?? COVER;
   const actions: RepairAction[] = [];
-  if (token && ref.releaseId) {
-    const r: DiscogsRef = { type: 'release', id: ref.releaseId };
-    actions.push({
-      label: `Download the cover of Discogs ${refName(r)} as ${name}`,
-      run: () => downloadCover(layout, r, token, target),
-    });
-  }
+  // The master's cover first (Enter): the original album's, not one reissue's.
   if (token && ref.masterId) {
     const m: DiscogsRef = { type: 'master', id: String(ref.masterId) };
     actions.push({
       label: `Download the cover of Discogs ${refName(m)} as ${name}`,
       run: () => downloadCover(layout, m, token, target),
+    });
+  }
+  if (token && ref.releaseId) {
+    const r: DiscogsRef = { type: 'release', id: ref.releaseId };
+    actions.push({
+      label: `Download the cover of Discogs ${refName(r)} as ${name}`,
+      run: () => downloadCover(layout, r, token, target),
     });
   }
   if (issue.code === 'BAD_COVER' && target) {
