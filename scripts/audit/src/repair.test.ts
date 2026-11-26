@@ -1584,7 +1584,7 @@ describe('repairAlbum — covers', () => {
     expect(await fs.readFile(path.join(layout.albumPath, 'front.jpg'))).toEqual(tiny);
   });
 
-  it('a broken folder.jpg is replaced under its own name, from the good cover.jpg or Discogs', async () => {
+  it('a broken folder.jpg next to a good cover.jpg is removed', async () => {
     await fs.copyFile(TINY_JPEG, path.join(layout.albumPath, 'cover.jpg'));
     await fs.writeFile(path.join(layout.albumPath, 'folder.jpg'), '<html>');
     await fs.copyFile(TINY_JPEG, path.join(path.dirname(layout.albumPath), 'cover.jpg'));
@@ -1601,12 +1601,15 @@ describe('repairAlbum — covers', () => {
       ],
     };
     const done = answer([
-      [/^ {2}Choice \[1\]/, ''], // [1] Replace folder.jpg with a copy of cover.jpg
+      [/^ {2}Choice \[1\]/, ''], // [1] Remove folder.jpg (cover.jpg is the cover)
     ]);
     await repairAlbum(audit, { ...ctx(), reaudit: undefined });
     done();
-    expect(output.join('\n')).toMatch(/\[1\] Replace folder\.jpg with a copy of cover\.jpg/);
-    expect(await fs.readFile(path.join(layout.albumPath, 'folder.jpg'))).toEqual(await fs.readFile(TINY_JPEG));
+    expect(output.join('\n')).toMatch(/\[1\] Remove folder\.jpg \(cover\.jpg is the cover\)/);
+    await expect(fs.access(path.join(layout.albumPath, 'folder.jpg'))).rejects.toThrow();
+    expect(await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8')).toMatch(
+      /folder\.jpg removed: not an image/,
+    );
   });
 });
 

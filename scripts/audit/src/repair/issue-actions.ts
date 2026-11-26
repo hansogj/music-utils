@@ -17,7 +17,7 @@ import { discNumbers, sanitizeFilename, sanitizeTitle } from '../rename-plan.js'
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit, type Issue } from '../types.js';
 import { applyOldYear } from '../year-bracket.js';
-import { coverActions } from './covers.js';
+import { coverActions, coverFilesDifferActions, folderJpgActions } from './covers.js';
 import { discogsActionFor, type RepairAction } from './discogs-action.js';
 import {
   albumMetaFromLayout,
@@ -413,6 +413,8 @@ const handlers: Record<string, ActionsFor> = {
   MISSING_COVER: coverActions,
   BAD_COVER: coverActions,
   COVER_MISMATCH: coverActions,
+  FOLDER_JPG: folderJpgActions,
+  COVER_FILES_DIFFER: coverFilesDifferActions,
   ARTIST_COVER_MISSING: artistCoverMissing,
 };
 

@@ -10,8 +10,11 @@ import type { AlbumAudit, AlbumLayout, Issue, TrackInfo } from './types.js';
 // image and a 1400px scan of the same cover match, and another cover doesn't.
 
 export const COVER = 'cover.jpg';
-// cover.jpg and folder.jpg are equals: either is the folder's cover.
+// cover.jpg and folder.jpg both count as the folder's cover; an album folder should keep
+// one, cover.jpg (tidyCoverFiles()).
 const COVER_FILE = /^(cover|folder)\.jpe?g$/i;
+const COVER_NAME = /^cover\.jpe?g$/i;
+const FOLDER_NAME = /^folder\.jpe?g$/i;
 const IMAGE_FILE = /\.(jpe?g|png|webp)$/i;
 
 /** The folder's cover files (cover.jpg, folder.jpg, any case), cover.jpg first. */
@@ -187,16 +190,54 @@ export async function matchesDiscogs(file: string, ref: AlbumRef, source: CoverS
   return release.hash || master ? false : undefined;
 }
 
+/** True when two files are the same cover (same bytes, or perceptual hashes within SAME_COVER).
+ *  Undefined when that can't be told (no ImageMagick, an unreadable file). */
+export async function sameImage(a: string, b: string): Promise<boolean | undefined> {
+  const [ba, bb] = await Promise.all([fs.readFile(a), fs.readFile(b)]);
+  if (ba.equals(bb)) return true;
+  try {
+    return hashDistance(await imageHash(a), await imageHash(b)) <= SAME_COVER;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The album folder's cover.jpg and folder.jpg (any case, .jpeg too), when there. */
+export async function coverAndFolderIn(dir: string): Promise<{ cover?: string; folder?: string }> {
+  const names = await coversIn(dir);
+  return { cover: names.find((n) => COVER_NAME.test(n)), folder: names.find((n) => FOLDER_NAME.test(n)) };
+}
+
+/**
+ * One cover file per album folder (repair mode, before the checks): a folder.jpg on its own
+ * is renamed to cover.jpg; one that is the same image as cover.jpg is removed. Two different
+ * images are left for COVER_FILES_DIFFER to ask about. Returns what changed, for info.txt.
+ */
+export async function tidyCoverFiles(dir: string): Promise<string[]> {
+  const { cover, folder } = await coverAndFolderIn(dir);
+  if (!folder) return [];
+  if (!cover) {
+    await fs.rename(path.join(dir, folder), path.join(dir, COVER));
+    return [`${folder} renamed to ${COVER}`];
+  }
+  if ((await sameImage(path.join(dir, cover), path.join(dir, folder)).catch(() => undefined)) !== true) return [];
+  await fs.rm(path.join(dir, folder));
+  return [`${folder} removed: the same image as ${cover}`];
+}
+
 const refLabel = (ref: AlbumRef) =>
   [ref.releaseId && `release r${ref.releaseId}`, ref.masterId && `master m${ref.masterId}`]
     .filter(Boolean)
     .join(' or ');
 
 /**
- * MISSING_COVER: neither cover.jpg nor folder.jpg in the album folder. Each one there is
- * checked: BAD_COVER, it isn't an image; COVER_MISMATCH, it isn't the cover of the album's
- * Discogs release or master (only with a source). ARTIST_COVER_MISSING: the artist folder
- * has no readable cover.jpg or folder.jpg.
+ * MISSING_COVER: neither cover.jpg nor folder.jpg in the album folder. BAD_COVER: one there
+ * isn't an image. FOLDER_JPG: a folder.jpg instead of cover.jpg, or next to the same image
+ * as cover.jpg (repair tidies both away before the checks: tidyCoverFiles()).
+ * COVER_FILES_DIFFER: cover.jpg and folder.jpg are different images. COVER_MISMATCH: the
+ * cover (cover.jpg, else folder.jpg) isn't the cover of the album's Discogs release or
+ * master (only with a source; not while the two differ). ARTIST_COVER_MISSING: the artist
+ * folder has no readable cover.jpg or folder.jpg.
  */
 export async function checkCovers(layout: AlbumLayout, tracks: TrackInfo[], source?: CoverSource): Promise<Issue[]> {
   const issues: Issue[] = [];
@@ -210,30 +251,58 @@ export async function checkCovers(layout: AlbumLayout, tracks: TrackInfo[], sour
       ...(others.length ? { suggestion: `Other images: ${others.join(', ')}` } : {}),
     });
   }
-  let ref: AlbumRef | undefined;
+  const readable: string[] = [];
   for (const cover of covers) {
-    const file = path.join(layout.albumPath, cover);
-    if ((await isImage(file)) === false) {
+    if ((await isImage(path.join(layout.albumPath, cover))) !== false) readable.push(cover);
+    else
       issues.push({
         severity: 'MODERATE',
         code: 'BAD_COVER',
         file: cover,
         message: `${cover} can't be read as an image`,
       });
-      continue;
+  }
+  const { cover, folder } = await coverAndFolderIn(layout.albumPath);
+  // The file compared with Discogs: cover.jpg, else folder.jpg.
+  let checked: string | undefined = readable[0];
+  if (folder && !cover) {
+    issues.push({
+      severity: 'MODERATE',
+      code: 'FOLDER_JPG',
+      file: folder,
+      message: `${folder} instead of ${COVER}`,
+      suggestion: `Repair renames it to ${COVER}`,
+    });
+  } else if (cover && folder && readable.includes(cover) && readable.includes(folder)) {
+    const same = await sameImage(path.join(layout.albumPath, cover), path.join(layout.albumPath, folder));
+    if (same === true)
+      issues.push({
+        severity: 'MODERATE',
+        code: 'FOLDER_JPG',
+        file: folder,
+        message: `${folder} is the same image as ${cover}`,
+        suggestion: `Repair removes ${folder}`,
+      });
+    else if (same === false) {
+      issues.push({
+        severity: 'MODERATE',
+        code: 'COVER_FILES_DIFFER',
+        file: folder,
+        message: `${cover} and ${folder} are different images`,
+      });
+      checked = undefined; // the repair keeps one; the re-scan compares that one
     }
-    if (!source) continue;
-    if (!ref) {
-      const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
-      ref = albumRef(tracks, infoTxt);
-    }
+  }
+  if (source && checked) {
+    const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
+    const ref = albumRef(tracks, infoTxt);
     try {
-      if ((await matchesDiscogs(file, ref, source)) === false) {
+      if ((await matchesDiscogs(path.join(layout.albumPath, checked), ref, source)) === false) {
         issues.push({
           severity: 'MODERATE',
           code: 'COVER_MISMATCH',
-          file: cover,
-          message: `${cover} isn't the cover of Discogs ${refLabel(ref)}`,
+          file: checked,
+          message: `${checked} isn't the cover of Discogs ${refLabel(ref)}`,
         });
       }
     } catch {

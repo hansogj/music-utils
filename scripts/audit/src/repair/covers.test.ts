@@ -20,7 +20,7 @@ vi.mock('../cover.js', async (importOriginal) => ({
   matchesDiscogs: vi.fn(async () => undefined),
 }));
 
-const { coverActions } = await import('./covers.js');
+const { coverActions, coverFilesDifferActions, folderJpgActions } = await import('./covers.js');
 const { setPrompt } = await import('./prompt.js');
 const { fetchReleaseCover } = await import('../discogs.js');
 const { matchesDiscogs } = await import('../cover.js');
@@ -115,13 +115,15 @@ describe('coverActions', () => {
     await expect(release.run()).rejects.toThrow('Discogs release r1 has no images');
   });
 
-  it("a bad cover file can take a copy of the folder's other, good one", async () => {
+  it("a bad cover file gives way to the folder's other, good one: it becomes cover.jpg", async () => {
     await fs.writeFile(file('cover.jpg'), 'BAD');
     await fs.writeFile(file('folder.jpg'), 'good');
     const actions = await coverActions(issue('BAD_COVER', 'cover.jpg'), auditOf());
-    expect(labels(actions)).toEqual(['Replace cover.jpg with a copy of folder.jpg']);
+    expect(labels(actions)).toEqual(['Remove cover.jpg and rename folder.jpg to cover.jpg']);
     await actions[0].run();
     expect(await read('cover.jpg')).toBe('good');
+    await expect(fs.access(file('folder.jpg'))).rejects.toThrow();
+    expect(await read('info.txt')).toContain('cover.jpg removed (not an image), folder.jpg renamed to cover.jpg');
   });
 
   it('offers the other images, the Discogs cover first', async () => {
@@ -167,5 +169,59 @@ describe('coverActions', () => {
       expect(await (await entered(auditOf())).run()).toBe('skipped');
       await expect(read('cover.jpg')).rejects.toThrow();
     });
+  });
+});
+
+describe('one cover file: folder.jpg and cover.jpg', () => {
+  it('FOLDER_JPG: a folder.jpg on its own is renamed to cover.jpg, noted in info.txt', async () => {
+    await fs.writeFile(file('folder.jpg'), 'front');
+    const actions = await folderJpgActions(issue('FOLDER_JPG', 'folder.jpg'), auditOf());
+    expect(labels(actions)).toEqual(['Rename folder.jpg to cover.jpg']);
+    expect(await actions[0].run()).toBe('folder.jpg renamed to cover.jpg');
+    expect(await read('cover.jpg')).toBe('front');
+    await expect(fs.access(file('folder.jpg'))).rejects.toThrow();
+    expect(await read('info.txt')).toContain('folder.jpg renamed to cover.jpg');
+    expect(await folderJpgActions(issue('FOLDER_JPG', 'folder.jpg'), auditOf())).toEqual([]); // nothing left
+  });
+
+  it('FOLDER_JPG: a folder.jpg that is the same image as cover.jpg is removed', async () => {
+    await fs.writeFile(file('cover.jpg'), 'front');
+    await fs.writeFile(file('folder.jpg'), 'front');
+    const actions = await folderJpgActions(issue('FOLDER_JPG', 'folder.jpg'), auditOf());
+    expect(labels(actions)).toEqual(['Remove folder.jpg (the same image as cover.jpg)']);
+    await actions[0].run();
+    await expect(fs.access(file('folder.jpg'))).rejects.toThrow();
+    expect(await read('cover.jpg')).toBe('front');
+  });
+
+  it('COVER_FILES_DIFFER: keep cover.jpg, or folder.jpg as cover.jpg; the Discogs cover first', async () => {
+    await fs.writeFile(file('cover.jpg'), 'old');
+    await fs.writeFile(file('folder.jpg'), 'new');
+    const keepCover = 'Keep cover.jpg, remove folder.jpg';
+    expect(labels(await coverFilesDifferActions(issue('COVER_FILES_DIFFER'), auditOf()))).toEqual([
+      keepCover,
+      'Keep folder.jpg as cover.jpg, remove cover.jpg',
+    ]);
+
+    vi.mocked(matchesDiscogs).mockImplementation(async (f) => f.endsWith('folder.jpg'));
+    const actions = await coverFilesDifferActions(issue('COVER_FILES_DIFFER'), auditOf(tagged('1')), 'token');
+    expect(labels(actions)).toEqual([
+      'Keep folder.jpg as cover.jpg, remove cover.jpg — it is the Discogs cover',
+      keepCover,
+    ]);
+    expect(await actions[0].run()).toBe('kept folder.jpg as cover.jpg');
+    expect(await read('cover.jpg')).toBe('new');
+    await expect(fs.access(file('folder.jpg'))).rejects.toThrow();
+    expect(await read('info.txt')).toContain('cover.jpg removed, folder.jpg renamed to cover.jpg');
+    expect(await coverFilesDifferActions(issue('COVER_FILES_DIFFER'), auditOf())).toEqual([]);
+  });
+
+  it('COVER_FILES_DIFFER: keeping cover.jpg removes folder.jpg', async () => {
+    await fs.writeFile(file('cover.jpg'), 'old');
+    await fs.writeFile(file('folder.jpg'), 'new');
+    const [keep] = await coverFilesDifferActions(issue('COVER_FILES_DIFFER'), auditOf());
+    await keep.run();
+    expect(await read('cover.jpg')).toBe('old');
+    await expect(fs.access(file('folder.jpg'))).rejects.toThrow();
   });
 });
