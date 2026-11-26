@@ -167,6 +167,7 @@ const yearNotOriginal: ActionsFor = async (_issue, audit) => {
       run: async () => {
         const oldYear = await askOldYearBracket(layout, local, year);
         await retag();
+        if (oldYear === 'keep') return `Set DATE/ORIGINALDATE to ${year} (folder keeps ${local})`;
         await renameAlbumFolder(layout, applyOldYear(newName, oldYear));
         return `Set DATE/ORIGINALDATE to ${year} and rename folder → "${layout.albumFolder}"`;
       },
