@@ -11,6 +11,7 @@ import {
   fetchOriginalYear,
   fetchRelease,
   isDigital,
+  isHiddenFormat,
   matchScore,
   numberTracklist,
   parseDiscogsRef,
@@ -281,6 +282,24 @@ describe('CD and File releases before vinyl', () => {
       true,
     ]);
     expect([fmt('DVD', 'NTSC'), fmt('Vinyl', 'LP'), fmt('Cassette')]).toEqual([false, false, false]);
+  });
+
+  it('hides tape, video and 78 releases, unless they also hold a format that counts', () => {
+    const hidden = (...format: string[]) => isHiddenFormat({ format });
+    expect([
+      hidden('Cassette', 'Album'),
+      hidden('VHS', 'PAL'),
+      hidden('DVD', 'NTSC'),
+      hidden('Shellac', '10"'),
+    ]).toEqual([true, true, true, true]);
+    expect([
+      hidden('DVD', 'DVD-Audio'),
+      hidden('Box Set', 'CD', 'VHS'),
+      hidden('Vinyl', 'Cassette'),
+      hidden('Box Set'),
+      hidden('All Media'),
+      hidden(),
+    ]).toEqual([false, false, false, false, false, false]);
   });
 
   it('ranks CD and File alike, and unscored results digital first, else in search order', () => {

@@ -324,6 +324,39 @@ export function matchScore(localNames: string[], numbered: NumberedTrack[], albu
 export const isDigital = (r: Pick<DiscogsSearchResult, 'format'>) =>
   (r.format ?? []).some((f) => DIGITAL_FORMATS.has(f));
 
+// Formats the library's files can't have come from: tape, video, 78s and the like. A search
+// hit with one of them is left out of the suggestions, unless it also has a format that
+// counts (a box set with a CD and a VHS). Box Set, All Media and unknown formats stay.
+export const HIDDEN_FORMATS = new Set([
+  'Cassette',
+  'Microcassette',
+  '8-Track Cartridge',
+  '4-Track Cartridge',
+  'Reel-To-Reel',
+  'Elcaset',
+  'DAT',
+  'DCC',
+  'Minidisc',
+  'DVD',
+  'DVDr',
+  'Blu-ray',
+  'Blu-ray-R',
+  'Ultra HD Blu-ray',
+  'HD DVD',
+  'HD DVD-R',
+  'Laserdisc',
+  'CDV',
+  'VHS',
+  'Betamax',
+  'UMD',
+  'Shellac',
+  'Acetate',
+  'Flexi-disc',
+  'Lathe Cut',
+]);
+export const isHiddenFormat = (r: Pick<DiscogsSearchResult, 'format'>) =>
+  (r.format ?? []).some((f) => HIDDEN_FORMATS.has(f)) && !isDigital(r) && !(r.format ?? []).includes('Vinyl');
+
 // Points (of 100) a digital release may match worse and still come first.
 const DIGITAL_BONUS = 5;
 const rankScore = (r: DiscogsSearchResult) =>
@@ -454,17 +487,20 @@ export async function searchDiscogs(
 
   const data = (await res.json()) as SearchResponse;
 
-  const results: DiscogsSearchResult[] = (data.results ?? []).slice(0, limit).map((r) => ({
-    id: r.id,
-    title: r.title.replace(/\s*\(\d+\)(\s+-\s+|$)/, '$1'),
-    year: r.year,
-    masterId: r.master_id,
-    releaseUrl: `https://www.discogs.com/release/${r.id}`,
-    masterUrl: r.master_id ? `https://www.discogs.com/master/${r.master_id}` : undefined,
-    genre: r.genre,
-    style: r.style,
-    ...(r.format ? { format: r.format } : {}),
-  }));
+  const results: DiscogsSearchResult[] = (data.results ?? [])
+    .slice(0, limit)
+    .filter((r) => !isHiddenFormat(r))
+    .map((r) => ({
+      id: r.id,
+      title: r.title.replace(/\s*\(\d+\)(\s+-\s+|$)/, '$1'),
+      year: r.year,
+      masterId: r.master_id,
+      releaseUrl: `https://www.discogs.com/release/${r.id}`,
+      masterUrl: r.master_id ? `https://www.discogs.com/master/${r.master_id}` : undefined,
+      genre: r.genre,
+      style: r.style,
+      ...(r.format ? { format: r.format } : {}),
+    }));
   const candidates = withOwnedReleases(results, artist, title);
 
   const ranked =
