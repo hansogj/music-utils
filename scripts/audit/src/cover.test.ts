@@ -10,6 +10,7 @@ import {
   artistCoverCandidates,
   asJpeg,
   checkCovers,
+  coverFromSiblingDisc,
   coverIn,
   coversIn,
   type CoverSource,
@@ -391,5 +392,43 @@ describe('writeCover / artistCoverCandidates / asJpeg', () => {
     draw(path.join(root, 'a.png'), 'a');
     const jpeg = await asJpeg(path.join(root, 'a.png'));
     expect(jpeg.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+  });
+});
+
+describe.skipIf(!hasMagick)('coverFromSiblingDisc', () => {
+  let disc1: AlbumLayout;
+  let disc2: AlbumLayout;
+  beforeEach(async () => {
+    disc1 = layoutOf('Yes', '1973 Yessongs (Disc 1∕2)');
+    disc2 = layoutOf('Yes', '1973 Yessongs (Disc 2∕2)');
+    await fs.mkdir(disc1.albumPath, { recursive: true });
+    await fs.mkdir(disc2.albumPath, { recursive: true });
+    draw(path.join(disc1.albumPath, 'cover.jpg'), 'a');
+    await fs.writeFile(path.join(disc1.albumPath, 'info.txt'), 'Discogs-Release: 5\n');
+  });
+
+  it("copies another disc's cover when it is the Discogs cover", async () => {
+    const ha = await imageHash(path.join(disc1.albumPath, 'cover.jpg'));
+    const s = source({ release: ha });
+    expect(await coverFromSiblingDisc(disc2, [], s)).toEqual(['cover.jpg copied from Disc 1 (the Discogs cover)']);
+    expect(s.calls).toEqual(['r5']); // disc 2 has no release of its own: disc 1's
+    expect(await coversIn(disc2.albumPath)).toEqual(['cover.jpg']);
+    expect(await coverFromSiblingDisc(disc2, [], s)).toEqual([]); // has one now
+  });
+
+  it("leaves it when it isn't the Discogs cover of this disc's release, or can't be told", async () => {
+    draw(path.join(root, 'b.jpg'), 'b');
+    const hb = await imageHash(path.join(root, 'b.jpg'));
+    const s = source({ release: hb });
+    expect(await coverFromSiblingDisc(disc2, [track({ discogsReleaseId: '7' })], s)).toEqual([]);
+    expect(s.calls).toEqual(['r7']);
+    expect(await coverFromSiblingDisc(disc2, [], source({}))).toEqual([]);
+    expect(await coversIn(disc2.albumPath)).toEqual([]);
+  });
+
+  it('does nothing outside a disc set', async () => {
+    const single = layoutOf('Yes', '1973 Yessongs');
+    await fs.mkdir(single.albumPath, { recursive: true });
+    expect(await coverFromSiblingDisc(single, [], source({}))).toEqual([]);
   });
 });
