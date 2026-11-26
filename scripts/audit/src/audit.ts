@@ -175,7 +175,8 @@ Examples:
   const checkCovers = !hasFlag(args, 'no-covers');
   const auditOpts = { token, skipDiscogs, searchAlways: retagMode, checkYears, checkCovers };
   // Repair tags an album without a release ID from Discogs first: search for it too.
-  const repairOpts = { ...auditOpts, searchUntagged: true };
+  // …and keeps one cover file per album folder (cover.jpg) before checking it.
+  const repairOpts = { ...auditOpts, searchUntagged: true, tidyCovers: true };
   await logger?.logSession(mode, root);
 
   const layouts = await walkLibrary(root);

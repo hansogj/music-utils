@@ -20,6 +20,8 @@ import {
   matchesDiscogs,
   pHash,
   SAME_COVER,
+  sameImage,
+  tidyCoverFiles,
   withoutSolvedCoverIssues,
   writeCover,
 } from './cover.js';
@@ -196,9 +198,22 @@ describe('checkCovers', () => {
     ]);
   });
 
-  it('takes folder.jpg as the cover, in the album and in the artist folder', async () => {
+  it('takes folder.jpg as the cover; in the album folder it should be cover.jpg', async () => {
     await make('D/Yes/1971 Fragile/folder.jpg', 'D/Yes/folder.jpg');
-    expect(await checkCovers(layoutOf('Yes', '1971 Fragile'), [])).toEqual([]);
+    expect((await checkCovers(layoutOf('Yes', '1971 Fragile'), [])).map((i) => [i.code, i.file, i.message])).toEqual([
+      ['FOLDER_JPG', 'folder.jpg', 'folder.jpg instead of cover.jpg'],
+    ]);
+  });
+
+  it('reports a folder.jpg that is a copy of cover.jpg', async () => {
+    await make('D/Yes/cover.jpg');
+    const album = layoutOf('Yes', '1971 Fragile');
+    await fs.mkdir(album.albumPath, { recursive: true });
+    await fs.writeFile(path.join(album.albumPath, 'cover.jpg'), tinyJpeg ?? 'same');
+    await fs.writeFile(path.join(album.albumPath, 'Folder.JPG'), tinyJpeg ?? 'same');
+    expect((await checkCovers(album, [])).map((i) => [i.code, i.file, i.message])).toEqual([
+      ['FOLDER_JPG', 'Folder.JPG', 'Folder.JPG is the same image as cover.jpg'],
+    ]);
   });
 
   it('is quiet when both are there and there is nothing to compare with', async () => {
@@ -227,15 +242,62 @@ describe('checkCovers', () => {
 
 describe.skipIf(!hasMagick)('checkCovers — after a retag', () => {
   // Live In Detroit disc 1 after --retag: cover.jpg is the new release's, folder.jpg still
-  // the old one. Each cover file is compared, so folder.jpg is reported on its own.
-  it("reports a folder.jpg that isn't the release's cover next to a cover.jpg that is", async () => {
+  // the old one. Two different covers: the repair keeps one, then that one is compared.
+  it('reports cover.jpg and folder.jpg that are different images, and compares neither', async () => {
     await make('D/Yes/cover.jpg', 'D/Yes/1971 Fragile/info.txt');
     const album = layoutOf('Yes', '1971 Fragile');
     draw(path.join(album.albumPath, 'cover.jpg'), 'a');
     draw(path.join(album.albumPath, 'folder.jpg'), 'b');
     const s = source({ release: await imageHash(path.join(album.albumPath, 'cover.jpg')) });
     const issues = await checkCovers(album, [track({ discogsReleaseId: '1' })], s);
-    expect(issues.map((i) => [i.code, i.file])).toEqual([['COVER_MISMATCH', 'folder.jpg']]);
+    expect(issues.map((i) => [i.code, i.file, i.message])).toEqual([
+      ['COVER_FILES_DIFFER', 'folder.jpg', 'cover.jpg and folder.jpg are different images'],
+    ]);
+    expect(s.calls).toEqual([]);
+  });
+
+  it('compares a folder.jpg on its own with Discogs', async () => {
+    await make('D/Yes/cover.jpg', 'D/Yes/1971 Fragile/info.txt');
+    const album = layoutOf('Yes', '1971 Fragile');
+    draw(path.join(album.albumPath, 'folder.jpg'), 'a');
+    draw(path.join(root, 'b.jpg'), 'b');
+    const s = source({ release: await imageHash(path.join(root, 'b.jpg')) });
+    const issues = await checkCovers(album, [track({ discogsReleaseId: '1' })], s);
+    expect(issues.map((i) => [i.code, i.file])).toEqual([
+      ['FOLDER_JPG', 'folder.jpg'],
+      ['COVER_MISMATCH', 'folder.jpg'],
+    ]);
+  });
+
+  it('sameImage: the same cover at another size is the same image; another cover is not', async () => {
+    const [a, aBig, b] = ['a.jpg', 'a-big.jpg', 'b.jpg'].map((n) => path.join(root, n));
+    draw(a, 'a');
+    draw(aBig, 'a', 900, 30);
+    draw(b, 'b');
+    expect(await sameImage(a, aBig)).toBe(true);
+    expect(await sameImage(a, b)).toBe(false);
+  });
+});
+
+describe('tidyCoverFiles', () => {
+  it('renames a folder.jpg on its own to cover.jpg', async () => {
+    await make('A/folder.jpeg');
+    expect(await tidyCoverFiles(path.join(root, 'A'))).toEqual(['folder.jpeg renamed to cover.jpg']);
+    expect(await coversIn(path.join(root, 'A'))).toEqual(['cover.jpg']);
+  });
+
+  it('removes a folder.jpg that is the same image as cover.jpg; leaves two different ones', async () => {
+    await fs.mkdir(path.join(root, 'A'));
+    await fs.writeFile(path.join(root, 'A', 'cover.jpg'), 'one');
+    await fs.writeFile(path.join(root, 'A', 'folder.jpg'), 'one');
+    expect(await tidyCoverFiles(path.join(root, 'A'))).toEqual(['folder.jpg removed: the same image as cover.jpg']);
+    expect(await coversIn(path.join(root, 'A'))).toEqual(['cover.jpg']);
+
+    await fs.writeFile(path.join(root, 'A', 'folder.jpg'), 'two');
+    expect(await tidyCoverFiles(path.join(root, 'A'))).toEqual([]); // not images, can't tell: left
+    expect(await coversIn(path.join(root, 'A'))).toEqual(['cover.jpg', 'folder.jpg']);
+    await make('B/cover.jpg');
+    expect(await tidyCoverFiles(path.join(root, 'B'))).toEqual([]);
   });
 });
 

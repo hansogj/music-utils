@@ -10,11 +10,11 @@ import { checkNameTagMatch, matchNames, parseNameFromFilename } from './checks/n
 import { checkTags } from './checks/tags.js';
 import { checkUnsafeNames } from './checks/unsafe-names.js';
 import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
-import { checkCovers } from './cover.js';
+import { checkCovers, tidyCoverFiles } from './cover.js';
 import { siblingDiscs } from './disc-siblings.js';
 import { discOfFolder } from './disc-split.js';
 import { discogsCoverSource, fetchOriginalYear, searchDiscogs } from './discogs.js';
-import { writeInfoTxtFromTags } from './info-txt.js';
+import { appendChangeset, writeInfoTxtFromTags } from './info-txt.js';
 import { readTags } from './tags.js';
 import type { AlbumAudit, AlbumLayout, Issue, TrackInfo } from './types.js';
 import { listMusicFiles } from './walk.js';
@@ -37,6 +37,9 @@ export interface AuditAlbumOptions {
   // cover.jpg in the album and artist folders; compared with the Discogs cover when
   // Discogs is on (hashes cached on disk).
   checkCovers?: boolean;
+  // Repair mode only, with checkCovers: one cover file per album folder before the checks
+  // (folder.jpg alone → cover.jpg; folder.jpg the same image as cover.jpg → removed).
+  tidyCovers?: boolean;
 }
 
 export async function readTracks(layout: AlbumLayout): Promise<TrackInfo[]> {
@@ -70,8 +73,10 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
     checkYears = false,
     writeInfo = false,
     checkCovers: covers = false,
+    tidyCovers = false,
   } = opts;
   const tracks = await readTracks(layout);
+  const coverChanges = covers && tidyCovers ? await tidyCoverFiles(layout.albumPath).catch(() => []) : [];
   const issues: Issue[] = [];
 
   issues.push(...checkFolderFormat(layout));
@@ -133,8 +138,9 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   // Repair mode only (report mode never writes): generate a basic info.txt from tags if none
   // exists yet. Discogs tagging will overwrite it with a richer version.
   if (writeInfo && tracks.length > 0 && infoTxt === undefined) {
-    writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
+    await writeInfoTxtFromTags(layout.albumPath, tracks).catch(() => {});
   }
+  for (const change of coverChanges) await appendChangeset(layout.albumPath, change).catch(() => {});
 
   return { layout, tracks, issues, discogsResults, originalYear, ...(releaseId ? { releaseId } : {}) };
 }

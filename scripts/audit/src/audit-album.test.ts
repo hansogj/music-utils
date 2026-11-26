@@ -170,3 +170,26 @@ describe('auditAlbum', () => {
     expect(await fs.readFile(info, 'utf8')).toBe('mine');
   });
 });
+
+describe('auditAlbum — one cover file (repair)', () => {
+  it('renames a folder.jpg on its own to cover.jpg before the checks, noted in info.txt', async () => {
+    await track('01 - Song.mp3', TAGGED);
+    await fs.writeFile(path.join(layout.albumPath, 'folder.jpg'), 'front');
+    await fs.writeFile(path.join(root, 'B', 'Band', 'cover.jpg'), 'artist');
+    const report = await auditAlbum(layout, { skipDiscogs: true, checkCovers: true });
+    expect(report.issues.map((i) => i.code)).toContain('FOLDER_JPG'); // report mode only reads
+
+    const repair = await auditAlbum(layout, {
+      skipDiscogs: true,
+      checkCovers: true,
+      tidyCovers: true,
+      writeInfo: true,
+    });
+    expect(repair.issues.map((i) => i.code)).not.toContain('FOLDER_JPG');
+    expect(await fs.readFile(path.join(layout.albumPath, 'cover.jpg'), 'utf8')).toBe('front');
+    await expect(fs.access(path.join(layout.albumPath, 'folder.jpg'))).rejects.toThrow();
+    const info = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8');
+    expect(info).toMatch(/Band/); // written from the tags first
+    expect(info).toMatch(/folder\.jpg renamed to cover\.jpg/);
+  });
+});

@@ -3,7 +3,18 @@ import path from 'node:path';
 
 import chalk from 'chalk';
 
-import { albumRef, asJpeg, COVER, coversIn, isImage, matchesDiscogs, readableImagesIn, writeCover } from '../cover.js';
+import {
+  albumRef,
+  asJpeg,
+  COVER,
+  coverAndFolderIn,
+  coversIn,
+  isImage,
+  matchesDiscogs,
+  readableImagesIn,
+  tidyCoverFiles,
+  writeCover,
+} from '../cover.js';
 import {
   discogsCoverSource,
   type DiscogsRef,
@@ -59,17 +70,32 @@ export async function coverActions(issue: Issue, audit: AlbumAudit, token?: stri
     });
   }
   if (issue.code === 'BAD_COVER' && target) {
-    // The folder's other cover file, when that one is a good image.
+    // The folder's other cover file, when that one is a good image: it is the one cover.jpg.
+    const { cover } = await coverAndFolderIn(layout.albumPath);
     for (const other of (await coversIn(layout.albumPath)).filter((c) => c !== target)) {
       const file = path.join(layout.albumPath, other);
       if ((await isImage(file)) === false) continue;
-      actions.unshift({
-        label: `Replace ${target} with a copy of ${other}`,
-        run: async () => {
-          await writeCover(layout.albumPath, await fs.readFile(file), [target]);
-          console.log(chalk.green(`  ✓ ${target} (from ${other})`));
-        },
-      });
+      const broken = path.join(layout.albumPath, target);
+      actions.unshift(
+        other === cover
+          ? {
+              label: `Remove ${target} (${other} is the cover)`,
+              run: async () => {
+                await fs.rm(broken);
+                console.log(chalk.green(`  ✓ ${target} removed`));
+                await noteChange(layout, `${target} removed: not an image`);
+              },
+            }
+          : {
+              label: `Remove ${target} and rename ${other} to ${COVER}`,
+              run: async () => {
+                await fs.rm(broken);
+                await fs.rename(file, path.join(layout.albumPath, COVER));
+                console.log(chalk.green(`  ✓ ${COVER} (was ${other})`));
+                await noteChange(layout, `${target} removed (not an image), ${other} renamed to ${COVER}`);
+              },
+            },
+      );
     }
   }
   if (issue.code !== 'COVER_MISMATCH') {
@@ -111,4 +137,67 @@ export async function coverActions(issue: Issue, audit: AlbumAudit, token?: stri
     });
   }
   return actions;
+}
+
+// FOLDER_JPG: repair tidies these before the checks; this is for one that is left (the
+// rename failed, or the scan ran without it).
+export async function folderJpgActions(issue: Issue, { layout }: AlbumAudit): Promise<RepairAction[]> {
+  const { cover, folder } = await coverAndFolderIn(layout.albumPath);
+  if (!folder) return [];
+  return [
+    {
+      label: cover ? `Remove ${folder} (the same image as ${cover})` : `Rename ${folder} to ${COVER}`,
+      run: async () => {
+        const changes = await tidyCoverFiles(layout.albumPath);
+        if (changes.length === 0) return 'skipped';
+        for (const change of changes) {
+          console.log(chalk.green(`  ✓ ${change}`));
+          await noteChange(layout, change);
+        }
+        return changes.join('; ');
+      },
+    },
+  ];
+}
+
+// COVER_FILES_DIFFER: keep one of the two as cover.jpg; the Discogs cover, when one is, first.
+export async function coverFilesDifferActions(
+  _issue: Issue,
+  audit: AlbumAudit,
+  token?: string,
+): Promise<RepairAction[]> {
+  const { layout } = audit;
+  const dir = layout.albumPath;
+  const { cover, folder } = await coverAndFolderIn(dir);
+  if (!cover || !folder) return [];
+  const infoTxt = await fs.readFile(path.join(dir, 'info.txt'), 'utf8').catch(() => undefined);
+  const ref = albumRef(audit.tracks, infoTxt);
+  const isDiscogs = async (name: string) =>
+    token
+      ? await interactive(() => matchesDiscogs(path.join(dir, name), ref, discogsCoverSource(token))).catch(
+          () => undefined,
+        )
+      : undefined;
+  const [coverIsDiscogs, folderIsDiscogs] = [await isDiscogs(cover), await isDiscogs(folder)];
+  const discogs = (yes?: boolean) => (yes ? ' — it is the Discogs cover' : '');
+  const keepCover: RepairAction = {
+    label: `Keep ${cover}, remove ${folder}${discogs(coverIsDiscogs)}`,
+    run: async () => {
+      await fs.rm(path.join(dir, folder));
+      console.log(chalk.green(`  ✓ ${folder} removed`));
+      await noteChange(layout, `${folder} removed: ${cover} kept as the cover`);
+      return `kept ${cover}`;
+    },
+  };
+  const keepFolder: RepairAction = {
+    label: `Keep ${folder} as ${COVER}, remove ${cover}${discogs(folderIsDiscogs)}`,
+    run: async () => {
+      await fs.rm(path.join(dir, cover));
+      await fs.rename(path.join(dir, folder), path.join(dir, COVER));
+      console.log(chalk.green(`  ✓ ${COVER} (was ${folder})`));
+      await noteChange(layout, `${cover} removed, ${folder} renamed to ${COVER}`);
+      return `kept ${folder} as ${COVER}`;
+    },
+  };
+  return folderIsDiscogs && !coverIsDiscogs ? [keepFolder, keepCover] : [keepCover, keepFolder];
 }
