@@ -164,8 +164,7 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → [1] Tag from Discogs
       [/Release ID \[4376665\]/, ''], // use the suggested release
       [/Apply renames\?/, ''], // Enter applies them: 01 - Give'em → 01 - Give 'Em
-      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, deferred
-      [/Old year \[Enter\/l\/r\/c\/o\]/, 'r'], // recorded 1976, released 1989
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'r'], // recorded 1976, released 1989
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -241,15 +240,39 @@ describe('repairAlbum — Yezda Urfa: Discogs tags, then a year rename', () => {
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, ''],
-      [/Rename folder\(s\) to match Discogs\?/, 'y'],
-      [/Old year \[Enter\/l\/r\/c\/o\]/, ''],
+      [
+        /Discogs album name differs from local folder: "Sacred Baboon" → "Sacred Baboon - Live At The Fillmore" \[Y\/n\]/,
+        '',
+      ],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, ''],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
-    expect(output.join('\n')).toMatch(/album {2}: "Sacred Baboon" {2}→ {2}"Sacred Baboon - Live At The Fillmore"/);
     expect(layout.albumFolder).toBe('1989 Sacred Baboon - Live At The Fillmore');
     const track1 = await readFake(path.join(layout.albumPath, "01 - Give 'Em Some Rawhide Chewies.mp3"));
     expect(track1).toMatchObject({ ALBUM: title });
+  });
+
+  it.each([
+    ['takes the title and keeps the year (k)', '', 'k', '1976 Sacred Baboon - Live'],
+    ['keeps the title (n) and takes the year', 'n', '', '1989 Sacred Baboon'],
+  ])('asks title and year apart: %s', async (_case, titleAnswer, yearAnswer, folder) => {
+    const { fetchRelease } = await import('./discogs.js');
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...RELEASE, title: 'Sacred Baboon - Live' });
+    const audit = await scan();
+    audit.discogsResults = [
+      { id: 4376665, title: 'Yezda Urfa - x', year: '1989', releaseUrl: 'https://www.discogs.com/release/4376665' },
+    ];
+    const done = answer([
+      [/^ {2}Choice \[1\]/, ''],
+      [/Release ID \[4376665\]/, ''],
+      [/Apply renames\?/, ''],
+      [/Discogs album name differs from local folder/, titleAnswer],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, yearAnswer],
+    ]);
+    await repairAlbum(audit, ctx());
+    done();
+    expect(layout.albumFolder).toBe(folder);
   });
 
   it('[r] at the "not fixed" prompt shows the issues again', async () => {
@@ -424,8 +447,7 @@ describe('repairAlbum — start the album over', () => {
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'x'], // a typo declines: track 1's file name disagrees with its new title
-      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
-      [/Old year \[Enter\/l\/r\/c\/o\]/, ''], // no bracket
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, ''], // no bracket
       [/^ {2}Choice \[1\]/, 'o'], // at the track 1 mismatch: regret
       [/^ {2}Choice \[1\]/, 's'], // the mismatch, shown from the top again
       [/Brackets:/, ''], // first skip in the album: no bracket added
@@ -477,7 +499,7 @@ describe('repairAlbum — quit at any prompt', () => {
       [/Quit repair\? \[Y\/n\]/, 'n'],
       [/Release ID \[4376665\]/, ''], // asked again
       [/Apply renames\?/, ''],
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
@@ -502,8 +524,7 @@ describe('repairAlbum — quit at any prompt', () => {
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'n'], // leaves a name/tag mismatch
-      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989, pending
-      [/Old year \[Enter\/l\/r\/c\/o\]/, ''],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, ''],
       [/^ {2}Choice \[1\]/, 'q'], // at the mismatch
       [/Quit repair\? \[Y\/n\]/, ''],
     ]);
@@ -519,7 +540,7 @@ describe('repairAlbum — quit at any prompt', () => {
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, ''],
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
     ]);
     expect(await repairAlbum(audit, ctx())).toBe('next');
     done();
@@ -559,7 +580,7 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
       [/^ {2}Choice \[1\]/, ''], // MISSING_RELEASE_ID: the only action, [1] Tag from Discogs release ID
       [/Release ID \[enter ID\]/, '[r1886376]'],
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -585,7 +606,7 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID \[enter ID\]/, '1886376'],
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -613,7 +634,7 @@ describe('repairAlbum — choosing the exact Discogs release', () => {
       [/^ {2}Choice \[1\]/, 'd'],
       [/Release ID \[1886376\]/, ''], // Enter keeps the tagged release, not the search hit
       [/Apply renames\?/, 'y'], // else track 1's file name disagrees with the Discogs title
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
     ]);
 
     expect(await repairAlbum(audit, ctx())).toBe('next');
@@ -1154,7 +1175,7 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     const disc2 = await discLayout(2);
     const done = answer([
       [/^ {2}Choice \[1\]/, ''], // [1] Set DATE/ORIGINALDATE to 1992 and rename folder
-      [/Old year \[Enter\/l\/r\/c\/o\]/, 'l'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'l'],
       [/^ {2}Choice \[1\]/, ''], // disc 2: no Old year question
     ]);
     expect(await repairAlbum(await yearAudit(disc1), ctx(false))).toBe('next');
@@ -1162,9 +1183,9 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     done();
 
     const out = output.join('\n');
-    expect(out).toMatch(/Year 1979 → 1992\. Keep the old year in the folder name\?/);
+    expect(out).toMatch(/Discogs year differs from local folder: 1979 → 1992 \(original release\)/);
     expect(out).toMatch(/l {2}live +→ 1992 Tourmato \(Disc 1∕2\) \[FLAC\] \[live 1979\]/);
-    expect(out).toMatch(/Old year: \[live 1979\] \(as for the other disc of this set\)/);
+    expect(out).toMatch(/Year: 1992, \[live 1979\] \(as for the other disc of this set\)/);
     expect(disc1.albumFolder).toBe('1992 Tourmato (Disc 1∕2) [FLAC] [live 1979]');
     expect(disc2.albumFolder).toBe('1992 Tourmato (Disc 2∕2) [FLAC] [live 1979]');
 
@@ -1188,7 +1209,7 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     const disc2 = await discLayout(2);
     const done = answer([
       [/^ {2}Choice \[1\]/, ''],
-      [/Old year/, 'c'],
+      [/Year \[Enter/, 'c'],
       [/ {4}Brackets: /, '[FLAC] [Philadelphia 1979]'], // "[FLAC]" was in the line; the user added to it
       [/^ {2}Choice \[1\]/, ''], // disc 2: same answer, no questions
     ]);
@@ -1205,7 +1226,7 @@ describe('repairAlbum — year change keeps the old year in a bracket, one answe
     const disc1 = await discLayout(1);
     const done = answer([
       [/^ {2}Choice \[1\]/, ''],
-      [/Old year/, 'c'],
+      [/Year \[Enter/, 'c'],
       [/Brackets: /, 'live 1979'], // "[FLAC]" deleted, plain text typed
     ]);
     await repairAlbum(await yearAudit(disc1), ctx(false));
@@ -1229,8 +1250,7 @@ describe('repairAlbum — a Discogs rename onto a folder that is there already',
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, ''],
-      [/Rename folder\(s\) to match Discogs\?/, 'y'],
-      [/Old year \[Enter\/l\/r\/c\/o\]/, 'r'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'r'],
       ...clash,
     ]);
     return done;
@@ -1352,8 +1372,7 @@ describe('repairAlbum — a bracket for the folder after a skip', () => {
       [/^ {2}Choice \[1\]/, ''], // MISSING_TAGS → Discogs
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'n'], // leaves a name/tag mismatch to skip
-      [/Rename folder\(s\) to match Discogs\?/, 'y'], // 1976 → 1989
-      [/Old year \[Enter\/l\/r\/c\/o\]/, 'r'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'r'],
       [/^ {2}Choice \[1\]/, 's'], // the mismatch
       [/Brackets:/, 'bootleg'],
       [/\[r\] Retry/, ''],
@@ -1631,7 +1650,7 @@ describe('repairAlbum — Discogs first', () => {
       [/^ {2}Choice \[1\]/, ''], // [1] Tag from Discogs release ID (suggested 4376665)
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'y'],
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
     ]);
     expect(await repairAlbum(audit, first())).toBe('next');
     done();
@@ -1652,7 +1671,7 @@ describe('repairAlbum — Discogs first', () => {
       [/^ {2}Choice \[1\]/, ''], // [1] Enter a Discogs release ID
       [/Release ID/, '4376665'],
       [/Apply renames\?/, 'n'],
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
       [/./, 'q'],
       [/Quit repair\? \[Y\/n\]/, ''],
     ]);
@@ -1778,7 +1797,7 @@ describe('repairAlbum — Discogs first', () => {
       [/^ {2}Choice \[1\]/, ''],
       [/Release ID \[4376665\]/, ''],
       [/Apply renames\?/, 'n'],
-      [/Rename folder\(s\) to match Discogs\?/, 'n'],
+      [/Year \[Enter\/l\/r\/c\/k\/o\]/, 'k'],
       [/./, 'q'], // whatever is left
       [/Quit repair\? \[Y\/n\]/, ''],
     ]);

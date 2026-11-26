@@ -125,7 +125,8 @@ export async function askSetAux(layout: AlbumLayout, other: SiblingDisc): Promis
   const current = auxPartOf(pendingFolderRenames.get(layout)?.aux ?? layout.albumFolder);
   let theirs = auxPartOf(path.basename(other.albumPath));
   // The old-year bracket the other disc got is added to this one too, when its year changes.
-  const oldYear = oldYearAnswers.get(albumSetKey(layout.artistName, layout.albumFolder));
+  const answer = oldYearAnswers.get(albumSetKey(layout.artistName, layout.albumFolder));
+  const oldYear = answer === 'keep' ? undefined : answer;
   if (oldYear?.mode === 'replace') return 'same';
   if (oldYear?.mode === 'append') {
     const text = oldYear.text.toLowerCase();
@@ -150,7 +151,8 @@ export async function askSetAux(layout: AlbumLayout, other: SiblingDisc): Promis
 // ── old year as an aux bracket ────────────────────────────────────────────────
 
 // One answer per album set for the whole run, so all discs of a set get the same bracket.
-const oldYearAnswers = new Map<string, OldYearAnswer | undefined>();
+// 'keep': the folder keeps its year.
+const oldYearAnswers = new Map<string, OldYearAnswer | undefined | 'keep'>();
 // The artist name chosen for an album set (its disc folders): asked once.
 const artistAnswers = new Map<string, string>();
 
@@ -231,28 +233,32 @@ export async function askOldYearBracket(
   layout: AlbumLayout,
   oldYear: string,
   newYear: string,
-): Promise<OldYearAnswer | undefined> {
+): Promise<OldYearAnswer | undefined | 'keep'> {
   const key = albumSetKey(layout.artistName, layout.albumFolder);
   if (oldYearAnswers.has(key)) {
     const kept = oldYearAnswers.get(key);
-    console.log(chalk.dim(`  Old year: ${describeOldYear(kept)} (as for the other disc of this set)`));
+    const said = kept === 'keep' ? `keep ${oldYear}` : `${newYear}, ${describeOldYear(kept)}`;
+    console.log(chalk.dim(`  Year: ${said} (as for the other disc of this set)`));
     return kept;
   }
   const renamed = withFolderYear(layout.albumFolder, newYear);
   const current = auxPartOf(layout.albumFolder);
   const preview = (choice: string) => applyOldYear(renamed, oldYearBracket(choice, oldYear));
-  console.log(`\n  Year ${oldYear} → ${newYear}. Keep the old year in the folder name?`);
-  console.log(`    [Enter] no bracket    → ${preview('')}`);
-  console.log(`    l  live               → ${preview('l')}`);
-  console.log(`    r  recorded           → ${preview('r')}`);
-  console.log(`    c  custom text        → edit ${current ? `"${current}"` : 'a new bracket'}`);
+  console.log(`\n  Discogs year differs from local folder: ${oldYear} → ${newYear} (original release)`);
+  console.log(`    [Enter] change, no bracket  → ${preview('')}`);
+  console.log(`    l  live                     → ${preview('l')}`);
+  console.log(`    r  recorded                 → ${preview('r')}`);
+  console.log(`    c  custom text              → edit ${current ? `"${current}"` : 'a new bracket'}`);
+  console.log(`    k  keep ${oldYear}                → ${layout.albumFolder}`);
   console.log(`    o  start album over`);
-  const choice = (await ask('  Old year [Enter/l/r/c/o]: ')).trim().toLowerCase();
+  const choice = (await ask('  Year [Enter/l/r/c/k/o]: ')).trim().toLowerCase();
   // c: the folder's brackets as they are (or the old year), to edit; the result replaces them.
-  const answer: OldYearAnswer | undefined =
-    choice === 'c'
-      ? { mode: 'replace', aux: customAux(await ask('    Brackets: ', current || `[${oldYear}]`)) }
-      : oldYearBracket(choice, oldYear);
+  const answer: OldYearAnswer | undefined | 'keep' =
+    choice === 'k'
+      ? 'keep'
+      : choice === 'c'
+        ? { mode: 'replace', aux: customAux(await ask('    Brackets: ', current || `[${oldYear}]`)) }
+        : oldYearBracket(choice, oldYear);
   oldYearAnswers.set(key, answer);
   return answer;
 }
@@ -320,20 +326,27 @@ export async function askFolderRename(
   if (artistMismatch) console.log(chalk.dim(`  Artist folder: "${layout.artistName}"  →  "${newArtist}" (as chosen)`));
   if (!albumMismatch && !yearMismatch) return artistMismatch ? artistPlan : undefined;
 
-  console.log(chalk.yellow('\n  Discogs name differs from local folder:'));
-  if (albumMismatch) console.log(`    album  : "${localTitle}"  →  "${discogsAlbum}"`);
-  if (yearMismatch) console.log(`    year   : ${localYear}  →  ${release.year} (original release)`);
-
-  const answer = await ask('  Rename folder(s) to match Discogs? [y/N] ');
-  if (answer.toLowerCase() !== 'y') {
-    console.log(chalk.dim('  Skipped rename.'));
+  // Title and year are two questions: either can change without the other.
+  const newTitle =
+    albumMismatch &&
+    (
+      await ask(
+        chalk.yellow(`\n  Discogs album name differs from local folder: "${localTitle}" → "${discogsAlbum}" [Y/n] `),
+      )
+    )
+      .trim()
+      .toLowerCase() !== 'n';
+  const yearAnswer = yearMismatch ? await askOldYearBracket(layout, localYear, release.year!) : 'keep';
+  const newYear = yearAnswer !== 'keep';
+  const oldYear = yearAnswer === 'keep' ? undefined : yearAnswer;
+  if (!newTitle && !newYear) {
+    console.log(chalk.dim('  Folder name kept.'));
     return artistMismatch ? artistPlan : undefined;
   }
-  const oldYear = yearMismatch ? await askOldYearBracket(layout, localYear, release.year!) : undefined;
   return {
     ...artistPlan,
-    ...(albumMismatch ? { album: discogsAlbum } : {}),
-    ...(yearMismatch ? { year: release.year } : {}),
+    ...(newTitle ? { album: discogsAlbum } : {}),
+    ...(newYear ? { year: release.year } : {}),
     ...(oldYear ? { oldYear } : {}),
   };
 }
