@@ -29,6 +29,8 @@ npm install -g @hansogj/music-utils
 
 This installs the `music-utils` command (also available as the short alias `mu`). Every feature is a subcommand: run `music-utils help` for the list. `music-utils --version` (or `-v`, `version`) prints the installed version, which `help` also shows.
 
+To update: `npm install -g @hansogj/music-utils@latest --prefer-online` (from a checkout of this repo: `pnpm update-host`). `--prefer-online` skips npm's cache, which can serve the previous version for a while after a release.
+
 > Before 2.0 each feature was its own `music-utils-*` command (`music-utils-rip`, `music-utils-album-tag`, …). Those are gone; see [Features](#features) for the `music-utils` equivalents.
 
 ## From source
