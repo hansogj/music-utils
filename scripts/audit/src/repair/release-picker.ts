@@ -123,3 +123,25 @@ export function parseReleaseRef(raw: string) {
     );
   return ref;
 }
+
+// While the deeper search runs: Esc (or Ctrl+C) stops it. Off the terminal, never pressed.
+export function listenForEscape(): { pressed: () => boolean; stop: () => void } {
+  if (!process.stdin.isTTY) return { pressed: () => false, stop: () => {} };
+  closeRl();
+  let hit = false;
+  const onKey = (_s: string | undefined, key: { name?: string; ctrl?: boolean } | undefined) => {
+    if (key?.name === 'escape' || (key?.ctrl && key.name === 'c')) hit = true;
+  };
+  process.stdin.setRawMode(true);
+  emitKeypressEvents(process.stdin);
+  process.stdin.on('keypress', onKey);
+  process.stdin.resume();
+  return {
+    pressed: () => hit,
+    stop: () => {
+      process.stdin.off('keypress', onKey);
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+    },
+  };
+}

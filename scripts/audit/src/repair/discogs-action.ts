@@ -3,6 +3,8 @@ import chalk from 'chalk';
 
 import { sortArtist } from '../articles.js';
 import { matchNames } from '../checks/names.js';
+import { parseTrackNames } from '../checks/names.js';
+import { deepSearch } from '../deep-search.js';
 import {
   expectedFirstTrack,
   type SiblingDisc,
@@ -11,8 +13,17 @@ import {
   siblingWithRelease,
 } from '../disc-siblings.js';
 import { describeSlice, type DiscSlice, type DiscSliceContext, sliceForDisc, windowAt } from '../disc-split.js';
-import { fetchRelease, fitsFolder, numberTracklist, pickMasterVersion, resolveReleaseId } from '../discogs.js';
+import {
+  fetchRelease,
+  fitsFolder,
+  numberTracklist,
+  pickMasterVersion,
+  type ReleaseInfo,
+  resolveReleaseId,
+  searchArtistId,
+} from '../discogs.js';
 import { writeInfoTxt } from '../info-txt.js';
+import { LiveProgress } from '../progress.js';
 import { interactive } from '../rate-limit.js';
 import { type AlbumAudit } from '../types.js';
 import {
@@ -25,7 +36,7 @@ import {
   splitArtistBrackets,
 } from './folder.js';
 import { ask, BackSignal } from './prompt.js';
-import { parseReleaseRef, pickRelease } from './release-picker.js';
+import { listenForEscape, parseReleaseRef, pickRelease } from './release-picker.js';
 import { offerFileRenames, tagFromTracklist } from './tagging.js';
 
 // The Discogs tagging action: release choice, disc slice, tag write, info.txt, renames.
@@ -173,152 +184,230 @@ function buildDiscogsAction(
         let release: Awaited<ReturnType<typeof fetchRelease>> | undefined;
         let releaseId = sameAsDisc ? fromDisc!.releaseId! : '';
         let prompt = !sameAsDisc;
-        while (!release) {
-          if (!prompt) prompt = true;
-          else {
-            const browseHint = results.length > 0 ? '  (b to browse list)' : '';
-            const input = (await ask(`    Release ID [${releaseId || topId || 'enter ID'}]${browseHint}: `)).trim();
+        // Starts over with another release when one is picked from the deeper search.
+        while (true) {
+          while (!release) {
+            if (!prompt) prompt = true;
+            else {
+              const browseHint = results.length > 0 ? '  (b to browse list)' : '';
+              const input = (await ask(`    Release ID [${releaseId || topId || 'enter ID'}]${browseHint}: `)).trim();
 
-            if (input === 'b' && results.length > 0) {
-              const picked = await pickRelease(results);
-              if (picked === null) throw new BackSignal(); // Esc → back to action menu
-              // undefined: the "enter different ID" row (or no TTY for the list) → ask again
-              if (picked === undefined) continue;
-              releaseId = picked;
-            } else if (input) {
-              const ref = parseReleaseRef(input);
-              releaseId = ref?.id ?? '';
-              if (ref?.type === 'master') {
-                try {
-                  if (noOfDiscs > 1) {
-                    const picked = await pickMasterVersion(ref.id, token, {
-                      disc: folderDisc,
-                      noOfDiscs,
-                      localCount: files.length,
-                    });
-                    releaseId = picked.releaseId;
-                    console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
-                  } else {
-                    releaseId = await resolveReleaseId(ref, token);
-                    console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+              if (input === 'b' && results.length > 0) {
+                const picked = await pickRelease(results);
+                if (picked === null) throw new BackSignal(); // Esc → back to action menu
+                // undefined: the "enter different ID" row (or no TTY for the list) → ask again
+                if (picked === undefined) continue;
+                releaseId = picked;
+              } else if (input) {
+                const ref = parseReleaseRef(input);
+                releaseId = ref?.id ?? '';
+                if (ref?.type === 'master') {
+                  try {
+                    if (noOfDiscs > 1) {
+                      const picked = await pickMasterVersion(ref.id, token, {
+                        disc: folderDisc,
+                        noOfDiscs,
+                        localCount: files.length,
+                      });
+                      releaseId = picked.releaseId;
+                      console.log(chalk.dim(`  Master m${ref.id} → release r${releaseId} (${picked.why})`));
+                    } else {
+                      releaseId = await resolveReleaseId(ref, token);
+                      console.log(chalk.dim(`  Master m${ref.id} → main release r${releaseId}`));
+                    }
+                  } catch (err) {
+                    console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
+                    releaseId = '';
+                    continue;
                   }
-                } catch (err) {
-                  console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
-                  releaseId = '';
-                  continue;
                 }
+              } else if (!releaseId) {
+                releaseId = topId; // Enter with no input → use suggested ID
               }
-            } else if (!releaseId) {
-              releaseId = topId; // Enter with no input → use suggested ID
+              // Enter with existing releaseId (retry after error) → keep it
             }
-            // Enter with existing releaseId (retry after error) → keep it
+
+            if (!releaseId) {
+              console.log(chalk.yellow('  Skipped — no release ID'));
+              return;
+            }
+
+            console.log(chalk.dim(`  Fetching release ${releaseId}...`));
+            try {
+              release = await fetchRelease(releaseId, token);
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              console.log(chalk.red(`  ✗ ${msg}`));
+              const retry = await ask('  Try a different release ID? [y/N] ');
+              if (retry.toLowerCase() !== 'y') return;
+              releaseId = ''; // clear so prompt shows fresh
+            }
           }
 
-          if (!releaseId) {
-            console.log(chalk.yellow('  Skipped — no release ID'));
+          // Suites as one track or several, as fits the folder's files (Dice's "War; a) Ouverture").
+          const tracklist = fitTracklist(
+            release.rawTracklist ?? release.tracklist,
+            fitsFolder(audit.layout.albumFolder, files.length),
+          );
+          if (tracklist.length === 0) {
+            console.log(chalk.yellow('  No tracks found on this release'));
             return;
           }
 
-          console.log(chalk.dim(`  Fetching release ${releaseId}...`));
-          try {
-            release = await fetchRelease(releaseId, token);
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.log(chalk.red(`  ✗ ${msg}`));
-            const retry = await ask('  Try a different release ID? [y/N] ');
-            if (retry.toLowerCase() !== 'y') return;
-            releaseId = ''; // clear so prompt shows fresh
-          }
-        }
+          // Always the original (master) year and title — a 1989 reissue of a 1970 album is tagged 1970.
+          const year = release.year ?? meta.year;
+          const album = release.title?.trim() || meta.album;
+          if (release.year && release.releaseYear && release.releaseYear !== release.year)
+            console.log(
+              chalk.dim(
+                `  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`,
+              ),
+            );
+          const masterId = release.masterId;
+          const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
+          const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
 
-        // Suites as one track or several, as fits the folder's files (Dice's "War; a) Ouverture").
-        const tracklist = fitTracklist(
-          release.rawTracklist ?? release.tracklist,
-          fitsFolder(audit.layout.albumFolder, files.length),
-        );
-        if (tracklist.length === 0) {
-          console.log(chalk.yellow('  No tracks found on this release'));
-          return;
-        }
-
-        // Always the original (master) year and title — a 1989 reissue of a 1970 album is tagged 1970.
-        const year = release.year ?? meta.year;
-        const album = release.title?.trim() || meta.album;
-        if (release.year && release.releaseYear && release.releaseYear !== release.year)
-          console.log(
-            chalk.dim(
-              `  Year: ${release.year} (original, master m${release.masterId}) — this release ${release.releaseYear}`,
-            ),
-          );
-        const genreValue = [...(release.genres ?? []), ...(release.styles ?? [])].slice(0, 4).join(', ');
-        const releaseUrl = `https://www.discogs.com/release/${releaseId}`;
-
-        // For a "(Disc n∕m)" folder only that disc's part of the release is used.
-        const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
-        const slice = await chooseDiscSlice(numberTracklist(tracklist), {
-          disc: folderDisc,
-          noOfDiscs,
-          localNames: files.map((f) => names.get(f.name) ?? ''),
-          localCount: files.length,
-          expectedFirst: expectedFirstTrack(folderDisc, siblings),
-          // All disc folders present: their tracks together, to compare with the release.
-          localTotal:
-            siblings.length === noOfDiscs - 1 ? siblings.reduce((n, s) => n + s.trackCount, files.length) : undefined,
-        });
-        if (!slice) {
-          console.log(chalk.dim('  Skipped.'));
-          return;
-        }
-        const discTracks = slice.tracks;
-        const artist = await chooseArtist(audit.layout, audit.tracks, release);
-        // Tags and info.txt get the folder's brackets too ("Dionysos [Canada]"): same-named
-        // artists stay apart in a player, as they do in the folders.
-        const fullArtist = `${artist}${splitArtistBrackets(audit.layout.artistName).brackets}`;
-        const tagged = await tagFromTracklist(audit, files, names, discTracks, {
-          folderDisc,
-          countWarning: (extra) => {
-            const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
-            return extra > 0
-              ? `${what} ${extra} more track(s) — may be a bonus edition`
-              : `${what} ${-extra} fewer track(s) — may be a different pressing`;
-          },
-          tags: ({ no, discNumber, total, title }) => ({
-            // As music-utils tags it: "Beatles, The" with artist.sortArticles on.
-            ARTIST: sortArtist(fullArtist),
-            ALBUMARTIST: sortArtist(fullArtist),
-            ALBUM: album,
-            TRACKNUMBER: `${no}/${total}`,
-            DISCNUMBER: discNumber,
-            ...(year ? { DATE: year, ORIGINALDATE: year } : {}),
-            ...(title ? { TITLE: title } : {}),
-            ...(genreValue ? { GENRE: genreValue } : {}),
-            COMMENT: releaseUrl,
-            DISCOGS_RELEASE_ID: releaseId,
-            // Same across pressings (FLAC rip vs mp3 copy); empty clears a stale one.
-            DISCOGS_MASTER_ID: release.masterId ? String(release.masterId) : '',
-          }),
-        });
-        if (!tagged) return;
-        // ── write info.txt ─────────────────────────────────────────────────
-        try {
-          const written = await writeInfoTxt(audit.layout.albumPath, { ...release, tracklist }, fullArtist, {
-            discNumber: meta.discNumber,
-            noOfDiscs: meta.noOfDiscs,
+          // For a "(Disc n∕m)" folder only that disc's part of the release is used.
+          const names = new Map(matchNames(audit.tracks).map((n, i) => [audit.tracks[i].fileName, n]));
+          const slice = await chooseDiscSlice(numberTracklist(tracklist), {
+            disc: folderDisc,
+            noOfDiscs,
+            localNames: files.map((f) => names.get(f.name) ?? ''),
+            localCount: files.length,
+            expectedFirst: expectedFirstTrack(folderDisc, siblings),
+            // All disc folders present: their tracks together, to compare with the release.
+            localTotal:
+              siblings.length === noOfDiscs - 1 ? siblings.reduce((n, s) => n + s.trackCount, files.length) : undefined,
           });
-          console.log(chalk.dim(written ? '  ✓ info.txt written' : '  ✓ info.txt unchanged'));
-        } catch {
-          // Non-fatal — tag write already succeeded
-        }
+          if (!slice) {
+            console.log(chalk.dim('  Skipped.'));
+            return;
+          }
+          const discTracks = slice.tracks;
+          const artist = await chooseArtist(audit.layout, audit.tracks, release);
+          // Tags and info.txt get the folder's brackets too ("Dionysos [Canada]"): same-named
+          // artists stay apart in a player, as they do in the folders.
+          const fullArtist = `${artist}${splitArtistBrackets(audit.layout.artistName).brackets}`;
+          const tagged = await tagFromTracklist(audit, files, names, discTracks, {
+            folderDisc,
+            source: `Discogs r${releaseId}`,
+            deeper: () => deeperSearch(audit, token, release!, files, names, siblings),
+            countWarning: (extra) => {
+              const what = slice.method === 'whole' ? 'Discogs has' : `Disc ${folderDisc} on Discogs has`;
+              return extra > 0
+                ? `${what} ${extra} more track(s) — may be a bonus edition`
+                : `${what} ${-extra} fewer track(s) — may be a different pressing`;
+            },
+            tags: ({ no, discNumber, total, title }) => ({
+              // As music-utils tags it: "Beatles, The" with artist.sortArticles on.
+              ARTIST: sortArtist(fullArtist),
+              ALBUMARTIST: sortArtist(fullArtist),
+              ALBUM: album,
+              TRACKNUMBER: `${no}/${total}`,
+              DISCNUMBER: discNumber,
+              ...(year ? { DATE: year, ORIGINALDATE: year } : {}),
+              ...(title ? { TITLE: title } : {}),
+              ...(genreValue ? { GENRE: genreValue } : {}),
+              COMMENT: releaseUrl,
+              DISCOGS_RELEASE_ID: releaseId,
+              // Same across pressings (FLAC rip vs mp3 copy); empty clears a stale one.
+              DISCOGS_MASTER_ID: masterId ? String(masterId) : '',
+            }),
+          });
+          if (!tagged) return;
+          if ('pick' in tagged) {
+            releaseId = tagged.pick;
+            release = undefined;
+            prompt = false;
+            continue;
+          }
+          // ── write info.txt ─────────────────────────────────────────────────
+          try {
+            const written = await writeInfoTxt(audit.layout.albumPath, { ...release, tracklist }, fullArtist, {
+              discNumber: meta.discNumber,
+              noOfDiscs: meta.noOfDiscs,
+            });
+            console.log(chalk.dim(written ? '  ✓ info.txt written' : '  ✓ info.txt unchanged'));
+          } catch {
+            // Non-fatal — tag write already succeeded
+          }
 
-        await offerFileRenames(audit.layout.albumPath, files, tagged, 'Discogs titles');
+          await offerFileRenames(audit.layout.albumPath, files, tagged, 'Discogs titles');
 
-        // ── ask about folder renames; they run after the album's other fixes ─
-        const plan = await askFolderRename(audit.layout, meta, release, artist);
-        if (plan) {
-          planFolderRename(audit.layout, plan);
-          console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
+          // ── ask about folder renames; they run after the album's other fixes ─
+          const plan = await askFolderRename(audit.layout, meta, release, artist);
+          if (plan) {
+            planFolderRename(audit.layout, plan);
+            console.log(chalk.dim("  → folder rename runs after this album's other fixes"));
+          }
+          return `Tagged from Discogs release ${releaseId}`;
         }
-        return `Tagged from Discogs release ${releaseId}`;
       }),
   };
+}
+
+// [d] at the track count warning: the artist's discography scored by the album's titles
+// (every disc folder's, for a set); a release picked from the ranked list, or undefined.
+async function deeperSearch(
+  audit: AlbumAudit,
+  token: string,
+  release: ReleaseInfo,
+  files: { name: string }[],
+  names: Map<string, string>,
+  siblings: SiblingDisc[],
+): Promise<string | undefined> {
+  const artistName = splitArtistBrackets(audit.layout.artistName).name;
+  const artistId = release.artistId ?? (await searchArtistId(artistName, token).catch(() => undefined));
+  if (!artistId) {
+    console.log(chalk.yellow(`  No Discogs artist found for ${artistName}`));
+    return undefined;
+  }
+  const meta = albumMetaFromLayout(audit.layout);
+  const own = files.map((f) => names.get(f.name) ?? '');
+  const others = await Promise.all(
+    [...siblings]
+      .sort((a, b) => a.disc - b.disc)
+      .map(async (s) => ({
+        disc: s.disc,
+        names: parseTrackNames((await musicFilesIn(s.albumPath)).map((f) => f.name)).map((p) => p.title ?? ''),
+      })),
+  );
+  const folderDisc = parseInt(meta.discNumber, 10);
+  const localNames = [
+    ...others.filter((o) => o.disc < folderDisc),
+    { disc: folderDisc, names: own },
+    ...others.filter((o) => o.disc > folderDisc),
+  ].flatMap((o) => o.names);
+
+  let done = 0;
+  let total = 0;
+  const live = new LiveProgress(`Searching ${artistName} on Discogs (Esc stops)`, () => ({ done, total })).start();
+  const esc = listenForEscape();
+  let results;
+  try {
+    results = await deepSearch({
+      artistId,
+      artistName,
+      localNames,
+      ...(meta.year ? { year: parseInt(meta.year, 10) } : {}),
+      token,
+      progress: (d, t) => {
+        done = d;
+        total = t;
+      },
+      stopped: esc.pressed,
+    });
+  } catch (err) {
+    console.log(chalk.red(`  ✗ ${err instanceof Error ? err.message : String(err)}`));
+    return undefined;
+  } finally {
+    esc.stop();
+    live.stop();
+  }
+  if (results.length === 0) {
+    console.log(chalk.yellow(`  Nothing in ${artistName}'s discography holds these tracks`));
+    return undefined;
+  }
+  console.log(chalk.dim(`  ${artistName}: ${results.length} release(s) hold some of the ${localNames.length} tracks`));
+  return (await pickRelease(results.slice(0, 15))) || undefined;
 }

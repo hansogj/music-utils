@@ -82,6 +82,7 @@ export interface MasterInfo {
   year?: string; // undefined when Discogs reports 0 (unknown)
   mainRelease?: number;
   cover?: CoverImage;
+  tracklist?: RawTrack[]; // the main release's
 }
 
 interface RawImage {
@@ -110,7 +111,14 @@ export function fetchMaster(masterId: number, token: string): Promise<MasterInfo
   if (!cached) {
     cached = discogsGet(`${API}/masters/${masterId}`, authHeaders(token))
       .then(
-        (res) => res.json() as Promise<{ title?: string; year?: number; main_release?: number; images?: RawImage[] }>,
+        (res) =>
+          res.json() as Promise<{
+            title?: string;
+            year?: number;
+            main_release?: number;
+            images?: RawImage[];
+            tracklist?: RawTrack[];
+          }>,
       )
       .then((data) => ({
         id: masterId,
@@ -118,6 +126,7 @@ export function fetchMaster(masterId: number, token: string): Promise<MasterInfo
         year: data.year ? String(data.year) : undefined,
         mainRelease: data.main_release,
         cover: primaryImage(data.images),
+        ...(data.tracklist ? { tracklist: data.tracklist } : {}),
       }));
     cached.catch(() => masterCache.delete(masterId)); // don't cache failures
     masterCache.set(masterId, cached);
@@ -260,7 +269,7 @@ interface RawRelease {
   year?: number | string;
   master_id?: number;
   title?: string;
-  artists?: Array<{ name: string; join?: string }>;
+  artists?: Array<{ name: string; join?: string; id?: number }>;
   genres?: string[];
   styles?: string[];
   country?: string;
@@ -510,6 +519,7 @@ export interface ReleaseInfo {
   // Every credited artist joined as Discogs shows them, "/" as "," ("Patrick Woodroffe,
   // Dave Greenslade"); only when more than one is credited.
   artistCredit?: string;
+  artistId?: number; // the first credited artist's Discogs ID
   genres?: string[];
   styles?: string[];
   country?: string;
@@ -535,6 +545,7 @@ export async function fetchRelease(releaseId: string, token: string): Promise<Re
     // Strip Discogs disambiguation suffixes like " (2)" from artist names.
     artists: data.artists?.map((a) => cleanArtistName(a.name)),
     ...(data.artists && data.artists.length > 1 ? { artistCredit: joinArtistCredit(data.artists) } : {}),
+    ...(data.artists?.[0]?.id ? { artistId: data.artists[0].id } : {}),
     genres: data.genres,
     styles: data.styles,
     country: data.country,
@@ -662,4 +673,72 @@ export function resetDiscogsCaches(): void {
   discogsLimiter.reset();
   yearCache = undefined;
   coverCache = undefined;
+}
+
+// ── an artist's discography (the deeper search, deep-search.ts) ──────────────
+
+/** One entry of an artist's Discogs page: a master (with its main release) or a release. */
+export interface ArtistRelease {
+  id: number;
+  type: 'master' | 'release';
+  mainRelease?: number;
+  title: string;
+  year?: string;
+  role: string; // "Main", "Appearance", "TrackAppearance", …
+  format?: string; // releases only: "CD, Comp"
+  artist?: string;
+}
+
+interface RawArtistRelease {
+  id: number;
+  type?: string;
+  main_release?: number;
+  title?: string;
+  year?: number;
+  role?: string;
+  format?: string;
+  artist?: string;
+}
+
+// The artist's entries, page by page (100 each), up to `pages` pages.
+export async function fetchArtistReleases(artistId: number, token: string, pages = 5): Promise<ArtistRelease[]> {
+  const all: ArtistRelease[] = [];
+  for (let page = 1; page <= pages; page++) {
+    const res = await discogsGet(
+      `${API}/artists/${artistId}/releases?sort=year&per_page=100&page=${page}`,
+      authHeaders(token),
+    );
+    const data = (await res.json()) as { releases?: RawArtistRelease[]; pagination?: { pages?: number } };
+    for (const r of data.releases ?? []) {
+      if (r.type !== 'master' && r.type !== 'release') continue;
+      all.push({
+        id: r.id,
+        type: r.type,
+        ...(r.main_release ? { mainRelease: r.main_release } : {}),
+        title: r.title?.trim() ?? '',
+        ...(r.year ? { year: String(r.year) } : {}),
+        role: r.role ?? '',
+        ...(r.format ? { format: r.format } : {}),
+        ...(r.artist ? { artist: cleanArtistName(r.artist) } : {}),
+      });
+    }
+    if (page >= (data.pagination?.pages ?? 1)) break;
+  }
+  return all;
+}
+
+// The first artist a name search finds, for a release without an artist ID.
+export async function searchArtistId(name: string, token: string): Promise<number | undefined> {
+  const url = new URL(`${API}/database/search`);
+  url.searchParams.set('type', 'artist');
+  url.searchParams.set('q', name);
+  url.searchParams.set('per_page', '5');
+  const res = await discogsGet(url.toString(), authHeaders(token));
+  const data = (await res.json()) as { results?: Array<{ id: number }> };
+  return data.results?.[0]?.id;
+}
+
+// A release's tracklist, the raw one (suites as Discogs lists them).
+export async function fetchRawTracklist(releaseId: number, token: string): Promise<RawTrack[]> {
+  return (await getRelease(String(releaseId), token)).tracklist ?? [];
 }
