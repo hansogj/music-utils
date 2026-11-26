@@ -10,7 +10,7 @@ import { checkNameTagMatch, matchNames, parseNameFromFilename } from './checks/n
 import { checkTags } from './checks/tags.js';
 import { checkUnsafeNames } from './checks/unsafe-names.js';
 import { checkOriginalYear, originalYearLookupId } from './checks/year.js';
-import { checkCovers, tidyCoverFiles } from './cover.js';
+import { checkCovers, coverFromSiblingDisc, tidyCoverFiles } from './cover.js';
 import { siblingDiscs } from './disc-siblings.js';
 import { discOfFolder } from './disc-split.js';
 import { discogsCoverSource, fetchOriginalYear, searchDiscogs } from './discogs.js';
@@ -77,6 +77,11 @@ export async function auditAlbum(layout: AlbumLayout, opts: AuditAlbumOptions = 
   } = opts;
   const tracks = await readTracks(layout);
   const coverChanges = covers && tidyCovers ? await tidyCoverFiles(layout.albumPath).catch(() => []) : [];
+  // A disc folder without a cover gets the set's, when it is the Discogs cover.
+  if (covers && tidyCovers && !skipDiscogs && token)
+    coverChanges.push(
+      ...(await coverFromSiblingDisc(layout, tracks, discogsCoverSource(token)).catch(() => [] as string[])),
+    );
   const issues: Issue[] = [];
 
   issues.push(...checkFolderFormat(layout));

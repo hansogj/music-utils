@@ -12,6 +12,7 @@ import {
   isImage,
   matchesDiscogs,
   readableImagesIn,
+  siblingDiscCovers,
   tidyCoverFiles,
   writeCover,
 } from '../cover.js';
@@ -96,6 +97,28 @@ export async function coverActions(issue: Issue, audit: AlbumAudit, token?: stri
               },
             },
       );
+    }
+  }
+  if (issue.code === 'MISSING_COVER' || issue.code === 'BAD_COVER') {
+    // Another disc folder's cover: first, unless it is known not to be the Discogs cover
+    // (one that is was copied unasked before the scan).
+    for (const s of await siblingDiscCovers(layout)) {
+      const isDiscogs = token
+        ? await interactive(() =>
+            matchesDiscogs(s.file, ref.releaseId || ref.masterId ? ref : s.ref, discogsCoverSource(token)),
+          ).catch(() => undefined)
+        : undefined;
+      const action: RepairAction = {
+        label: `Copy Disc ${s.disc}'s ${path.basename(s.file)} as ${name}${isDiscogs === false ? ' — not the Discogs cover' : ''}`,
+        run: async () => {
+          await writeCover(layout.albumPath, await asJpeg(s.file), [name]);
+          console.log(chalk.green(`  ✓ ${name} (from Disc ${s.disc})`));
+          await noteChange(layout, `${name} copied from Disc ${s.disc}`);
+          return `${name} from Disc ${s.disc}`;
+        },
+      };
+      if (isDiscogs === false) actions.push(action);
+      else actions.unshift(action);
     }
   }
   if (issue.code !== 'COVER_MISMATCH') {

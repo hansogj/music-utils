@@ -100,6 +100,28 @@ describe('coverActions', () => {
     expect(await read('info.txt')).toContain('cover.jpg was set to the cover of Discogs release r4376665');
   });
 
+  it("offers another disc folder's cover: first, or last when it isn't the Discogs cover", async () => {
+    const set = path.join(root, 'Y', 'Yezda Urfa');
+    for (const d of ['1', '2']) await fs.mkdir(path.join(set, `1976 Sacred Baboon (Disc ${d}∕2)`), { recursive: true });
+    layout = {
+      ...layout,
+      albumFolder: '1976 Sacred Baboon (Disc 2∕2)',
+      albumPath: path.join(set, '1976 Sacred Baboon (Disc 2∕2)'),
+    };
+    const discOne = await image('../1976 Sacred Baboon (Disc 1∕2)/cover.jpg', 'navy');
+
+    const actions = await coverActions(issue('MISSING_COVER'), auditOf(tagged('1')), 'token');
+    expect(actions[0].label).toBe("Copy Disc 1's cover.jpg as cover.jpg");
+    expect(await actions[0].run()).toBe('cover.jpg from Disc 1');
+    expect(await fs.readFile(file('cover.jpg'))).toEqual(discOne);
+    expect(await read('info.txt')).toContain('cover.jpg copied from Disc 1');
+
+    vi.mocked(matchesDiscogs).mockResolvedValue(false);
+    const later = await coverActions(issue('BAD_COVER', 'cover.jpg'), auditOf(tagged('1')), 'token');
+    expect(labels(later).at(-2)).toBe("Copy Disc 1's cover.jpg as cover.jpg — not the Discogs cover");
+    vi.mocked(matchesDiscogs).mockResolvedValue(undefined);
+  });
+
   it('replaces the file the issue is about, under its own name', async () => {
     await fs.writeFile(file('folder.jpg'), 'old');
     const [release] = await coverActions(issue('COVER_MISMATCH', 'folder.jpg'), auditOf(tagged('1')), 'token');

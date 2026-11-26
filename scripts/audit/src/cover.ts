@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { releaseIdFrom } from './checks/discogs-ids.js';
+import { siblingDiscs } from './disc-siblings.js';
 import type { AlbumAudit, AlbumLayout, Issue, TrackInfo } from './types.js';
 
 // cover.jpg in album and artist folders: present, and the cover of the album's Discogs
@@ -223,6 +224,46 @@ export async function tidyCoverFiles(dir: string): Promise<string[]> {
   if ((await sameImage(path.join(dir, cover), path.join(dir, folder)).catch(() => undefined)) !== true) return [];
   await fs.rm(path.join(dir, folder));
   return [`${folder} removed: the same image as ${cover}`];
+}
+
+/** A cover in another disc folder of the set (lowest disc first), with the release it was tagged from. */
+export async function siblingDiscCovers(
+  layout: AlbumLayout,
+): Promise<Array<{ disc: number; file: string; ref: AlbumRef }>> {
+  const out: Array<{ disc: number; file: string; ref: AlbumRef }> = [];
+  for (const s of await siblingDiscs(layout)) {
+    const name = await readableCoverIn(s.albumPath);
+    if (name)
+      out.push({
+        disc: s.disc,
+        file: path.join(s.albumPath, name),
+        ref: s.releaseId ? { releaseId: s.releaseId } : {},
+      });
+  }
+  return out;
+}
+
+/**
+ * A disc folder with no readable cover gets the set's: another disc folder's cover.jpg,
+ * copied unasked (repair mode, before the checks) when it is the Discogs cover of this
+ * album's release (else the set's). One that isn't, or can't be told, is offered in the
+ * MISSING_COVER / BAD_COVER menu instead. Returns what changed, for info.txt.
+ */
+export async function coverFromSiblingDisc(
+  layout: AlbumLayout,
+  tracks: TrackInfo[],
+  source: CoverSource,
+): Promise<string[]> {
+  if (await readableCoverIn(layout.albumPath)) return [];
+  const infoTxt = await fs.readFile(path.join(layout.albumPath, 'info.txt'), 'utf8').catch(() => undefined);
+  const own = albumRef(tracks, infoTxt);
+  for (const s of await siblingDiscCovers(layout)) {
+    const ref = own.releaseId || own.masterId ? own : s.ref;
+    if ((await matchesDiscogs(s.file, ref, source).catch(() => undefined)) !== true) continue;
+    await writeCover(layout.albumPath, await asJpeg(s.file), [COVER]);
+    return [`${COVER} copied from Disc ${s.disc} (the Discogs cover)`];
+  }
+  return [];
 }
 
 const refLabel = (ref: AlbumRef) =>
