@@ -1,6 +1,14 @@
 import { fitTracklist } from '@hansogj/discogs-item-lookup/format';
 
-import { type ArtistRelease, fetchArtistReleases, fetchMaster, fetchRawTracklist, numberTracklist } from './discogs.js';
+import {
+  artistFormats,
+  type ArtistRelease,
+  fetchArtistReleases,
+  fetchMaster,
+  fetchRawTracklist,
+  isHiddenFormat,
+  numberTracklist,
+} from './discogs.js';
 import { dice } from './similarity.js';
 import { type DiscogsSearchResult } from './types.js';
 
@@ -28,12 +36,13 @@ export function rankDeep(results: DiscogsSearchResult[], localCount: number): Di
   return [...results].sort((a, b) => pct(b) - pct(a) || off(a) - off(b));
 }
 
-// What to score: the artist's own entries (role Main, not appearances), the folder's year
+// What to score: the artist's own entries (role Main, not appearances; no cassettes, video or
+// 78s: HIDDEN_FORMATS, masters list no format), the folder's year
 // and those nearest it first, at most `max`.
 export function deepCandidates(entries: ArtistRelease[], year: number | undefined, max: number): ArtistRelease[] {
   const distance = (e: ArtistRelease) => (year && e.year ? Math.abs(Number(e.year) - year) : 1000);
   return entries
-    .filter((e) => e.role === 'Main')
+    .filter((e) => e.role === 'Main' && !(e.format && isHiddenFormat({ format: artistFormats(e.format) })))
     .map((e, i) => ({ e, i }))
     .sort((a, b) => distance(a.e) - distance(b.e) || a.i - b.i)
     .slice(0, max)
@@ -77,7 +86,7 @@ export async function deepSearch(opts: DeepSearchOptions): Promise<DiscogsSearch
         ...(e.year ? { year: e.year } : {}),
         ...(master ? { masterId: e.id, masterUrl: `https://www.discogs.com/master/${e.id}` } : {}),
         releaseUrl: `https://www.discogs.com/release/${releaseId}`,
-        ...(e.format ? { format: e.format.split(/,\s*/) } : {}),
+        ...(e.format ? { format: artistFormats(e.format) } : {}),
         trackCount: titles.length,
         matchScore: tracksFound(localNames, titles),
       });

@@ -207,7 +207,7 @@ scripts/audit/src/
                     replacing them; plain text → a bracket), applyOldYear(), albumSetKey()
                     (one answer per disc set). Also used by the skip prompt (askSkipAux)
   deep-search.ts  — deepSearch(): [d] at the track count warning (tagFromTracklist()): the artist's
-                    Discogs releases (fetchArtistReleases(), role Main, nearest the folder's year,
+                    Discogs releases (fetchArtistReleases(), role Main, no HIDDEN_FORMATS via artistFormats(), nearest the folder's year,
                     DEEP_SEARCH_MAX 60) scored by tracksFound() (share of local titles on the release,
                     any order), rankDeep() (then closest count); picked in pickRelease(), Esc stops
                     (listenForEscape()). [v] there: diffRows() / printDiff() in repair/tagging.ts
