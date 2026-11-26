@@ -36,6 +36,8 @@ vi.mock('../discogs.js', async (importOriginal) => ({
   pickMasterVersion: vi.fn(async () => ({ releaseId: '8', why: 'a 2-CD version' })),
 }));
 
+vi.mock('../deep-search.js', () => ({ deepSearch: vi.fn() }));
+
 // The raw-mode list needs a TTY: the test says what was picked.
 vi.mock('./release-picker.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./release-picker.js')>()),
@@ -46,6 +48,7 @@ const { discogsActionFor } = await import('./discogs-action.js');
 const { resetRepairSession } = await import('./folder.js');
 const { BackSignal, setPrompt } = await import('./prompt.js');
 const { pickRelease } = await import('./release-picker.js');
+const { deepSearch } = await import('../deep-search.js');
 const { fetchRelease, pickMasterVersion, resolveReleaseId } = await import('../discogs.js');
 
 let root: string;
@@ -238,12 +241,66 @@ describe('discogsActionFor — the tracklist', () => {
     vi.mocked(fetchRelease).mockResolvedValueOnce(release('1', titles));
     const done = answer([
       [/Release ID/, '1'],
-      [/Continue anyway\? \[y\/N\]/, ''],
+      [/Continue anyway\? \[y\] tag anyway {2}\[v\] show diff {2}\[d\] deeper search {2}\[N\] skip/, ''],
     ]);
     expect(await (await discogsActionFor(auditOf(tracks), 'token')).run()).toBeUndefined();
     done();
     expect(shown()).toContain(warning);
     expect(written.size).toBe(0);
+  });
+
+  it('shows the files and the release side by side on [v], then asks again', async () => {
+    const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3', '02 - Two.mp3']);
+    vi.mocked(fetchRelease).mockResolvedValueOnce(release('1', ['One', 'Bonus', 'Two']));
+    const done = answer([
+      [/Release ID/, '1'],
+      [/Continue anyway/, 'v'],
+      [/Continue anyway/, 'n'],
+    ]);
+    expect(await (await discogsActionFor(auditOf(tracks), 'token')).run()).toBeUndefined();
+    done();
+    expect(shown()).toMatch(/Library \(2\)\s+│ Discogs r1 \(3\)/);
+    expect(shown()).toMatch(/01 One\s+│ 1\s+One\s+✓/);
+    expect(shown()).toMatch(/02 Two\s+│ 2\s+Bonus\s+✗/);
+    expect(shown()).toMatch(/\s+│ 3\s+Two\s+\+/);
+    expect(written.size).toBe(0);
+  });
+
+  it('tags from a release the deeper search found on [d]', async () => {
+    const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3', '02 - Two.mp3']);
+    vi.mocked(fetchRelease)
+      .mockResolvedValueOnce({ ...release('1', ['One']), artistId: 42 })
+      .mockResolvedValueOnce(release('2', ['One', 'Two']));
+    vi.mocked(deepSearch).mockResolvedValueOnce([
+      { id: 2, title: 'Yezda Urfa - Boris', releaseUrl: '', trackCount: 2, matchScore: 1 },
+    ]);
+    vi.mocked(pickRelease).mockResolvedValueOnce('2');
+    const done = answer([
+      [/Release ID/, '1'],
+      [/Continue anyway/, 'd'],
+    ]);
+    expect(await (await discogsActionFor(auditOf(tracks), 'token')).run()).toBe('Tagged from Discogs release 2');
+    done();
+    expect(vi.mocked(deepSearch).mock.calls[0][0]).toMatchObject({
+      artistId: 42,
+      localNames: ['One', 'Two'],
+      year: 1976,
+    });
+    expect(written.size).toBe(2);
+  });
+
+  it('asks again when the deeper search finds nothing', async () => {
+    const tracks = await album('1976 Sacred Baboon', ['01 - One.mp3', '02 - Two.mp3']);
+    vi.mocked(fetchRelease).mockResolvedValueOnce({ ...release('1', ['One']), artistId: 42 });
+    vi.mocked(deepSearch).mockResolvedValueOnce([]);
+    const done = answer([
+      [/Release ID/, '1'],
+      [/Continue anyway/, 'd'],
+      [/Continue anyway/, ''],
+    ]);
+    expect(await (await discogsActionFor(auditOf(tracks), 'token')).run()).toBeUndefined();
+    done();
+    expect(shown()).toMatch(/Nothing in Yezda Urfa's discography holds these tracks/);
   });
 
   it("warns when the disc folders together don't hold the release's track count", async () => {

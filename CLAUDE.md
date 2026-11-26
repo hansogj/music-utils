@@ -206,6 +206,11 @@ scripts/audit/src/
                     (c: the folder's brackets, pre-filled via ask(q, prefill), edited and
                     replacing them; plain text → a bracket), applyOldYear(), albumSetKey()
                     (one answer per disc set). Also used by the skip prompt (askSkipAux)
+  deep-search.ts  — deepSearch(): [d] at the track count warning (tagFromTracklist()): the artist's
+                    Discogs releases (fetchArtistReleases(), role Main, nearest the folder's year,
+                    DEEP_SEARCH_MAX 60) scored by tracksFound() (share of local titles on the release,
+                    any order), rankDeep() (then closest count); picked in pickRelease(), Esc stops
+                    (listenForEscape()). [v] there: diffRows() / printDiff() in repair/tagging.ts
   disc-split.ts   — sliceForDisc(): the part of a Discogs release one "(Disc n∕m)" folder
                     holds (release disc numbers, else a window placed by the other disc
                     folders' track counts and title match); discOfFolder()

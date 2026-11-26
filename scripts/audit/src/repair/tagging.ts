@@ -9,6 +9,7 @@ import { type NumberedTrack } from '../discogs.js';
 import { appendChangeset, writeInfoTxtFromPaste } from '../info-txt.js';
 import { parsePastedTracklist } from '../paste.js';
 import { checkRenames, discNumbers, pairingProblem, planPairing, sanitizeTitle } from '../rename-plan.js';
+import { dice } from '../similarity.js';
 import { writeTags } from '../tag-write.js';
 import { type AlbumAudit } from '../types.js';
 import { albumMetaFromLayout, musicFilesIn } from './folder.js';
@@ -20,6 +21,51 @@ type LocalFile = { name: string; ext: 'flac' | 'mp3' };
 interface TaggedFiles {
   local: Array<{ disc: number; no: number }>;
   titles: Array<string | undefined>;
+}
+
+// Another release the user picked from the deeper search: tagging starts over with it.
+export interface PickedRelease {
+  pick: string;
+}
+
+export interface DiffRow {
+  local?: string; // "01 High Society"
+  remote?: string; // "1  High Society"
+  mark: '✓' | '~' | '✗' | '+' | '−';
+}
+
+// The files and the tracklist side by side, as they would be paired: one row per release
+// track in its order, its file (if any) on the left; files paired with nothing last.
+// ✓ same title, ~ close, ✗ different, + a track without a file, − a file without a track.
+export function diffRows(
+  files: Array<{ label: string; name: string; track?: NumberedTrack }>,
+  tracks: NumberedTrack[],
+): DiffRow[] {
+  const trackLabel = (t: NumberedTrack) => `${(t.position || String(t.no)).padEnd(3)}${t.title}`;
+  const rows: DiffRow[] = tracks.flatMap((t) => {
+    const mine = files.filter((f) => f.track === t);
+    if (mine.length === 0) return [{ remote: trackLabel(t), mark: '+' as const }];
+    return mine.map((f) => {
+      const sim = f.name ? dice(f.name, t.title) : 0;
+      return { local: f.label, remote: trackLabel(t), mark: sim >= 0.9 ? '✓' : sim >= 0.5 ? '~' : '✗' } as DiffRow;
+    });
+  });
+  return [
+    ...rows,
+    ...files.filter((f) => !f.track || !tracks.includes(f.track)).map((f) => ({ local: f.label, mark: '−' as const })),
+  ];
+}
+
+const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+export function printDiff(rows: DiffRow[], heads: [string, string]): void {
+  const width = Math.min(40, Math.max(heads[0].length, ...rows.map((r) => r.local?.length ?? 0)));
+  const colour = { '✓': chalk.green, '~': chalk.yellow, '✗': chalk.red, '+': chalk.cyan, '−': chalk.magenta };
+  console.log(chalk.bold(`    ${cut(heads[0], width).padEnd(width)} │ ${heads[1]}`));
+  for (const r of rows)
+    console.log(
+      `    ${cut(r.local ?? '', width).padEnd(width)} │ ${cut(r.remote ?? '', width).padEnd(width)} ${colour[r.mark](r.mark)}`,
+    );
 }
 
 // Pairs the files with a tracklist (Discogs or pasted) and tags them; undefined when the
@@ -36,8 +82,12 @@ export async function tagFromTracklist(
     tags: (t: { no: number; discNumber: string; total: number; title?: string }) => Record<string, string>;
     // Show every file's new title and ask before tagging (a pasted list).
     confirm?: boolean;
+    // The diff's right-hand heading: "Discogs r123", "Pasted list".
+    source: string;
+    // [d] at the count warning: search further; a release ID picked there, or undefined.
+    deeper?: () => Promise<string | undefined>;
   },
-): Promise<TaggedFiles | undefined> {
+): Promise<TaggedFiles | PickedRelease | undefined> {
   const pairing = planPairing(
     files.map((f) => f.name),
     files.map((f) => names.get(f.name) ?? ''),
@@ -63,8 +113,29 @@ export async function tagFromTracklist(
     console.log(
       chalk.yellow(`  ⚠ ${opts.countWarning(tracks.length - localCount)} (${tracks.length} vs ${localCount} local)`),
     );
-    const ok = await ask('  Continue anyway? [y/N] ');
-    if (ok.toLowerCase() !== 'y') {
+    const keys = `[y] tag anyway  [v] show diff${opts.deeper ? '  [d] deeper search' : ''}  [N] skip`;
+    while (true) {
+      const answer = (await ask(`  Continue anyway? ${keys} `)).trim().toLowerCase();
+      if (answer === 'y') break;
+      if (answer === 'v') {
+        printDiff(
+          diffRows(
+            files.map((f, i) => ({
+              label: `${String(local[i].no).padStart(2, '0')} ${names.get(f.name) || f.name}`,
+              name: names.get(f.name) ?? '',
+              track: paired[i],
+            })),
+            tracks,
+          ),
+          [`Library (${localCount})`, `${opts.source} (${tracks.length})`],
+        );
+        continue;
+      }
+      if (answer === 'd' && opts.deeper) {
+        const pick = await opts.deeper();
+        if (pick) return { pick };
+        continue;
+      }
       console.log(chalk.dim('  Skipped.'));
       return undefined;
     }
@@ -185,6 +256,7 @@ export async function tagFromPaste(audit: AlbumAudit): Promise<boolean> {
   const tagged = await tagFromTracklist(audit, files, names, tracks, {
     folderDisc,
     confirm: true,
+    source: 'Pasted list',
     countWarning: (extra) =>
       extra > 0 ? `The list has ${extra} more line(s) than there are files` : `The list has ${-extra} line(s) too few`,
     tags: ({ no, discNumber, total, title }) => ({
@@ -197,7 +269,7 @@ export async function tagFromPaste(audit: AlbumAudit): Promise<boolean> {
       ...(title ? { TITLE: title } : {}),
     }),
   });
-  if (!tagged) return false;
+  if (!tagged || 'pick' in tagged) return false;
 
   try {
     const info = await writeInfoTxtFromPaste(layout.albumPath, meta, tracks, audit.tracks);
